@@ -1,0 +1,349 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>piwriw_blog | Piwriw</title><meta name="author" content="Piwriw."><meta name="copyright" content="Piwriw."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="Piwriw Blog                          基于Gin的个人博客系统        一个后端使用了Gin、数据库ORM使用Sqlx，前端使用了Vue2.X的个人博客系统          探索本项目的文档 »            本篇README.md面向开发者 目录 项目概述 页面演示 用户端 管理端   快速启动 文件目录说明 作者 鸣谢  项目概述Piwriw">
+<meta property="og:type" content="article">
+<meta property="og:title" content="piwriw_blog">
+<meta property="og:url" content="http://example.com/2023/02/28/web/go/piwriw-blog/index.html">
+<meta property="og:site_name" content="Piwriw">
+<meta property="og:description" content="Piwriw Blog                          基于Gin的个人博客系统        一个后端使用了Gin、数据库ORM使用Sqlx，前端使用了Vue2.X的个人博客系统          探索本项目的文档 »            本篇README.md面向开发者 目录 项目概述 页面演示 用户端 管理端   快速启动 文件目录说明 作者 鸣谢  项目概述Piwriw">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/img/go.png">
+<meta property="article:published_time" content="2023-02-28T02:16:31.000Z">
+<meta property="article:modified_time" content="2023-09-21T06:23:28.123Z">
+<meta property="article:author" content="Piwriw.">
+<meta property="article:tag" content="web">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/img/go.png"><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="http://example.com/2023/02/28/web/go/piwriw-blog/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"找不到您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":false,"highlightHeightLimit":false},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  source: {
+    justifiedGallery: {
+      js: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.css'
+    }
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'piwriw_blog',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2023-09-21 14:23:28'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(win=>{
+    win.saveToLocal = {
+      set: function setWithExpiry(key, value, ttl) {
+        if (ttl === 0) return
+        const now = new Date()
+        const expiryDay = ttl * 86400000
+        const item = {
+          value: value,
+          expiry: now.getTime() + expiryDay,
+        }
+        localStorage.setItem(key, JSON.stringify(item))
+      },
+
+      get: function getWithExpiry(key) {
+        const itemStr = localStorage.getItem(key)
+
+        if (!itemStr) {
+          return undefined
+        }
+        const item = JSON.parse(itemStr)
+        const now = new Date()
+
+        if (now.getTime() > item.expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return item.value
+      }
+    }
+  
+    win.getScript = url => new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = url
+      script.async = true
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    })
+  
+    win.getCSS = (url,id = false) => new Promise((resolve, reject) => {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = url
+      if (id) link.id = id
+      link.onerror = reject
+      link.onload = link.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        link.onload = link.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(link)
+    })
+  
+      win.activateDarkMode = function () {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = function () {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+          if (t === 'dark') activateDarkMode()
+          else if (t === 'light') activateLightMode()
+        
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+    const detectApple = () => {
+      if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+    })(window)</script><meta name="generator" content="Hexo 6.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="/img/avatar.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">36</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">26</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">12</div></a></div><hr class="custom-hr"/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url('/img/go.png')"><nav id="nav"><span id="blog-info"><a href="/" title="Piwriw"><span class="site-name">Piwriw</span></a></span><div id="menus"><div id="search-button"><a class="site-page social-icon search" href="javascript:void(0);"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">piwriw_blog</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2023-02-28T02:16:31.000Z" title="发表于 2023-02-28 10:16:31">2023-02-28</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2023-09-21T06:23:28.123Z" title="更新于 2023-09-21 14:23:28">2023-09-21</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/web/">web</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">字数总计:</span><span class="word-count">455</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>1分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title="piwriw_blog"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><h1 id="Piwriw-Blog"><a href="#Piwriw-Blog" class="headerlink" title="Piwriw Blog"></a>Piwriw Blog</h1><a href="#">
+<img src="https://img.shields.io/badge/Vue-2x-green.svg">
+</a>
+<a href="#">
+<img src="https://img.shields.io/badge/Gin--green.svg">
+</a>
+<a href="#">
+<img src="https://img.shields.io/badge/Sqlx--green.svg">
+</a>
+<!-- PROJECT LOGO -->
+<br />
+
+<p align="center">
+
+  <a target="_blank" rel="noopener" href="https://github.compiwriw/piwirw_blog/">
+    <img src="https://s1.ax1x.com/2023/03/02/ppFLbUx.png" alt="Logo" width="550" height="350">
+  </a>
+
+<h3 align="center">基于Gin的个人博客系统</h3>
+  <p align="center">
+    一个后端使用了Gin、数据库ORM使用Sqlx，前端使用了Vue2.X的个人博客系统
+    <br />
+    <a target="_blank" rel="noopener" href="https://github.com/Piwriw/piwriw_blog/blob/master/README.md"><strong>探索本项目的文档 »</strong></a>
+    <br />
+
+  </p>
+
+
+<p>本篇README.md面向开发者</p>
+<h2 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h2><ul>
+<li><a href="#%E9%A1%B9%E7%9B%AE%E6%A6%82%E8%BF%B0">项目概述</a></li>
+<li><a href="#%E9%A1%B5%E9%9D%A2%E6%BC%94%E7%A4%BA">页面演示</a><ul>
+<li><a href="#%E7%94%A8%E6%88%B7%E7%AB%AF">用户端</a></li>
+<li><a href="#%E7%AE%A1%E7%90%86%E7%AB%AF">管理端</a></li>
+</ul>
+</li>
+<li><a href="#%E5%BF%AB%E9%80%9F%E5%90%AF%E5%8A%A8">快速启动</a></li>
+<li><a href="#%E5%90%8E%E7%AB%AF">文件目录说明</a></li>
+<li><a href="#%E4%BD%9C%E8%80%85">作者</a></li>
+<li><a href="#%E9%B8%A3%E8%B0%A2">鸣谢</a></li>
+</ul>
+<h3 id="项目概述"><a href="#项目概述" class="headerlink" title="项目概述"></a>项目概述</h3><p>Piwriw_blog是一个博客系统，前端基于Vue2构建了用户端和管理员系统，后端基于Gin和Sqlx构建。</p>
+<h3 id="页面演示"><a href="#页面演示" class="headerlink" title="页面演示"></a>页面演示</h3><h4 id="用户端"><a href="#用户端" class="headerlink" title="用户端"></a>用户端</h4><ul>
+<li>首页</li>
+</ul>
+<div align="center">
+  <img  width="92%" style="border-radius:10px;margin-top:20px;margin-bottom:20px;box-shadow: 2px 0 6px gray;" src="https://cdn.jsdelivr.net/gh/Piwriw/PicGo/image/20230302200947.png" />
+</div>
+
+<ul>
+<li>详情</li>
+</ul>
+<div align="center">
+  <img  width="92%" style="border-radius:10px;margin-top:20px;margin-bottom:20px;box-shadow: 2px 0 6px gray;" src="https://cdn.jsdelivr.net/gh/Piwriw/PicGo/image/20230303102800.png" />
+</div>
+
+<h4 id="管理端"><a href="#管理端" class="headerlink" title="管理端"></a>管理端</h4><ul>
+<li>文章编辑</li>
+</ul>
+<div align="center">
+  <img  width="92%" style="border-radius:10px;margin-top:20px;margin-bottom:20px;box-shadow: 2px 0 6px gray;" src="https://cdn.jsdelivr.net/gh/Piwriw/PicGo/image/20230302220716.png" />
+</div>
+
+<ul>
+<li>文章列表</li>
+</ul>
+<div align="center">
+  <img  width="92%" style="border-radius:10px;margin-top:20px;margin-bottom:20px;box-shadow: 2px 0 6px gray;" src="https://cdn.jsdelivr.net/gh/Piwriw/PicGo/image/20230302220812.png" />
+</div>
+
+<ul>
+<li>评论管理</li>
+</ul>
+<div align="center">
+  <img  width="92%" style="border-radius:10px;margin-top:20px;margin-bottom:20px;box-shadow: 2px 0 6px gray;" src="https://cdn.jsdelivr.net/gh/Piwriw/PicGo/image/20230302222146.png" />
+</div>
+
+<ul>
+<li>分类列表</li>
+</ul>
+<div align="center">
+  <img  width="92%" style="border-radius:10px;margin-top:20px;margin-bottom:20px;box-shadow: 2px 0 6px gray;" src="https://cdn.jsdelivr.net/gh/Piwriw/PicGo/image/20230302222105.png" />
+</div>
+
+<ul>
+<li>用户列表</li>
+</ul>
+<div align="center">
+  <img  width="92%" style="border-radius:10px;margin-top:20px;margin-bottom:20px;box-shadow: 2px 0 6px gray;" src="https://cdn.jsdelivr.net/gh/Piwriw/PicGo/image/20230302222631.png" />
+</div>
+
+<ul>
+<li>个人设置</li>
+</ul>
+<div align="center">
+  <img  width="92%" style="border-radius:10px;margin-top:20px;margin-bottom:20px;box-shadow: 2px 0 6px gray;" src="https://cdn.jsdelivr.net/gh/Piwriw/PicGo/image/20230302222607.png" />
+</div>
+
+<h3 id="快速启动"><a href="#快速启动" class="headerlink" title="快速启动"></a>快速启动</h3><ul>
+<li><ol>
+<li>克隆项目到本地<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">git <span class="built_in">clone</span> git@github.com:Piwriw/piwriw_blog.git</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="2">
+<li>下载后端依赖<br>(<strong>前提</strong>：你已经开启了go modules 并且设置了国内镜像代理)<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">cd piwriw_blog </span><br><span class="line">go mod tidy</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+<li><ol start="3">
+<li>下载前端依赖</li>
+</ol>
+</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">cd piwriw_blog_web/front</span><br><span class="line">yarn install</span><br><span class="line">cd piwriw_blog_web/admin</span><br><span class="line">yarn install</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><ol start="4">
+<li>启动项目<br>Go version&#x3D;1.18<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">go run main.go</span><br><span class="line">yarn run serve</span><br></pre></td></tr></table></figure></li>
+</ol>
+</li>
+</ul>
+<h3 id="文件目录说明"><a href="#文件目录说明" class="headerlink" title="文件目录说明"></a>文件目录说明</h3><h4 id="后端"><a href="#后端" class="headerlink" title="后端"></a>后端</h4><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">│  go.mod </span><br><span class="line">│  go.sum</span><br><span class="line">│  main.go  //gin入口文件</span><br><span class="line">│  web_app.log</span><br><span class="line">│      </span><br><span class="line">├─conf</span><br><span class="line">│      dev.yaml //配置文件，数据库，JWT等等</span><br><span class="line">│      </span><br><span class="line">├─controller</span><br><span class="line">│      admin.go </span><br><span class="line">│      article.go</span><br><span class="line">│      category.go</span><br><span class="line">│      code.go</span><br><span class="line">│      comment.go</span><br><span class="line">│      profile.go</span><br><span class="line">│      request.go</span><br><span class="line">│      response.go</span><br><span class="line">│      user.go</span><br><span class="line">│      validator.go //validator库的配置</span><br><span class="line">│      </span><br><span class="line">├─dao</span><br><span class="line">│  └─mysql      </span><br><span class="line">│          admin.go</span><br><span class="line">│          article.go</span><br><span class="line">│          category.go</span><br><span class="line">│          comment.go</span><br><span class="line">│          error_code.go</span><br><span class="line">│          mysql.go</span><br><span class="line">│          profile.go</span><br><span class="line">│          user.go</span><br><span class="line">│          </span><br><span class="line">├─logger</span><br><span class="line">│      logger.go    //logger的配置</span><br><span class="line">│      </span><br><span class="line">├─middlewares</span><br><span class="line">│      auth.go      // jwt中间件认证</span><br><span class="line">│      cors.go      // 跨域的解决</span><br><span class="line">│      </span><br><span class="line">├─models</span><br><span class="line">│  │  article.go</span><br><span class="line">│  │  category.go</span><br><span class="line">│  │  comments.go</span><br><span class="line">│  │  params.go</span><br><span class="line">│  │  Po.go</span><br><span class="line">│  │  profile.go</span><br><span class="line">│  │  time.go</span><br><span class="line">│  │  user.go</span><br><span class="line">│  │  </span><br><span class="line">│  └─response</span><br><span class="line">│          article.go</span><br><span class="line">│          category.go</span><br><span class="line">│          comment.go</span><br><span class="line">│          page.go</span><br><span class="line">│          user.go</span><br><span class="line">│          </span><br><span class="line">├─pkg</span><br><span class="line">│  └─jwt</span><br><span class="line">│          jwt.go</span><br><span class="line">│          </span><br><span class="line">├─router</span><br><span class="line">│      admin.go</span><br><span class="line">│      article.go</span><br><span class="line">│      category.go</span><br><span class="line">│      comment.go</span><br><span class="line">│      profile.go</span><br><span class="line">│      route.go</span><br><span class="line">│      user.go</span><br><span class="line">│      </span><br><span class="line">├─service</span><br><span class="line">│      admin.go</span><br><span class="line">│      article.go</span><br><span class="line">│      category.go</span><br><span class="line">│      comment.go</span><br><span class="line">│      profile.go</span><br><span class="line">│      user.go</span><br><span class="line">│      </span><br><span class="line">├─setting</span><br><span class="line">│      setting.go   //配置项读取</span><br><span class="line">│      </span><br><span class="line">├─sql</span><br><span class="line">│      my_blog.sql</span><br><span class="line">│      my_blog_withdata.sql</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">        </span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h3 id="使用到的框架"><a href="#使用到的框架" class="headerlink" title="使用到的框架"></a>使用到的框架</h3><ul>
+<li><a target="_blank" rel="noopener" href="https://gin-gonic.com/zh-cn/">Gin</a></li>
+<li><a target="_blank" rel="noopener" href="https://cn.vuejs.org/">Vue</a></li>
+</ul>
+<h3 id="作者"><a href="#作者" class="headerlink" title="作者"></a>作者</h3><p><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Piwriw</a></p>
+<p>@Email:<a href="mailto:&#112;&#x69;&#119;&#x72;&#x69;&#119;&#x40;&#49;&#x36;&#51;&#x2e;&#x63;&#111;&#x6d;">&#112;&#x69;&#119;&#x72;&#x69;&#119;&#x40;&#49;&#x36;&#51;&#x2e;&#x63;&#111;&#x6d;</a></p>
+<p>前端使用了 wejectchan的<a target="_blank" rel="noopener" href="https://gitee.com/wejectchan/ginblog?_from=gitee_search">ginblog</a> 并作出修改</p>
+<h3 id="鸣谢"><a href="#鸣谢" class="headerlink" title="鸣谢"></a>鸣谢</h3><ul>
+<li><a target="_blank" rel="noopener" href="https://gitee.com/wejectchan">wejectchan</a></li>
+</ul>
+<!-- links -->
+
+
+
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Piwriw.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="http://example.com/2023/02/28/web/go/piwriw-blog/">http://example.com/2023/02/28/web/go/piwriw-blog/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="http://example.com" target="_blank">Piwriw</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/web/">web</a></div><div class="post_share"><div class="social-share" data-image="/img/go.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i> 打赏</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-full"><a href="/2023/03/01/cloud/Kubeedge-%E8%BE%B9%E7%BC%98%E8%AE%A1%E7%AE%97/" title="Kubeedge-边缘计算"><img class="cover" src="/img/kubeedge.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">Kubeedge-边缘计算</div></div></a></div></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><div><a href="/2023/03/13/web/go/Gin%E4%B8%ADsession%E5%92%8Ccookies/" title="Gin中session和cookies"><img class="cover" src="/img/go.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-03-13</div><div class="title">Gin中session和cookies</div></div></a></div><div><a href="/2023/06/26/web/go/Go-%E6%97%A5%E5%BF%97%E5%BA%93Zap/" title="Go-日志库Zap"><img class="cover" src="/img/go.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-06-26</div><div class="title">Go-日志库Zap</div></div></a></div><div><a href="/2023/06/23/web/go/Git%20%E8%A7%84%E8%8C%83/" title="Git 规范"><img class="cover" src="/img/go.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-06-23</div><div class="title">Git 规范</div></div></a></div><div><a href="/2023/03/02/web/go/Linux%E9%83%A8%E7%BD%B2Go/" title="Linux部署Go"><img class="cover" src="/img/go.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-03-02</div><div class="title">Linux部署Go</div></div></a></div><div><a href="/2023/06/23/web/go/%E4%BC%98%E9%9B%85%E9%80%80%E5%87%BA%E6%B3%A8%E9%94%80%E6%9C%8D%E5%8A%A1/" title="优雅退出注销服务"><img class="cover" src="/img/go.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-06-23</div><div class="title">优雅退出注销服务</div></div></a></div><div><a href="/2023/03/13/web/go/Gin%E4%B8%AD%E9%97%B4%E4%BB%B6/" title="Gin中间件"><img class="cover" src="/img/go.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-03-13</div><div class="title">Gin中间件</div></div></a></div></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">Piwriw.</div><div class="author-info__description">该知道的都知道，不知道的慢慢了解</div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">36</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">26</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">12</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons is-center"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">Please try your best!</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Piwriw-Blog"><span class="toc-number">1.</span> <span class="toc-text">Piwriw Blog</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link"><span class="toc-number">1.0.1.</span> <span class="toc-text">基于Gin的个人博客系统</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%9B%AE%E5%BD%95"><span class="toc-number">1.1.</span> <span class="toc-text">目录</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%A1%B9%E7%9B%AE%E6%A6%82%E8%BF%B0"><span class="toc-number">1.1.1.</span> <span class="toc-text">项目概述</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%A1%B5%E9%9D%A2%E6%BC%94%E7%A4%BA"><span class="toc-number">1.1.2.</span> <span class="toc-text">页面演示</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%94%A8%E6%88%B7%E7%AB%AF"><span class="toc-number">1.1.2.1.</span> <span class="toc-text">用户端</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%AE%A1%E7%90%86%E7%AB%AF"><span class="toc-number">1.1.2.2.</span> <span class="toc-text">管理端</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%BF%AB%E9%80%9F%E5%90%AF%E5%8A%A8"><span class="toc-number">1.1.3.</span> <span class="toc-text">快速启动</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%96%87%E4%BB%B6%E7%9B%AE%E5%BD%95%E8%AF%B4%E6%98%8E"><span class="toc-number">1.1.4.</span> <span class="toc-text">文件目录说明</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%90%8E%E7%AB%AF"><span class="toc-number">1.1.4.1.</span> <span class="toc-text">后端</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8%E5%88%B0%E7%9A%84%E6%A1%86%E6%9E%B6"><span class="toc-number">1.1.5.</span> <span class="toc-text">使用到的框架</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BD%9C%E8%80%85"><span class="toc-number">1.1.6.</span> <span class="toc-text">作者</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%B8%A3%E8%B0%A2"><span class="toc-number">1.1.7.</span> <span class="toc-text">鸣谢</span></a></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2023/09/22/cloud/%E9%83%A8%E7%BD%B2K8s(%E8%84%9A%E6%9C%AC%E7%89%88%E6%9C%AC)/" title="K8s如何支持公网访问"><img src="/img/kubernetes.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s如何支持公网访问"/></a><div class="content"><a class="title" href="/2023/09/22/cloud/%E9%83%A8%E7%BD%B2K8s(%E8%84%9A%E6%9C%AC%E7%89%88%E6%9C%AC)/" title="K8s如何支持公网访问">K8s如何支持公网访问</a><time datetime="2023-09-22T09:08:55.000Z" title="发表于 2023-09-22 17:08:55">2023-09-22</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2023/09/16/cloud/Harbor/" title="Harbor"><img src="/img/harbor.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Harbor"/></a><div class="content"><a class="title" href="/2023/09/16/cloud/Harbor/" title="Harbor">Harbor</a><time datetime="2023-09-16T14:08:55.000Z" title="发表于 2023-09-16 22:08:55">2023-09-16</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2023/09/16/tools/Bash%E5%85%A5%E9%97%A8/" title="Bash入门"><img src="/img/bash.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="Bash入门"/></a><div class="content"><a class="title" href="/2023/09/16/tools/Bash%E5%85%A5%E9%97%A8/" title="Bash入门">Bash入门</a><time datetime="2023-09-16T14:08:55.000Z" title="发表于 2023-09-16 22:08:55">2023-09-16</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2023/08/16/cloud/Docker-%E5%BC%80%E5%90%AF%E8%BF%9C%E7%A8%8BCli/" title="Docker配置远程访问"><img src="/img/docker.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Docker配置远程访问"/></a><div class="content"><a class="title" href="/2023/08/16/cloud/Docker-%E5%BC%80%E5%90%AF%E8%BF%9C%E7%A8%8BCli/" title="Docker配置远程访问">Docker配置远程访问</a><time datetime="2023-08-16T14:08:55.000Z" title="发表于 2023-08-16 22:08:55">2023-08-16</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2023/08/16/cloud/K8s%E6%B5%85%E5%AD%A6/" title="K8s浅学"><img src="/img/kubernetes.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s浅学"/></a><div class="content"><a class="title" href="/2023/08/16/cloud/K8s%E6%B5%85%E5%AD%A6/" title="K8s浅学">K8s浅学</a><time datetime="2023-08-16T14:08:55.000Z" title="发表于 2023-08-16 22:08:55">2023-08-16</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2023 By Piwriw.</div><div class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="直达评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.umd.min.js"></script><div class="js-pjax"><script>(()=>{
+  const init = () => {
+    twikoo.init(Object.assign({
+      el: '#twikoo-wrap',
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: function () {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      }
+    }, null))
+  }
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(function (res) {
+      countELement.textContent = res[0].count
+    }).catch(function (err) {
+      console.error(err);
+    });
+  }
+
+  const runFn = () => {
+    init()
+    
+  }
+
+  const loadTwikoo = () => {
+    if (typeof twikoo === 'object') {
+      setTimeout(runFn,0)
+      return
+    } 
+    getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(runFn)
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = () => {
+      loadTwikoo()
+    }
+  }
+})()</script></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="is-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据库加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div class="no-result" id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

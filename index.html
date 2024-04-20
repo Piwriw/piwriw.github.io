@@ -56,7 +56,7 @@
   isHome: true,
   isHighlightShrink: false,
   isToc: false,
-  postUpdate: '2024-04-04 21:34:44'
+  postUpdate: '2024-04-20 22:12:53'
 }</script><noscript><style type="text/css">
   #nav {
     opacity: 1
@@ -160,7 +160,192 @@
       }
     }
     detectApple()
-    })(window)</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><meta name="generator" content="Hexo 6.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="/img/avatar.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">104</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">36</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">27</div></a></div><hr class="custom-hr"/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="page" id="body-wrap"><header class="full_page" id="page-header" style="background-image: url('/img/background.jpg')"><nav id="nav"><span id="blog-info"><a href="/" title="Joohwan"><span class="site-name">Joohwan</span></a></span><div id="menus"><div id="search-button"><a class="site-page social-icon search" href="javascript:void(0);"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="site-info"><h1 id="site-title">Joohwan</h1><div id="site-subtitle"><span id="subtitle"></span></div><div id="site_social_icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div id="scroll-down"><i class="fas fa-angle-down scroll-down-effects"></i></div></header><main class="layout" id="content-inner"><div class="recent-posts" id="recent-posts"><div class="recent-post-item"><div class="post_cover left"><a href="/2024/04/04/basic/go/Go%E7%9A%84Context%E5%8C%85/" title="Go的Context包"><img class="post-bg" src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Go的Context包"></a></div><div class="recent-post-info"><a class="article-title" href="/2024/04/04/basic/go/Go%E7%9A%84Context%E5%8C%85/" title="Go的Context包">Go的Context包</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2024-04-04T12:48:55.000Z" title="发表于 2024-04-04 20:48:55">2024-04-04</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/basic/">basic</a><i class="fas fa-angle-right article-meta-link"></i><a class="article-meta__categories" href="/categories/basic/go/">go</a></span></div><div class="content">Go的Context包背景context 包是标准库中一个非常重要的组件，用于在不同 Goroutine 之间传递取消信号、超时警告和其他请求范围的值。它主要用于控制并发任务的生命周期，尤其是在复杂的网络服务和多层调用栈中。context 包的使用能够帮助开发人员写出更加清晰、健壮和易于维护的并发代码。下面介绍 context 包的基本用法和设计理念。
+    })(window)</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><meta name="generator" content="Hexo 6.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="/img/avatar.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">107</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">36</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">27</div></a></div><hr class="custom-hr"/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="page" id="body-wrap"><header class="full_page" id="page-header" style="background-image: url('/img/background.jpg')"><nav id="nav"><span id="blog-info"><a href="/" title="Joohwan"><span class="site-name">Joohwan</span></a></span><div id="menus"><div id="search-button"><a class="site-page social-icon search" href="javascript:void(0);"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="site-info"><h1 id="site-title">Joohwan</h1><div id="site-subtitle"><span id="subtitle"></span></div><div id="site_social_icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div id="scroll-down"><i class="fas fa-angle-down scroll-down-effects"></i></div></header><main class="layout" id="content-inner"><div class="recent-posts" id="recent-posts"><div class="recent-post-item"><div class="post_cover left"><a href="/2023/02/28/web/go/piwriw-blog/" title="piwriw_blog"><img class="post-bg" src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="piwriw_blog"></a></div><div class="recent-post-info"><a class="article-title" href="/2023/02/28/web/go/piwriw-blog/" title="piwriw_blog">piwriw_blog</a><div class="article-meta-wrap"><span class="article-meta"><i class="fas fa-thumbtack sticky"></i><span class="sticky">置顶</span><span class="article-meta-separator">|</span></span><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2023-02-28T02:16:31.000Z" title="发表于 2023-02-28 10:16:31">2023-02-28</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/web/">web</a></span></div><div class="content">Piwriw Blog
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+    
+  
+
+基于Gin的个人博客系统
+  
+    一个后端使用了Gin、数据库ORM使用Sqlx，前端使用了Vue2.X的个人博客系统
+    
+    探索本项目的文档 »
+    
+
+  
+
+
+本篇README.md面向开发者
+目录
+项目概述
+页面演示
+用户端
+管理端
+
+
+快速启动
+文件目录说明
+作者
+鸣谢
+
+项目概述Piwriw_blog是一个博客系统，前端基于Vue2构建了用户端和管理员系统，后端基于Gin和Sqlx构建。
+页面演示用户端
+首页
+
+
+  
+
+
+
+详情
+
+
+  
+
+
+管理端
+文章编辑
+
+
+  
+
+
+
+文章列表
+
+
+  
+
+
+
+评论管理
+
+
+  
+
+
+
+分类列表
+
+
+  
+
+
+
+用户列表
+
+
+  
+
+
+
+个人设置
+
+
+  
+
+
+快速启动
+
+克隆项目到本地git clone git@github.com:Piwriw/piwriw_blog.git
+
+
+
+下载后端依赖(前提：你已经开启了go modules 并且设置了国内镜像代理)cd piwriw_blog go mod tidy
+
+
+
+下载前端依赖
+ ...</div></div></div><div class="recent-post-item"><div class="post_cover right"><a href="/2024/04/19/basic/meeting/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C-%E7%BD%91%E9%99%85%E6%8E%A7%E5%88%B6%E6%8A%A5%E6%96%87%E5%8D%8F%E8%AE%AE/" title="计算机网络-网际控制报文协议"><img class="post-bg" src="/img/basic.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="计算机网络-网际控制报文协议"></a></div><div class="recent-post-info"><a class="article-title" href="/2024/04/19/basic/meeting/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C-%E7%BD%91%E9%99%85%E6%8E%A7%E5%88%B6%E6%8A%A5%E6%96%87%E5%8D%8F%E8%AE%AE/" title="计算机网络-网际控制报文协议">计算机网络-网际控制报文协议</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2024-04-19T14:10:55.000Z" title="发表于 2024-04-19 22:10:55">2024-04-19</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/basic/">basic</a><i class="fas fa-angle-right article-meta-link"></i><a class="article-meta__categories" href="/categories/basic/%E9%9D%A2%E8%AF%95/">面试</a></span></div><div class="content">计算机网络-网际控制报文协议主要是为了有效的转发IP数据报已经提高IP数据报交付成功
+ICMP差错报文的种类
+终点不可达
+源点抑制
+时间超时
+参数问题
+重定向
+
+ICMP的应用1.分组网间探测（PING）使用ping来测试主机或者路由器的连通性
+2.跟踪路由traceroute和tracert：探测IP数据报从源主机到目的主机需要经过哪些路由器
+
+UNIX版中，具体使用traceroute，其在运输层使用UDP协议，在网际层使用ICMP。报文类型只有差错报告报文
+Windows版中，具体使用tracert,其在应用层直接使用网际层ICMP，使用了回答请求和回答报文和差错报告报文
+
+
+</div></div></div><div class="recent-post-item"><div class="post_cover left"><a href="/2024/04/18/basic/meeting/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C-%E8%B7%AF%E7%94%B1%E9%80%89%E6%8B%A9%E5%8D%8F%E8%AE%AE/" title="计算机网络-路由选择协议"><img class="post-bg" src="/img/basic.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="计算机网络-路由选择协议"></a></div><div class="recent-post-info"><a class="article-title" href="/2024/04/18/basic/meeting/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C-%E8%B7%AF%E7%94%B1%E9%80%89%E6%8B%A9%E5%8D%8F%E8%AE%AE/" title="计算机网络-路由选择协议">计算机网络-路由选择协议</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2024-04-18T14:10:55.000Z" title="发表于 2024-04-18 22:10:55">2024-04-18</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/basic/">basic</a><i class="fas fa-angle-right article-meta-link"></i><a class="article-meta__categories" href="/categories/basic/%E9%9D%A2%E8%AF%95/">面试</a></span></div><div class="content">计算机网络-路由选择协议路由选择协议主要分为俩类：
+
+静态路由选择：采用人工配置的方式给路由器添加网络路由、默认路由和特定路由等路由条目
+动态路由选择：路由器通过路由协议子哦对那个获取路由信息
+
+路由信息协议（RIP）RIP（路由信息协议）：RIP使用跳数（Hop Count）作为度量来衡量到底目的网络的距离
+
+RIP将路由器到直连网络的距离定义为1
+
+RIP将路由器到非直连网络的的距离定义所经给的路由器+1
+
+RIP允许一条路由器最多包含15个路由器，距离&#x3D;16，RIP不可达
+
+RIP会优先选择距离小的链路
+
+RIP在网络拥有多条相等距离的情况下，会进行负载均衡
+
+
+三个重要特点：
+
+RIP仅和相邻路由器交换信息
+RIP交换的是路由器的路由表
+RIP通过周期性交换，更新路由表
+
+开放最短路径优先协议（OSPF）开放最短路径优先（OSPF）是一种在自治系统内部使用的链路状态路由协议。OSPF是互联网工程任务组（IETF）为互联网开发的，用于替代RIP（路由信息协议）。它的工作原理基于Dijkstra算法，也被称为最短路径优先（SPF）算法
+边界网关协议（BGP）属于外部网关协 ...</div></div></div><div class="recent-post-item"><div class="post_cover right"><a href="/2024/04/17/basic/meeting/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C-IPV4/" title="计算机网络-IPV4"><img class="post-bg" src="/img/basic.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="计算机网络-IPV4"></a></div><div class="recent-post-info"><a class="article-title" href="/2024/04/17/basic/meeting/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C-IPV4/" title="计算机网络-IPV4">计算机网络-IPV4</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2024-04-17T14:10:55.000Z" title="发表于 2024-04-17 22:10:55">2024-04-17</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/basic/">basic</a><i class="fas fa-angle-right article-meta-link"></i><a class="article-meta__categories" href="/categories/basic/%E9%9D%A2%E8%AF%95/">面试</a></span></div><div class="content">计算机网络-IPV4分类编址的IPV4主要方法：
+通过划分32Bit的IPV4地址，分为网络号和主机号
+
+网络号：标记主机（或路由器的）的接口所连接到的网络
+
+主机号:  标记主机（或路由器）
+
+
+主要有五类地址：
+
+A类地址：网络号8bit，主机号24bit，网络号的第一位固定为0
+B类地址：网络号16bit，主机号16bit，网络号前俩位为10
+C类地址：网络号24bt，主机号8bit，网络号前三位110
+D类地址，多播地址，前面四位1110
+E类地址：保留地址，前面四位1111
+
+特点：
+
+A、B、C类地址才分配给主机（路由器）
+主机号全0是网络地址，不能分配给主机（路由器）
+主机号全1是广播地址，不能分配给主机（路由器）
+
+A类地址
+最小网络号：1.0.0.0 最大网络号：126.0.0.1
+
+
+全0保留地址，所以00000001（1.0.0.0)是最小网络号
+
+01111111（127.0.0.1），是本地回环地址，不能指派
+
+本地最小回环测试地址：127.0.0.1
+
+本地最大回环测试地址：127.255.255.254
+
+
+
+01111110（126.0.0.0），是最大 ...</div></div></div><div class="recent-post-item"><div class="post_cover left"><a href="/2024/04/04/basic/go/Go%E7%9A%84Context%E5%8C%85/" title="Go的Context包"><img class="post-bg" src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Go的Context包"></a></div><div class="recent-post-info"><a class="article-title" href="/2024/04/04/basic/go/Go%E7%9A%84Context%E5%8C%85/" title="Go的Context包">Go的Context包</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2024-04-04T12:48:55.000Z" title="发表于 2024-04-04 20:48:55">2024-04-04</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/basic/">basic</a><i class="fas fa-angle-right article-meta-link"></i><a class="article-meta__categories" href="/categories/basic/go/">go</a></span></div><div class="content">Go的Context包背景context 包是标准库中一个非常重要的组件，用于在不同 Goroutine 之间传递取消信号、超时警告和其他请求范围的值。它主要用于控制并发任务的生命周期，尤其是在复杂的网络服务和多层调用栈中。context 包的使用能够帮助开发人员写出更加清晰、健壮和易于维护的并发代码。下面介绍 context 包的基本用法和设计理念。
 为什么需要使用context在并发程序中使用 Context 主要有两个目的：一是用来取消操作，二是用来传递请求范围的数据。
 
 取消操作：当一个 Context 被取消时，所有基于该 Context 的操作都应该被取消。这是通过检查 ctx.Done() 返回的通道是否被关闭来实现的。如果该通道被关闭，表示 Context 已经被取消，相应的操作也应该停止。
@@ -257,63 +442,16 @@ snowflakeSnowflake 雪花算法，由Twitter提出并开源，可在分布式环
 1 bit：首位无效因为二进制里第一个 bit 为如果是 1，那么都是负数，但是我们生成的 id 都是正数，所以第一个 bit 统一都是 0。
 41 bit：表示的是时间戳，单位是毫秒41 bit 可以表示的数字多达 2^41 - 1，也就是可以标识 2 ^ 41 - 1 个毫秒值，换算成年就是表示 69 年的时间。
 10 bit：记录工作机器 id，代表的是这个服务最多可以部署在 2^10 台机器上，也就是 1024 台机器10 bit 里 5 个 bit 代表机房 id，5 个 bit 代表机器 id。意思就是最多代表 2 ^ 5 个机房（32 个机房），每个机房里可以代表 2 ^ 5 个机器（32 台机器），也可以根据自己公司的实际情况确定。
-12 bit： ...</div></div></div><div class="recent-post-item"><div class="post_cover left"><a href="/2024/03/30/web/distributed/ACID%E7%90%86%E8%AE%BA/" title="ACID理论"><img class="post-bg" src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="ACID理论"></a></div><div class="recent-post-info"><a class="article-title" href="/2024/03/30/web/distributed/ACID%E7%90%86%E8%AE%BA/" title="ACID理论">ACID理论</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2024-03-30T02:56:27.000Z" title="发表于 2024-03-30 10:56:27">2024-03-30</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/web/">web</a><i class="fas fa-angle-right article-meta-link"></i><a class="article-meta__categories" href="/categories/web/%E5%88%86%E5%B8%83%E5%BC%8F/">分布式</a></span></div><div class="content">ACID理论背景ACID主要是事务中的概念，分别是
-A（Atomicit）：原子性
-C（Consistency）：一致性
-I（Isolation）：隔离性
-D（Durability）：持久性
-A原子性主要是在一个事务中，“要么全部完成、要么全部不完成”
-经典的银行转账案例：
-A：从A账户去一百
-B：从存入100
-AB是在一个事务里面，不能只有A|B其中一个成功，不然银行账户对不上金额
-C一致性一致性代表：事务开始前和事务结束之后，数据库的一致性没有改变，事务中的数据一致性
-
-I隔离性隔离性代表：多个并发事务同时拥有对数据进行读书和修改的能力，如果⼀个事务要访问的数据正在被另外⼀个事务修改，只要另外⼀个事务未提交，则它所访问的数据就不受未提交事务的影响
-D持久性持久性代表：事务处理结束后，对数据的修改是永久的，即便系统故障也不会丢失
-优点1、数据一致性：ACID 确保数据在任何事务执行后保持一致和准确。
-2、数据完整性：ACID 通过确保对数据库的任何更改都是永久性的，并且不会丢失，从而维护了数据的完整性。
-3、并发控制：ACID 通过防止事务之间的干扰来帮助管理并发创建的多个事务。
-4 ...</div></div></div><div class="recent-post-item"><div class="post_cover right"><a href="/2024/03/28/web/rpc/%E5%88%9D%E8%AF%86RPC/" title="初识RPC"><img class="post-bg" src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="初识RPC"></a></div><div class="recent-post-info"><a class="article-title" href="/2024/03/28/web/rpc/%E5%88%9D%E8%AF%86RPC/" title="初识RPC">初识RPC</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2024-03-28T04:56:27.000Z" title="发表于 2024-03-28 12:56:27">2024-03-28</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/web/">web</a><i class="fas fa-angle-right article-meta-link"></i><a class="article-meta__categories" href="/categories/web/rpc/">rpc</a></span></div><div class="content">初识RPC介绍RPC 是远程过程调用的简称，是分布式系统中不同节点间流行的通信方式。在互联网时代，RPC 已经和 IPC 一样成为一个不可或缺的基础构件。因此 Go 语言的标准库也提供了一个简单的 RPC 实现，我们将以此为入口学习 RPC 的各种用法。
-hello RPC
-server端代码
-
-package mainimport (	&quot;log&quot;	&quot;net&quot;	&quot;net/rpc&quot;)type HelloService struct&#123;&#125;func (p *HelloService) Hello(request string, reply *string) error &#123;	*reply = &quot;hello:&quot; + request	return nil&#125;func main() &#123;	rpc.RegisterName(&quot;HelloService&quot;, new(HelloService))	listener, err := net.Listen(&quot; ...</div></div></div><div class="recent-post-item"><div class="post_cover left"><a href="/2024/03/14/basic/go/Gocv%E5%AE%89%E8%A3%85(Windows)/" title="Gocv安装(Windows)"><img class="post-bg" src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gocv安装(Windows)"></a></div><div class="recent-post-info"><a class="article-title" href="/2024/03/14/basic/go/Gocv%E5%AE%89%E8%A3%85(Windows)/" title="Gocv安装(Windows)">Gocv安装(Windows)</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2024-03-14T04:08:55.000Z" title="发表于 2024-03-14 12:08:55">2024-03-14</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/basic/">basic</a><i class="fas fa-angle-right article-meta-link"></i><a class="article-meta__categories" href="/categories/basic/go/">go</a></span></div><div class="content">Gocv安装(Windows)什么是GoCVgocv 是 OpenCV 4.x 计算机视觉库的包装器。 它为最新版本的 OpenCV 提供了 Go 语言接口
-官网链接：https://gocv.io/
-安装1.安装Go（PASS）2.安装GoCVgo get -u -d gocv.io/x/gocv# 执行完这条命令后，%GOPATH%\pkg\mod下会出现一个文件夹&quot;[http://gocv.io](https://link.zhihu.com/?target=http%3A//gocv.io)&quot;
-
-3.安装MinGW-W64注意安装版本：8.1.0
-MinGW-W64版本
-
-
-添加环境变量到系统环境变量
-
-4.安装Cmake安装链接
-
-5 安装opencv（谨记，要手动添加环境变量，不要忘了！）chdir %GOPATH%\src\gocv.io\x\gocvwin_build_opencv.cmd
-
-主要是win_build_opencv.cmd文件：
-可以把文件opencv-4.6.0.zip和opencv_contrib-4.6.0.zip先放到C:\o ...</div></div></div><div class="recent-post-item"><div class="post_cover right"><a href="/2024/03/08/cloud/k8s/K8s-%E6%96%87%E4%BB%B6%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9Fnfs/" title="K8s-文件管理系统nfs（centos）"><img class="post-bg" src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s-文件管理系统nfs（centos）"></a></div><div class="recent-post-info"><a class="article-title" href="/2024/03/08/cloud/k8s/K8s-%E6%96%87%E4%BB%B6%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9Fnfs/" title="K8s-文件管理系统nfs（centos）">K8s-文件管理系统nfs（centos）</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2024-03-08T06:08:55.000Z" title="发表于 2024-03-08 14:08:55">2024-03-08</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><a class="article-meta__categories" href="/categories/cloud/k8s/">k8s</a></span></div><div class="content">K8s-文件管理系统nfs（centos）什么是nfsNFS在文件传送或信息传输过程中依赖于RPC协议，RPC协议可以在不同的系统之间使用。使用NFS用户端时只需要把远程文件系统挂载到自己的文件系统下即可访问，NFS有客户端和服务端
-Deploynfs部署
-centos部署nfs
-yum install -y nfs-utils rpcbind
-
-执行命令 vim /etc/exports，创建 exports 文件，文件内容如下
-/data/nfs_root/ *(insecure,rw,sync,no_root_squash)	
-
-启动nfs
-mkdir -p /data/nfs_rootsystemctl enable rpcbindsystemctl enable nfs-serversystemctl start rpcbindsystemctl start nfs-serverexportfs -r
-
-nfs-provisoner部署# 获取helm chartshelm repo add nfs-subdir-external-provisioner https://ku ...</div></div></div><nav id="pagination"><div class="pagination"><span class="page-number current">1</span><a class="page-number" href="/page/2/#content-inner">2</a><span class="space">&hellip;</span><a class="page-number" href="/page/11/#content-inner">11</a><a class="extend next" rel="next" href="/page/2/#content-inner"><i class="fas fa-chevron-right fa-fw"></i></a></div></nav></div><div class="aside-content" id="aside-content"><div class="card-widget card-map"><div class="card-content"><div class="item-headline"><i class="fas fa-globe-asia" aria-hidden="true"></i><span>访客地图</span></div><script id="clstr_globe" type="text/javascript" defer="defer" src="//clustrmaps.com/globe.js?d=YyoMMHBiWFLjoLGTWWty-KlZJ1LcgGpGR22unnbKzaE"></script></div></div><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">Joohwan.</div><div class="author-info__description">该知道的都知道，不知道的慢慢了解</div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">104</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">36</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">27</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons is-center"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2024/04/04/basic/go/Go%E7%9A%84Context%E5%8C%85/" title="Go的Context包"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Go的Context包"/></a><div class="content"><a class="title" href="/2024/04/04/basic/go/Go%E7%9A%84Context%E5%8C%85/" title="Go的Context包">Go的Context包</a><time datetime="2024-04-04T12:48:55.000Z" title="发表于 2024-04-04 20:48:55">2024-04-04</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2024/04/03/tools/VM%E6%8B%93%E5%B1%95Centos%E7%A3%81%E7%9B%98/" title="VM拓展Centos磁盘"><img src="/img/basic_read.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="VM拓展Centos磁盘"/></a><div class="content"><a class="title" href="/2024/04/03/tools/VM%E6%8B%93%E5%B1%95Centos%E7%A3%81%E7%9B%98/" title="VM拓展Centos磁盘">VM拓展Centos磁盘</a><time datetime="2024-04-03T15:08:55.000Z" title="发表于 2024-04-03 23:08:55">2024-04-03</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2024/03/31/basic/go/Go-%E6%8E%A7%E5%88%B6%E5%8D%8F%E7%A8%8B%E6%95%B0%E9%87%8F/" title="Go-控制协程数量"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Go-控制协程数量"/></a><div class="content"><a class="title" href="/2024/03/31/basic/go/Go-%E6%8E%A7%E5%88%B6%E5%8D%8F%E7%A8%8B%E6%95%B0%E9%87%8F/" title="Go-控制协程数量">Go-控制协程数量</a><time datetime="2024-03-31T02:56:27.000Z" title="发表于 2024-03-31 10:56:27">2024-03-31</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2024/03/30/web/distributed/%E5%88%86%E5%B8%83%E5%BC%8F-CAP%E7%90%86%E8%AE%BA/" title="分布式-CAP理论"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="分布式-CAP理论"/></a><div class="content"><a class="title" href="/2024/03/30/web/distributed/%E5%88%86%E5%B8%83%E5%BC%8F-CAP%E7%90%86%E8%AE%BA/" title="分布式-CAP理论">分布式-CAP理论</a><time datetime="2024-03-30T14:56:27.000Z" title="发表于 2024-03-30 22:56:27">2024-03-30</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2024/03/30/web/distributed/%E5%88%86%E5%B8%83%E5%BC%8F-Base%E7%90%86%E8%AE%BA/" title="分布式-Base理论"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="分布式-Base理论"/></a><div class="content"><a class="title" href="/2024/03/30/web/distributed/%E5%88%86%E5%B8%83%E5%BC%8F-Base%E7%90%86%E8%AE%BA/" title="分布式-Base理论">分布式-Base理论</a><time datetime="2024-03-30T12:56:27.000Z" title="发表于 2024-03-30 20:56:27">2024-03-30</time></div></div></div></div><div class="card-widget card-categories"><div class="item-headline">
+12 bit： ...</div></div></div><nav id="pagination"><div class="pagination"><span class="page-number current">1</span><a class="page-number" href="/page/2/#content-inner">2</a><span class="space">&hellip;</span><a class="page-number" href="/page/11/#content-inner">11</a><a class="extend next" rel="next" href="/page/2/#content-inner"><i class="fas fa-chevron-right fa-fw"></i></a></div></nav></div><div class="aside-content" id="aside-content"><div class="card-widget card-map"><div class="card-content"><div class="item-headline"><i class="fas fa-globe-asia" aria-hidden="true"></i><span>访客地图</span></div><script id="clstr_globe" type="text/javascript" defer="defer" src="//clustrmaps.com/globe.js?d=YyoMMHBiWFLjoLGTWWty-KlZJ1LcgGpGR22unnbKzaE"></script></div></div><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">Joohwan.</div><div class="author-info__description">该知道的都知道，不知道的慢慢了解</div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">107</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">36</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">27</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons is-center"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2024/04/19/basic/meeting/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C-%E7%BD%91%E9%99%85%E6%8E%A7%E5%88%B6%E6%8A%A5%E6%96%87%E5%8D%8F%E8%AE%AE/" title="计算机网络-网际控制报文协议"><img src="/img/basic.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="计算机网络-网际控制报文协议"/></a><div class="content"><a class="title" href="/2024/04/19/basic/meeting/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C-%E7%BD%91%E9%99%85%E6%8E%A7%E5%88%B6%E6%8A%A5%E6%96%87%E5%8D%8F%E8%AE%AE/" title="计算机网络-网际控制报文协议">计算机网络-网际控制报文协议</a><time datetime="2024-04-19T14:10:55.000Z" title="发表于 2024-04-19 22:10:55">2024-04-19</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2024/04/18/basic/meeting/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C-%E8%B7%AF%E7%94%B1%E9%80%89%E6%8B%A9%E5%8D%8F%E8%AE%AE/" title="计算机网络-路由选择协议"><img src="/img/basic.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="计算机网络-路由选择协议"/></a><div class="content"><a class="title" href="/2024/04/18/basic/meeting/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C-%E8%B7%AF%E7%94%B1%E9%80%89%E6%8B%A9%E5%8D%8F%E8%AE%AE/" title="计算机网络-路由选择协议">计算机网络-路由选择协议</a><time datetime="2024-04-18T14:10:55.000Z" title="发表于 2024-04-18 22:10:55">2024-04-18</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2024/04/17/basic/meeting/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C-IPV4/" title="计算机网络-IPV4"><img src="/img/basic.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="计算机网络-IPV4"/></a><div class="content"><a class="title" href="/2024/04/17/basic/meeting/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C-IPV4/" title="计算机网络-IPV4">计算机网络-IPV4</a><time datetime="2024-04-17T14:10:55.000Z" title="发表于 2024-04-17 22:10:55">2024-04-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2024/04/04/basic/go/Go%E7%9A%84Context%E5%8C%85/" title="Go的Context包"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Go的Context包"/></a><div class="content"><a class="title" href="/2024/04/04/basic/go/Go%E7%9A%84Context%E5%8C%85/" title="Go的Context包">Go的Context包</a><time datetime="2024-04-04T12:48:55.000Z" title="发表于 2024-04-04 20:48:55">2024-04-04</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2024/04/03/tools/VM%E6%8B%93%E5%B1%95Centos%E7%A3%81%E7%9B%98/" title="VM拓展Centos磁盘"><img src="/img/basic_read.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="VM拓展Centos磁盘"/></a><div class="content"><a class="title" href="/2024/04/03/tools/VM%E6%8B%93%E5%B1%95Centos%E7%A3%81%E7%9B%98/" title="VM拓展Centos磁盘">VM拓展Centos磁盘</a><time datetime="2024-04-03T15:08:55.000Z" title="发表于 2024-04-03 23:08:55">2024-04-03</time></div></div></div></div><div class="card-widget card-categories"><div class="item-headline">
             <i class="fas fa-folder-open"></i>
             <span>分类</span>
             <a class="card-more-btn" href="/categories/" title="查看更多">
     <i class="fas fa-angle-right"></i></a>
             </div>
             <ul class="card-category-list" id="aside-cat-list">
-            <li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/"><span class="card-category-list-name">basic</span><span class="card-category-list-count">8</span></a><ul class="card-category-list child"><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/go/"><span class="card-category-list-name">go</span><span class="card-category-list-count">7</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/%E9%9D%A2%E8%AF%95/"><span class="card-category-list-name">面试</span><span class="card-category-list-count">1</span></a></li></ul></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/cloud/"><span class="card-category-list-name">cloud</span><span class="card-category-list-count">56</span></a><ul class="card-category-list child"><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/cloud/Harbor/"><span class="card-category-list-name">Harbor</span><span class="card-category-list-count">1</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/cloud/Istio/"><span class="card-category-list-name">Istio</span><span class="card-category-list-count">1</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/cloud/crio/"><span class="card-category-list-name">crio</span><span class="card-category-list-count">1</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/cloud/devops/"><span class="card-category-list-name">devops</span><span class="card-category-list-count">1</span></a></li></ul></li>
-            </ul></div><div class="card-widget card-tags"><div class="item-headline"><i class="fas fa-tags"></i><span>标签</span></div><div class="card-tag-cloud"><a href="/tags/kubeedge/" style="font-size: 1.3em; color: #99a1ac">kubeedge</a> <a href="/tags/private/" style="font-size: 1.22em; color: #999ea4">private</a> <a href="/tags/%E7%83%AD%E5%8A%A0%E8%BD%BD/" style="font-size: 1.1em; color: #999">热加载</a> <a href="/tags/sql/" style="font-size: 1.1em; color: #999">sql</a> <a href="/tags/devops/" style="font-size: 1.1em; color: #999">devops</a> <a href="/tags/Gin/" style="font-size: 1.14em; color: #999b9d">Gin</a> <a href="/tags/cookies/" style="font-size: 1.1em; color: #999">cookies</a> <a href="/tags/docker/" style="font-size: 1.14em; color: #999b9d">docker</a> <a href="/tags/%E4%B8%AD%E9%97%B4%E4%BB%B6/" style="font-size: 1.1em; color: #999">中间件</a> <a href="/tags/validation/" style="font-size: 1.1em; color: #999">validation</a> <a href="/tags/crio/" style="font-size: 1.1em; color: #999">crio</a> <a href="/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/" style="font-size: 1.1em; color: #999">计算机网络</a> <a href="/tags/sqlx/" style="font-size: 1.1em; color: #999">sqlx</a> <a href="/tags/cloud/" style="font-size: 1.46em; color: #99a7bb">cloud</a> <a href="/tags/jwt/" style="font-size: 1.1em; color: #999">jwt</a> <a href="/tags/poem/" style="font-size: 1.22em; color: #999ea4">poem</a> <a href="/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/" style="font-size: 1.26em; color: #999fa8">微服务</a> <a href="/tags/go/" style="font-size: 1.42em; color: #99a6b7">go</a> <a href="/tags/zap/" style="font-size: 1.14em; color: #999b9d">zap</a> <a href="/tags/%E9%99%90%E6%B5%81%E7%AD%96%E7%95%A5/" style="font-size: 1.1em; color: #999">限流策略</a> <a href="/tags/%E9%9D%A2%E8%AF%95/" style="font-size: 1.1em; color: #999">面试</a> <a href="/tags/web/" style="font-size: 1.38em; color: #99a4b4">web</a> <a href="/tags/argo/" style="font-size: 1.1em; color: #999">argo</a> <a href="/tags/Istio/" style="font-size: 1.1em; color: #999">Istio</a> <a href="/tags/swagger/" style="font-size: 1.1em; color: #999">swagger</a> <a href="/tags/viper/" style="font-size: 1.1em; color: #999">viper</a> <a href="/tags/grafana/" style="font-size: 1.14em; color: #999b9d">grafana</a> <a href="/tags/k8s/" style="font-size: 1.5em; color: #99a9bf">k8s</a> <a href="/tags/tools/" style="font-size: 1.3em; color: #99a1ac">tools</a> <a href="/tags/session/" style="font-size: 1.1em; color: #999">session</a> <a href="/tags/Linux%E9%83%A8%E7%BD%B2Go/" style="font-size: 1.1em; color: #999">Linux部署Go</a> <a href="/tags/prometheus/" style="font-size: 1.1em; color: #999">prometheus</a> <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" style="font-size: 1.34em; color: #99a3b0">分布式</a> <a href="/tags/%E8%87%AA%E5%AE%9A%E4%B9%89%E4%B8%9A%E5%8A%A1%E7%8A%B6%E6%80%81%E7%A0%81/" style="font-size: 1.1em; color: #999">自定义业务状态码</a> <a href="/tags/Harbor/" style="font-size: 1.1em; color: #999">Harbor</a> <a href="/tags/client-go/" style="font-size: 1.18em; color: #999ca1">client-go</a></div></div><div class="card-widget card-archives"><div class="item-headline"><i class="fas fa-archive"></i><span>归档</span><a class="card-more-btn" href="/archives/" title="查看更多">
-    <i class="fas fa-angle-right"></i></a></div><ul class="card-archive-list"><li class="card-archive-list-item"><a class="card-archive-list-link" href="/archives/2024/04/"><span class="card-archive-list-date">四月 2024</span><span class="card-archive-list-count">2</span></a></li><li class="card-archive-list-item"><a class="card-archive-list-link" href="/archives/2024/03/"><span class="card-archive-list-date">三月 2024</span><span class="card-archive-list-count">10</span></a></li><li class="card-archive-list-item"><a class="card-archive-list-link" href="/archives/2024/02/"><span class="card-archive-list-date">二月 2024</span><span class="card-archive-list-count">11</span></a></li><li class="card-archive-list-item"><a class="card-archive-list-link" href="/archives/2024/01/"><span class="card-archive-list-date">一月 2024</span><span class="card-archive-list-count">4</span></a></li><li class="card-archive-list-item"><a class="card-archive-list-link" href="/archives/2023/12/"><span class="card-archive-list-date">十二月 2023</span><span class="card-archive-list-count">12</span></a></li><li class="card-archive-list-item"><a class="card-archive-list-link" href="/archives/2023/11/"><span class="card-archive-list-date">十一月 2023</span><span class="card-archive-list-count">11</span></a></li><li class="card-archive-list-item"><a class="card-archive-list-link" href="/archives/2023/10/"><span class="card-archive-list-date">十月 2023</span><span class="card-archive-list-count">16</span></a></li><li class="card-archive-list-item"><a class="card-archive-list-link" href="/archives/2023/09/"><span class="card-archive-list-date">九月 2023</span><span class="card-archive-list-count">5</span></a></li></ul></div><div class="card-widget card-webinfo"><div class="item-headline"><i class="fas fa-chart-line"></i><span>网站资讯</span></div><div class="webinfo"><div class="webinfo-item"><div class="item-name">文章数目 :</div><div class="item-count">104</div></div><div class="webinfo-item"><div class="item-name">本站总字数 :</div><div class="item-count">95.9k</div></div><div class="webinfo-item"><div class="item-name">本站访客数 :</div><div class="item-count" id="busuanzi_value_site_uv"><i class="fa-solid fa-spinner fa-spin"></i></div></div><div class="webinfo-item"><div class="item-name">本站总访问量 :</div><div class="item-count" id="busuanzi_value_site_pv"><i class="fa-solid fa-spinner fa-spin"></i></div></div><div class="webinfo-item"><div class="item-name">最后更新时间 :</div><div class="item-count" id="last-push-date" data-lastPushDate="2024-04-04T13:34:43.784Z"><i class="fa-solid fa-spinner fa-spin"></i></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2023 - 2024 By Joohwan.</div><div class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.umd.min.js"></script><div class="js-pjax"><script>window.typedJSFn = {
+            <li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/"><span class="card-category-list-name">basic</span><span class="card-category-list-count">11</span></a><ul class="card-category-list child"><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/go/"><span class="card-category-list-name">go</span><span class="card-category-list-count">7</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/%E9%9D%A2%E8%AF%95/"><span class="card-category-list-name">面试</span><span class="card-category-list-count">4</span></a></li></ul></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/cloud/"><span class="card-category-list-name">cloud</span><span class="card-category-list-count">56</span></a><ul class="card-category-list child"><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/cloud/Harbor/"><span class="card-category-list-name">Harbor</span><span class="card-category-list-count">1</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/cloud/Istio/"><span class="card-category-list-name">Istio</span><span class="card-category-list-count">1</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/cloud/crio/"><span class="card-category-list-name">crio</span><span class="card-category-list-count">1</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/cloud/devops/"><span class="card-category-list-name">devops</span><span class="card-category-list-count">1</span></a></li></ul></li>
+            </ul></div><div class="card-widget card-tags"><div class="item-headline"><i class="fas fa-tags"></i><span>标签</span></div><div class="card-tag-cloud"><a href="/tags/devops/" style="font-size: 1.1em; color: #999">devops</a> <a href="/tags/%E8%87%AA%E5%AE%9A%E4%B9%89%E4%B8%9A%E5%8A%A1%E7%8A%B6%E6%80%81%E7%A0%81/" style="font-size: 1.1em; color: #999">自定义业务状态码</a> <a href="/tags/tools/" style="font-size: 1.3em; color: #99a1ac">tools</a> <a href="/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/" style="font-size: 1.22em; color: #999ea4">计算机网络</a> <a href="/tags/Linux%E9%83%A8%E7%BD%B2Go/" style="font-size: 1.1em; color: #999">Linux部署Go</a> <a href="/tags/zap/" style="font-size: 1.14em; color: #999b9d">zap</a> <a href="/tags/jwt/" style="font-size: 1.1em; color: #999">jwt</a> <a href="/tags/go/" style="font-size: 1.42em; color: #99a6b7">go</a> <a href="/tags/cloud/" style="font-size: 1.46em; color: #99a7bb">cloud</a> <a href="/tags/grafana/" style="font-size: 1.14em; color: #999b9d">grafana</a> <a href="/tags/sql/" style="font-size: 1.1em; color: #999">sql</a> <a href="/tags/sqlx/" style="font-size: 1.1em; color: #999">sqlx</a> <a href="/tags/client-go/" style="font-size: 1.18em; color: #999ca1">client-go</a> <a href="/tags/%E9%9D%A2%E8%AF%95/" style="font-size: 1.22em; color: #999ea4">面试</a> <a href="/tags/k8s/" style="font-size: 1.5em; color: #99a9bf">k8s</a> <a href="/tags/swagger/" style="font-size: 1.1em; color: #999">swagger</a> <a href="/tags/viper/" style="font-size: 1.1em; color: #999">viper</a> <a href="/tags/kubeedge/" style="font-size: 1.3em; color: #99a1ac">kubeedge</a> <a href="/tags/private/" style="font-size: 1.22em; color: #999ea4">private</a> <a href="/tags/Gin/" style="font-size: 1.14em; color: #999b9d">Gin</a> <a href="/tags/prometheus/" style="font-size: 1.1em; color: #999">prometheus</a> <a href="/tags/docker/" style="font-size: 1.14em; color: #999b9d">docker</a> <a href="/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/" style="font-size: 1.26em; color: #999fa8">微服务</a> <a href="/tags/session/" style="font-size: 1.1em; color: #999">session</a> <a href="/tags/web/" style="font-size: 1.38em; color: #99a4b4">web</a> <a href="/tags/Istio/" style="font-size: 1.1em; color: #999">Istio</a> <a href="/tags/%E9%99%90%E6%B5%81%E7%AD%96%E7%95%A5/" style="font-size: 1.1em; color: #999">限流策略</a> <a href="/tags/%E7%83%AD%E5%8A%A0%E8%BD%BD/" style="font-size: 1.1em; color: #999">热加载</a> <a href="/tags/cookies/" style="font-size: 1.1em; color: #999">cookies</a> <a href="/tags/crio/" style="font-size: 1.1em; color: #999">crio</a> <a href="/tags/argo/" style="font-size: 1.1em; color: #999">argo</a> <a href="/tags/%E4%B8%AD%E9%97%B4%E4%BB%B6/" style="font-size: 1.1em; color: #999">中间件</a> <a href="/tags/validation/" style="font-size: 1.1em; color: #999">validation</a> <a href="/tags/Harbor/" style="font-size: 1.1em; color: #999">Harbor</a> <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" style="font-size: 1.34em; color: #99a3b0">分布式</a> <a href="/tags/poem/" style="font-size: 1.22em; color: #999ea4">poem</a></div></div><div class="card-widget card-archives"><div class="item-headline"><i class="fas fa-archive"></i><span>归档</span><a class="card-more-btn" href="/archives/" title="查看更多">
+    <i class="fas fa-angle-right"></i></a></div><ul class="card-archive-list"><li class="card-archive-list-item"><a class="card-archive-list-link" href="/archives/2024/04/"><span class="card-archive-list-date">四月 2024</span><span class="card-archive-list-count">5</span></a></li><li class="card-archive-list-item"><a class="card-archive-list-link" href="/archives/2024/03/"><span class="card-archive-list-date">三月 2024</span><span class="card-archive-list-count">10</span></a></li><li class="card-archive-list-item"><a class="card-archive-list-link" href="/archives/2024/02/"><span class="card-archive-list-date">二月 2024</span><span class="card-archive-list-count">11</span></a></li><li class="card-archive-list-item"><a class="card-archive-list-link" href="/archives/2024/01/"><span class="card-archive-list-date">一月 2024</span><span class="card-archive-list-count">4</span></a></li><li class="card-archive-list-item"><a class="card-archive-list-link" href="/archives/2023/12/"><span class="card-archive-list-date">十二月 2023</span><span class="card-archive-list-count">12</span></a></li><li class="card-archive-list-item"><a class="card-archive-list-link" href="/archives/2023/11/"><span class="card-archive-list-date">十一月 2023</span><span class="card-archive-list-count">11</span></a></li><li class="card-archive-list-item"><a class="card-archive-list-link" href="/archives/2023/10/"><span class="card-archive-list-date">十月 2023</span><span class="card-archive-list-count">16</span></a></li><li class="card-archive-list-item"><a class="card-archive-list-link" href="/archives/2023/09/"><span class="card-archive-list-date">九月 2023</span><span class="card-archive-list-count">5</span></a></li></ul></div><div class="card-widget card-webinfo"><div class="item-headline"><i class="fas fa-chart-line"></i><span>网站资讯</span></div><div class="webinfo"><div class="webinfo-item"><div class="item-name">文章数目 :</div><div class="item-count">107</div></div><div class="webinfo-item"><div class="item-name">本站总字数 :</div><div class="item-count">97.7k</div></div><div class="webinfo-item"><div class="item-name">本站访客数 :</div><div class="item-count" id="busuanzi_value_site_uv"><i class="fa-solid fa-spinner fa-spin"></i></div></div><div class="webinfo-item"><div class="item-name">本站总访问量 :</div><div class="item-count" id="busuanzi_value_site_pv"><i class="fa-solid fa-spinner fa-spin"></i></div></div><div class="webinfo-item"><div class="item-name">最后更新时间 :</div><div class="item-count" id="last-push-date" data-lastPushDate="2024-04-20T14:12:52.287Z"><i class="fa-solid fa-spinner fa-spin"></i></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2023 - 2024 By Joohwan.</div><div class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.umd.min.js"></script><div class="js-pjax"><script>window.typedJSFn = {
   init: (str) => {
     window.typed = new Typed('#subtitle', Object.assign({
       strings: str,

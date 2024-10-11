@@ -1,0 +1,334 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>K8s-节点 | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="K8s-节点K8s的node（节点）是一个工作机器。每个节点都是归属master组件管理。 节点的状态 Addresses Conditions Capacity and Allocatable Info  Addresses HostName： 在节点命令行界面上执行 hostname 命令所获得的值。启动 kubelet 时，可以通过参数 --hostname-override 覆盖 Exte">
+<meta property="og:type" content="article">
+<meta property="og:title" content="K8s-节点">
+<meta property="og:url" content="https://piwriw.github.io/2023/11/14/cloud/k8s/K8s-%E8%8A%82%E7%82%B9/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="K8s-节点K8s的node（节点）是一个工作机器。每个节点都是归属master组件管理。 节点的状态 Addresses Conditions Capacity and Allocatable Info  Addresses HostName： 在节点命令行界面上执行 hostname 命令所获得的值。启动 kubelet 时，可以通过参数 --hostname-override 覆盖 Exte">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/k8s-go.jpg">
+<meta property="article:published_time" content="2023-11-14T12:22:55.000Z">
+<meta property="article:modified_time" content="2024-10-09T12:58:43.452Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="k8s">
+<meta property="article:tag" content="cloud">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/k8s-go.jpg"><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2023/11/14/cloud/k8s/K8s-%E8%8A%82%E7%82%B9/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"找不到您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":false,"highlightHeightLimit":false},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  source: {
+    justifiedGallery: {
+      js: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.css'
+    }
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'K8s-节点',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2024-10-09 20:58:43'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(win=>{
+    win.saveToLocal = {
+      set: function setWithExpiry(key, value, ttl) {
+        if (ttl === 0) return
+        const now = new Date()
+        const expiryDay = ttl * 86400000
+        const item = {
+          value: value,
+          expiry: now.getTime() + expiryDay,
+        }
+        localStorage.setItem(key, JSON.stringify(item))
+      },
+
+      get: function getWithExpiry(key) {
+        const itemStr = localStorage.getItem(key)
+
+        if (!itemStr) {
+          return undefined
+        }
+        const item = JSON.parse(itemStr)
+        const now = new Date()
+
+        if (now.getTime() > item.expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return item.value
+      }
+    }
+  
+    win.getScript = url => new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = url
+      script.async = true
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    })
+  
+    win.getCSS = (url,id = false) => new Promise((resolve, reject) => {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = url
+      if (id) link.id = id
+      link.onerror = reject
+      link.onload = link.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        link.onload = link.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(link)
+    })
+  
+      win.activateDarkMode = function () {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = function () {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+          if (t === 'dark') activateDarkMode()
+          else if (t === 'light') activateLightMode()
+        
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+    const detectApple = () => {
+      if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+    })(window)</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><meta name="generator" content="Hexo 6.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="/img/avatar.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">140</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">40</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">29</div></a></div><hr class="custom-hr"/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url('/img/k8s-go.jpg')"><nav id="nav"><span id="blog-info"><a href="/" title="Joohwan"><span class="site-name">Joohwan</span></a></span><div id="menus"><div id="search-button"><a class="site-page social-icon search" href="javascript:void(0);"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">K8s-节点</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2023-11-14T12:22:55.000Z" title="发表于 2023-11-14 20:22:55">2023-11-14</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2024-10-09T12:58:43.452Z" title="更新于 2024-10-09 20:58:43">2024-10-09</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/">k8s</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">字数总计:</span><span class="word-count">1.6k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>5分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title="K8s-节点"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><h1 id="K8s-节点"><a href="#K8s-节点" class="headerlink" title="K8s-节点"></a>K8s-节点</h1><p>K8s的node（节点）是一个工作机器。每个节点都是归属master组件管理。</p>
+<h2 id="节点的状态"><a href="#节点的状态" class="headerlink" title="节点的状态"></a>节点的状态</h2><ul>
+<li>Addresses</li>
+<li>Conditions</li>
+<li>Capacity and Allocatable</li>
+<li>Info</li>
+</ul>
+<h3 id="Addresses"><a href="#Addresses" class="headerlink" title="Addresses"></a>Addresses</h3><ul>
+<li>HostName： 在节点命令行界面上执行 <code>hostname</code> 命令所获得的值。启动 kubelet 时，可以通过参数 <code>--hostname-override</code> 覆盖</li>
+<li>ExternalIP：通常是节点的外部IP（可以从集群外访问的内网IP地址；上面的例子中，此字段为空）</li>
+<li>InternalIP：通常是从节点内部可以访问的 IP 地址</li>
+</ul>
+<h3 id="Conditions"><a href="#Conditions" class="headerlink" title="Conditions"></a>Conditions</h3><p><code>Conditions</code> 描述了节点的状态。</p>
+<p>Condition的例子有：</p>
+<table>
+<thead>
+<tr>
+<th>Node Condition</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>OutOfDisk</td>
+<td>如果节点上的空白磁盘空间不够，不能够再添加新的节点时，该字段为 <code>True</code>，其他情况为 <code>False</code></td>
+</tr>
+<tr>
+<td>Ready</td>
+<td>如果节点是健康的且已经就绪可以接受新的 Pod。则节点Ready字段为 <code>True</code>。<code>False</code>表明了该节点不健康，不能够接受新的 Pod。</td>
+</tr>
+<tr>
+<td>MemoryPressure</td>
+<td>如果节点内存紧张，则该字段为 <code>True</code>，否则为<code>False</code></td>
+</tr>
+<tr>
+<td>PIDPressure</td>
+<td>如果节点上进程过多，则该字段为 <code>True</code>，否则为 <code>False</code></td>
+</tr>
+<tr>
+<td>DiskPressure</td>
+<td>如果节点磁盘空间紧张，则该字段为 <code>True</code>，否则为 <code>False</code></td>
+</tr>
+<tr>
+<td>NetworkUnvailable</td>
+<td>如果节点的网络配置有问题，则该字段为 <code>True</code>，否则为 <code>False</code></td>
+</tr>
+</tbody></table>
+<p>如果 <code>Ready</code> 类型Condition 的 <code>status</code> 持续为 <code>Unkown</code> 或者 <code>False</code> 超过 <code>pod-eviction-timeout</code>（<a target="_blank" rel="noopener" href="https://kubernetes.io/docs/reference/command-line-tools-reference/kube-controller-manager/">kube-controller-manager (opens new window)</a>的参数）所指定的时间，节点控制器（node controller）将对该节点上的所有 Pod 执行删除的调度动作</p>
+<p>默认的 <code>pod-eviction-timeout</code> 时间是 5 分钟。某些情况下（例如，节点网络故障），apiserver 不能够与节点上的 kubelet 通信，删除 Pod 的指令不能下达到该节点的 kubelet 上，直到 apiserver 与节点的通信重新建立，指令才下达到节点。这意味着，虽然对 Pod 执行了删除的调度指令，但是这些<strong>Pod 可能仍然在失联的节点上运行</strong>。</p>
+<p>在 kubernetes v1.5 以前，节点控制器将从 apiserver 强制删除这些失联节点上的 Pod。在 v1.5 及以后的版本中，节点控制器将不会强制删除这些 Pod，直到已经确认他们已经停止运行为止。您可能会发现失联节点上的 Pod 仍然在运行（在该节点上执行 <code>docker ps</code> 命令可查看容器的运行状态），然而 apiserver 中，他们的状态已经变为 <code>Terminating</code> 或者 <code>Unknown</code>。如果 Kubernetes 不能通过 <a target="_blank" rel="noopener" href="https://kuboard.cn/learning/k8s-bg/component.html#cloud-controller-manager">cloud-controller-manager</a> 判断失联节点是否已经永久从集群中移除（例如，在虚拟机或物理机上自己部署 Kubernetes 的情况），集群管理员需要手工（通过 <code>kubectl delete node your-node-name</code> 命令）删除 apiserver 中的节点对象。此时，Kubernetes 将删除该节点上的所有 Pod</p>
+<p>在 Kubernetes v1.12 中，<a target="_blank" rel="noopener" href="https://kuboard.cn/learning/k8s-intermediate/config/taints-toleration/taint-nodes-by-condition.html">TaintNodesByCondition</a> 特性进入 beta 阶段，此时 node lifecycle controller 将自动创建该 Condition 对应的 <a target="_blank" rel="noopener" href="https://kuboard.cn/learning/k8s-intermediate/config/taints-toleration/">污点</a>。相应地，调度器在选择合适的节点时，不再关注节点的 Condition，而是检查节点的污点和 Pod 的容忍。</p>
+<h3 id="Capacity-and-Allocatable（容量和可分配量）"><a href="#Capacity-and-Allocatable（容量和可分配量）" class="headerlink" title="Capacity and Allocatable（容量和可分配量）"></a>Capacity and Allocatable（容量和可分配量）</h3><p>容量和可分配量（Capacity and Allocatable）描述了节点上的可用资源的情况：</p>
+<ul>
+<li>CPU</li>
+<li>内存</li>
+<li>该节点可调度的最大 pod 数量</li>
+</ul>
+<p>Capacity 中的字段表示节点上的资源总数，Allocatable 中的字段表示该节点上可分配给普通 Pod 的资源总数。</p>
+<p>参考 <a target="_blank" rel="noopener" href="https://kubernetes.io/docs/tasks/administer-cluster/reserve-compute-resources/#node-allocatable">reserve compute resources (opens new window)</a>可以了解更多关于容量和可分配量的内容</p>
+<h2 id="节点管理"><a href="#节点管理" class="headerlink" title="节点管理"></a>节点管理</h2><h3 id="节点控制器"><a href="#节点控制器" class="headerlink" title="节点控制器"></a>节点控制器</h3><ul>
+<li><p>节点控制器，在注册节点的时候分配CIDR地址块</p>
+</li>
+<li><p>通过cloud-controller-manager 检查节点的虚拟机是否可用</p>
+</li>
+<li><p>节点控制器会监控节点的监控状态。节点控制器将节点API对象的 <code>NodeStatus</code> Condition 取值从 <code>NodeReady</code> 更新为 <code>Unknown</code>；然后在等待 <code>pod-eviction-timeout</code> 时间后，将节点上的所有 Pod 从节点驱逐</p>
+<blockquote>
+<p>默认40秒未收到心跳，修改 <code>NodeStatus</code> Condition 为 <code>Unknown</code>；</p>
+<p>默认 <code>pod-eviction-timeout</code> 为 5分钟</p>
+<p>节点控制器每隔 <code>--node-monitor-period</code> 秒检查一次节点的状态</p>
+</blockquote>
+</li>
+</ul>
+<p>大多数情况下，节点控制器限制了驱逐 Pod 的速率为 <code>--node-eviction-rate</code> （默认值是0.1）每秒，即节点控制器每 10 秒驱逐 1 个 Pod。</p>
+<p>当节点所在的高可用区出现故障时，节点控制器驱逐 Pod 的方式将不一样。节点控制器驱逐Pod前，将检查高可用区里故障节点的百分比（<code>NodeReady</code> Condition 的值为 <code>Unknown</code> 或 <code>False</code>）：</p>
+<ul>
+<li>如果故障节点的比例不低于<code>--unhealthy-zone-threshold</code>（默认为 0.55），则降低驱逐 Pod 的速率<ul>
+<li>如果集群规模较小（少于等于 <code>--large-cluster-size-threshold</code> 个节点，默认值为 50），则停止驱逐 Pod</li>
+<li>如果集群规模大于 <code>--large-cluster-size-threshold</code> 个节点，则驱逐 Pod 的速率降低到 <code>--secondary-node-eviction-rate</code> （默认值为 0.01）每秒</li>
+</ul>
+</li>
+</ul>
+<h3 id="节点自注册（Self-Registration）"><a href="#节点自注册（Self-Registration）" class="headerlink" title="节点自注册（Self-Registration）"></a>节点自注册（Self-Registration）</h3><p>如果 kubelet 的启动参数 <code>--register-node</code>为 true（默认为 true），kubelet 会尝试将自己注册到 API Server。kubelet自行注册时，将使用如下选项：</p>
+<ul>
+<li><code>--kubeconfig</code>：向 apiserver 进行认证时所用身份信息的路径</li>
+<li><code>--cloud-provider</code>：向云供应商读取节点自身元数据</li>
+<li><code>--register-node</code>：自动向 API Server 注册节点</li>
+<li><code>--register-with-taints</code>：注册节点时，为节点添加污点（逗号分隔，格式为 <key>&#x3D;<value>:<effect></li>
+<li><code>--node-ip</code>：节点的 IP 地址</li>
+<li><code>--node-labels</code>：注册节点时，为节点添加标签</li>
+<li><code>--node-status-update-frequency</code>：向 master 节点发送心跳信息的时间间</li>
+</ul>
+<h3 id="手动管理节点"><a href="#手动管理节点" class="headerlink" title="手动管理节点"></a>手动管理节点</h3><p>集群管理员可以创建和修改节点API对象。</p>
+<p>如果管理员想要手工创建节点API对象，可以将 kubelet 的启动参数 <code>--register-node</code> 设置为 false。</p>
+<p>管理员可以修改节点API对象（不管是否设置了 <code>--register-node</code> 参数）。可以修改的内容有：</p>
+<ul>
+<li>增加&#x2F;减少标签</li>
+<li>标记节点为不可调度（unschedulable）</li>
+</ul>
+<p>节点的标签与 Pod 上的节点选择器（node selector）配合，可以控制调度方式，例如，限定 Pod 只能在某一组节点上运行。请参考 <a target="_blank" rel="noopener" href="https://kuboard.cn/learning/k8s-intermediate/config/assign-pod-node.html">将容器组调度到指定的节点</a>。</p>
+<p>执行如下命令可将节点标记为不可调度（unschedulable），此时将阻止新的 Pod 被调度到该节点上，但是不影响任何已经在该节点上运行的 Pod。这在准备重启节点之前非常有用。</p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">kubectl cordon <span class="variable">$NODENAME</span></span><br></pre></td></tr></table></figure></article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2023/11/14/cloud/k8s/K8s-%E8%8A%82%E7%82%B9/">https://piwriw.github.io/2023/11/14/cloud/k8s/K8s-节点/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a><a class="post-meta__tags" href="/tags/cloud/">cloud</a></div><div class="post_share"><div class="social-share" data-image="/img/k8s-go.jpg" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i> 打赏</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/2023/12/01/cloud/k8s/K8s-%E5%AE%B9%E5%99%A8/" title="K8s-容器"><img class="cover" src="/img/k8s-go.jpg" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">K8s-容器</div></div></a></div><div class="next-post pull-right"><a href="/2023/11/11/cloud/k8s/K8s-client-goWorkQueue%E5%B7%A5%E4%BD%9C%E9%98%9F%E5%88%97/" title="K8s-client-go:WorkQueue工作队列"><img class="cover" src="/img/k8s-go.jpg" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">K8s-client-go:WorkQueue工作队列</div></div></a></div></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><div><a href="/2024/05/07/cloud/k8s/K8s-%E8%87%AA%E5%8A%A8%E4%BC%B8%E7%BC%A9/" title="K8s-自动伸缩"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2024-05-07</div><div class="title">K8s-自动伸缩</div></div></a></div><div><a href="/2024/05/06/cloud/k8s/K8s-%E9%9B%86%E7%BE%A4%E5%86%85%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/" title="K8s-集群内网络安全"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2024-05-06</div><div class="title">K8s-集群内网络安全</div></div></a></div><div><a href="/2024/05/06/cloud/k8s/K8s-%E8%AE%A4%E8%AF%81%E6%9C%BA%E5%88%B6%EF%BC%9AServiceAcccounts/" title="K8s-认证机制：ServiceAccounts"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2024-05-06</div><div class="title">K8s-认证机制：ServiceAccounts</div></div></a></div><div><a href="/2024/04/23/cloud/k8s/%E8%B7%A8%E5%85%AC%E7%BD%91%E8%A7%A3%E5%86%B3K8s%E7%BB%84%E7%BD%91/" title="跨公网解决K8s组网"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2024-04-23</div><div class="title">跨公网解决K8s组网</div></div></a></div><div><a href="/2024/03/08/cloud/k8s/K8s-%E6%96%87%E4%BB%B6%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9Fnfs/" title="K8s-文件管理系统nfs（centos）"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2024-03-08</div><div class="title">K8s-文件管理系统nfs（centos）</div></div></a></div><div><a href="/2024/02/25/cloud/k8s/K8s-List-watch%E6%9C%BA%E5%88%B6/" title="K8s-List-watch机制"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2024-02-25</div><div class="title">K8s-List-watch机制</div></div></a></div></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">Joohwan.</div><div class="author-info__description">该知道的都知道，不知道的慢慢了解</div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">140</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">40</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">29</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons is-center"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#K8s-%E8%8A%82%E7%82%B9"><span class="toc-number">1.</span> <span class="toc-text">K8s-节点</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%8A%82%E7%82%B9%E7%9A%84%E7%8A%B6%E6%80%81"><span class="toc-number">1.1.</span> <span class="toc-text">节点的状态</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Addresses"><span class="toc-number">1.1.1.</span> <span class="toc-text">Addresses</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Conditions"><span class="toc-number">1.1.2.</span> <span class="toc-text">Conditions</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Capacity-and-Allocatable%EF%BC%88%E5%AE%B9%E9%87%8F%E5%92%8C%E5%8F%AF%E5%88%86%E9%85%8D%E9%87%8F%EF%BC%89"><span class="toc-number">1.1.3.</span> <span class="toc-text">Capacity and Allocatable（容量和可分配量）</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%8A%82%E7%82%B9%E7%AE%A1%E7%90%86"><span class="toc-number">1.2.</span> <span class="toc-text">节点管理</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%8A%82%E7%82%B9%E6%8E%A7%E5%88%B6%E5%99%A8"><span class="toc-number">1.2.1.</span> <span class="toc-text">节点控制器</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%8A%82%E7%82%B9%E8%87%AA%E6%B3%A8%E5%86%8C%EF%BC%88Self-Registration%EF%BC%89"><span class="toc-number">1.2.2.</span> <span class="toc-text">节点自注册（Self-Registration）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%89%8B%E5%8A%A8%E7%AE%A1%E7%90%86%E8%8A%82%E7%82%B9"><span class="toc-number">1.2.3.</span> <span class="toc-text">手动管理节点</span></a></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2024/10/11/basic/go/Go-Options%E6%A8%A1%E5%BC%8F/" title="Go-Options模式"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Go-Options模式"/></a><div class="content"><a class="title" href="/2024/10/11/basic/go/Go-Options%E6%A8%A1%E5%BC%8F/" title="Go-Options模式">Go-Options模式</a><time datetime="2024-10-11T11:57:51.000Z" title="发表于 2024-10-11 19:57:51">2024-10-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2024/10/07/cloud/prometheus/Prometheus%E6%BA%90%E7%A0%81%E5%AD%98%E5%82%A8%E6%8C%87%E6%A0%87/" title="Prometheus源码:存储指标"><img src="/img/prometheus.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Prometheus源码:存储指标"/></a><div class="content"><a class="title" href="/2024/10/07/cloud/prometheus/Prometheus%E6%BA%90%E7%A0%81%E5%AD%98%E5%82%A8%E6%8C%87%E6%A0%87/" title="Prometheus源码:存储指标">Prometheus源码:存储指标</a><time datetime="2024-10-07T11:08:55.000Z" title="发表于 2024-10-07 19:08:55">2024-10-07</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2024/10/02/cloud/prometheus/Prometheus%E6%BA%90%E7%A0%81%E6%8C%87%E6%A0%87%E9%87%87%E9%9B%86/" title="Prometheus源码:指标采集"><img src="/img/prometheus.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Prometheus源码:指标采集"/></a><div class="content"><a class="title" href="/2024/10/02/cloud/prometheus/Prometheus%E6%BA%90%E7%A0%81%E6%8C%87%E6%A0%87%E9%87%87%E9%9B%86/" title="Prometheus源码:指标采集">Prometheus源码:指标采集</a><time datetime="2024-10-02T11:08:55.000Z" title="发表于 2024-10-02 19:08:55">2024-10-02</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2024/10/01/cloud/prometheus/Prometheus%E6%BA%90%E7%A0%81%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0/" title="Prometheus源码:服务发现"><img src="/img/prometheus.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Prometheus源码:服务发现"/></a><div class="content"><a class="title" href="/2024/10/01/cloud/prometheus/Prometheus%E6%BA%90%E7%A0%81%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0/" title="Prometheus源码:服务发现">Prometheus源码:服务发现</a><time datetime="2024-10-01T12:08:55.000Z" title="发表于 2024-10-01 20:08:55">2024-10-01</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2024/10/01/cloud/prometheus/prometheus%E6%BA%90%E7%A0%81%EF%BC%9A%E5%90%AF%E5%8A%A8/" title="Prometheus源码：启动"><img src="/img/prometheus.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Prometheus源码：启动"/></a><div class="content"><a class="title" href="/2024/10/01/cloud/prometheus/prometheus%E6%BA%90%E7%A0%81%EF%BC%9A%E5%90%AF%E5%8A%A8/" title="Prometheus源码：启动">Prometheus源码：启动</a><time datetime="2024-10-01T04:08:55.000Z" title="发表于 2024-10-01 12:08:55">2024-10-01</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2023 - 2024 By Joohwan.</div><div class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="直达评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.umd.min.js"></script><div class="js-pjax"><script>(()=>{
+  const init = () => {
+    twikoo.init(Object.assign({
+      el: '#twikoo-wrap',
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: function () {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      }
+    }, null))
+  }
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(function (res) {
+      countELement.textContent = res[0].count
+    }).catch(function (err) {
+      console.error(err);
+    });
+  }
+
+  const runFn = () => {
+    init()
+    
+  }
+
+  const loadTwikoo = () => {
+    if (typeof twikoo === 'object') {
+      setTimeout(runFn,0)
+      return
+    } 
+    getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(runFn)
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = () => {
+      loadTwikoo()
+    }
+  }
+})()</script></div><script id="click-show-text" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/dist/click-show-text.min.js" data-mobile="false" data-text="Fighting,Joohwan,666" data-fontsize="15px" data-random="false" async="async"></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="is-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据库加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div class="no-result" id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div><!-- hexo injector body_end start -->
+  <script data-pjax src="undefined"></script>
+  <script data-pjax>
+        function GithubCalendarConfig(){
+            var git_githubapiurl ="undefined?piwriw";
+            var git_color =undefined;
+            var git_user ="piwriw";
+            var parent_div_git = document.getElementById('recent-posts');
+            var git_div_html = '<div class="recent-post-item" style="width:100%;height:auto;padding:10px; display: flex; align-items: center; justify-content: center;"> <img src="https://ghchart.rshah.org/piwriw" alt="piwriw" style="width: 100%; height: auto; max-width: 100%;"> </div> ';
+            if(parent_div_git && location.pathname =='/'){
+                console.log('已挂载github calendar')
+                // parent_div_git.innerHTML=git_div_html+parent_div_git.innerHTML // 无报错，但不影响使用(支持pjax跳转)
+                parent_div_git.insertAdjacentHTML("afterbegin",git_div_html) // 有报错，但不影响使用(支持pjax跳转)
+            };
+            GithubCalendar(git_githubapiurl,git_color,git_user)
+        }
+        if(document.getElementById('recent-posts')){
+            GithubCalendarConfig()
+        }
+    </script>
+    <style>#github_container{min-height:undefined}@media screen and (max-width:650px) {#github_container{background-image:;min-height:undefined}}</style>
+    <style>undefined</style><!-- hexo injector body_end end --></body></html>

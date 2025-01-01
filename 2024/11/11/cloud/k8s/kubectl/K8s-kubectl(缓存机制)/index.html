@@ -1,0 +1,347 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>K8s-kubectl(缓存机制) | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="K8s-kubectl(缓存机制) 基于1.25  kubectl的关键步骤是构造操作&#x2F;查询资源的请求 kubectl为了减小kube-apiserver的压力，使用Client-go中的CacheDisoveryClient提供的本地磁盘能力。 缓存数据结构kubectl使用servergroups.json文件缓存从kube-apiserver获取所有的资源信息  缓存文件存在$KU">
+<meta property="og:type" content="article">
+<meta property="og:title" content="K8s-kubectl(缓存机制)">
+<meta property="og:url" content="https://piwriw.github.io/2024/11/11/cloud/k8s/kubectl/K8s-kubectl(%E7%BC%93%E5%AD%98%E6%9C%BA%E5%88%B6)/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="K8s-kubectl(缓存机制) 基于1.25  kubectl的关键步骤是构造操作&#x2F;查询资源的请求 kubectl为了减小kube-apiserver的压力，使用Client-go中的CacheDisoveryClient提供的本地磁盘能力。 缓存数据结构kubectl使用servergroups.json文件缓存从kube-apiserver获取所有的资源信息  缓存文件存在$KU">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/k8sLogo.png">
+<meta property="article:published_time" content="2024-11-11T14:31:55.000Z">
+<meta property="article:modified_time" content="2025-01-01T08:40:11.866Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="k8s">
+<meta property="article:tag" content="cloud">
+<meta property="article:tag" content="K8s源码">
+<meta property="article:tag" content="kubectl">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/k8sLogo.png"><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2024/11/11/cloud/k8s/kubectl/K8s-kubectl(%E7%BC%93%E5%AD%98%E6%9C%BA%E5%88%B6)/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"找不到您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  noticeOutdate: {"limitDay":365,"position":"top","messagePrev":"It has been","messageNext":"days since the last update, the content of the article may be outdated."},
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":false,"highlightHeightLimit":false},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  source: {
+    justifiedGallery: {
+      js: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.css'
+    }
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'K8s-kubectl(缓存机制)',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2025-01-01 16:40:11'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(win=>{
+    win.saveToLocal = {
+      set: function setWithExpiry(key, value, ttl) {
+        if (ttl === 0) return
+        const now = new Date()
+        const expiryDay = ttl * 86400000
+        const item = {
+          value: value,
+          expiry: now.getTime() + expiryDay,
+        }
+        localStorage.setItem(key, JSON.stringify(item))
+      },
+
+      get: function getWithExpiry(key) {
+        const itemStr = localStorage.getItem(key)
+
+        if (!itemStr) {
+          return undefined
+        }
+        const item = JSON.parse(itemStr)
+        const now = new Date()
+
+        if (now.getTime() > item.expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return item.value
+      }
+    }
+  
+    win.getScript = url => new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = url
+      script.async = true
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    })
+  
+    win.getCSS = (url,id = false) => new Promise((resolve, reject) => {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = url
+      if (id) link.id = id
+      link.onerror = reject
+      link.onload = link.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        link.onload = link.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(link)
+    })
+  
+      win.activateDarkMode = function () {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = function () {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+          if (t === 'dark') activateDarkMode()
+          else if (t === 'light') activateLightMode()
+        
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+    const detectApple = () => {
+      if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+    })(window)</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><meta name="generator" content="Hexo 6.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="/img/avatar.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">207</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">64</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">52</div></a></div><hr class="custom-hr"/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url('/img/k8sLogo.png')"><nav id="nav"><span id="blog-info"><a href="/" title="Joohwan"><span class="site-name">Joohwan</span></a></span><div id="menus"><div id="search-button"><a class="site-page social-icon search" href="javascript:void(0);"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">K8s-kubectl(缓存机制)</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2024-11-11T14:31:55.000Z" title="发表于 2024-11-11 22:31:55">2024-11-11</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2025-01-01T08:40:11.866Z" title="更新于 2025-01-01 16:40:11">2025-01-01</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/">k8s</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/kubectl/">kubectl</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">字数总计:</span><span class="word-count">2k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>9分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title="K8s-kubectl(缓存机制)"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><h1 id="K8s-kubectl-缓存机制"><a href="#K8s-kubectl-缓存机制" class="headerlink" title="K8s-kubectl(缓存机制)"></a>K8s-kubectl(缓存机制)</h1><blockquote>
+<p>基于1.25</p>
+</blockquote>
+<p>kubectl的关键步骤是构造操作&#x2F;查询资源的请求</p>
+<p>kubectl为了减小kube-apiserver的压力，使用Client-go中的CacheDisoveryClient提供的本地磁盘能力。</p>
+<h2 id="缓存数据结构"><a href="#缓存数据结构" class="headerlink" title="缓存数据结构"></a>缓存数据结构</h2><p>kubectl使用servergroups.json文件缓存从kube-apiserver获取所有的资源信息</p>
+<ul>
+<li><p>缓存文件存在$KUBECACHEDIR&#x2F;disocvery中</p>
+</li>
+<li><p>没有设置环境变量KUBECACHEDIR，默认位置$HOME&#x2F;.kube&#x2F;cache</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">[root@hcss-ecs-5425 ~]# tree $HOME/.kube/cache </span><br><span class="line">/root/.kube/cache</span><br><span class="line">├── discovery</span><br><span class="line">│   └── 113.45.181.99_6443</span><br><span class="line">│       ├── admissionregistration.k8s.io</span><br><span class="line">│       │   ├── v1</span><br><span class="line">│       │   │   └── serverresources.json</span><br><span class="line">│       │   └── v1beta1</span><br><span class="line">│       │       └── serverresources.json</span><br><span class="line">│       ├── apiextensions.k8s.io</span><br><span class="line">│       │   ├── v1</span><br><span class="line">│       │   │   └── serverresources.json</span><br><span class="line">│       │   └── v1beta1</span><br><span class="line">│       │       └── serverresources.json</span><br><span class="line">│       ├── apiregistration.k8s.io</span><br><span class="line">│       │   ├── v1</span><br><span class="line">│       │   │   └── serverresources.json</span><br><span class="line">│       │   └── v1beta1</span><br><span class="line">│       │       └── serverresources.json</span><br><span class="line">│       ├── apps</span><br><span class="line">│       │   └── v1</span><br><span class="line">│       │       └── serverresources.json</span><br><span class="line">│       ├── authentication.k8s.io</span><br><span class="line">│       │   ├── v1</span><br><span class="line">│       │   │   └── serverresources.json</span><br><span class="line">│       │   └── v1beta1</span><br><span class="line">│       │       └── serverresources.json</span><br><span class="line">│       ├── authorization.k8s.io</span><br><span class="line">│       │   ├── v1</span><br><span class="line">│       │   │   └── serverresources.json</span><br><span class="line">│       │   └── v1beta1</span><br><span class="line">│       │       └── serverresources.json</span><br><span class="line">│       ├── autoscaling</span><br><span class="line">│       │   ├── v1</span><br><span class="line">│       │   │   └── serverresources.json</span><br><span class="line">│       │   ├── v2beta1</span><br><span class="line">│       │   │   └── serverresources.json</span><br><span class="line">│       │   └── v2beta2</span><br><span class="line">│       │       └── serverresources.json</span><br><span class="line">│       ├── batch</span><br><span class="line">│       │   ├── v1</span><br><span class="line">│       │   │   └── serverresources.json</span><br><span class="line">│       │   └── v1beta1</span><br><span class="line">│       │       └── serverresources.json</span><br><span class="line">│       ├── certificates.k8s.io</span><br><span class="line">│       │   ├── v1</span><br><span class="line">│       │   │   └── serverresources.json</span><br><span class="line">│       │   └── v1beta1</span><br><span class="line">│       │       └── serverresources.json</span><br><span class="line">│       ├── coordination.k8s.io</span><br><span class="line">│       │   ├── v1</span><br><span class="line">│       │   │   └── serverresources.json</span><br><span class="line">│       │   └── v1beta1</span><br><span class="line">│       │       └── serverresources.json</span><br><span class="line">│       ├── discovery.k8s.io</span><br><span class="line">│       │   ├── v1</span><br><span class="line">│       │   │   └── serverresources.json</span><br><span class="line">│       │   └── v1beta1</span><br><span class="line">│       │       └── serverresources.json</span><br><span class="line">│       ├── events.k8s.io</span><br><span class="line">│       │   ├── v1</span><br><span class="line">│       │   │   └── serverresources.json</span><br><span class="line">│       │   └── v1beta1</span><br><span class="line">│       │       └── serverresources.json</span><br><span class="line">│       ├── extensions</span><br><span class="line">│       │   └── v1beta1</span><br><span class="line">│       │       └── serverresources.json</span><br><span class="line">│       ├── flowcontrol.apiserver.k8s.io</span><br><span class="line">│       │   └── v1beta1</span><br><span class="line">│       │       └── serverresources.json</span><br><span class="line">│       ├── networking.k8s.io</span><br><span class="line">│       │   ├── v1</span><br><span class="line">│       │   │   └── serverresources.json</span><br><span class="line">│       │   └── v1beta1</span><br><span class="line">│       │       └── serverresources.json</span><br><span class="line">│       ├── node.k8s.io</span><br><span class="line">│       │   ├── v1</span><br><span class="line">│       │   │   └── serverresources.json</span><br><span class="line">│       │   └── v1beta1</span><br><span class="line">│       │       └── serverresources.json</span><br><span class="line">│       ├── policy</span><br><span class="line">│       │   ├── v1</span><br><span class="line">│       │   │   └── serverresources.json</span><br><span class="line">│       │   └── v1beta1</span><br><span class="line">│       │       └── serverresources.json</span><br><span class="line">│       ├── rbac.authorization.k8s.io</span><br><span class="line">│       │   ├── v1</span><br><span class="line">│       │   │   └── serverresources.json</span><br><span class="line">│       │   └── v1beta1</span><br><span class="line">│       │       └── serverresources.json</span><br><span class="line">│       ├── scheduling.k8s.io</span><br><span class="line">│       │   ├── v1</span><br><span class="line">│       │   │   └── serverresources.json</span><br><span class="line">│       │   └── v1beta1</span><br><span class="line">│       │       └── serverresources.json</span><br><span class="line">│       ├── servergroups.json</span><br><span class="line">│       ├── storage.k8s.io</span><br><span class="line">│       │   ├── v1</span><br><span class="line">│       │   │   └── serverresources.json</span><br><span class="line">│       │   └── v1beta1</span><br><span class="line">│       │       └── serverresources.json</span><br><span class="line">│       └── v1</span><br><span class="line">│           └── serverresources.json</span><br><span class="line">└── http</span><br><span class="line">    ├── 0791299400facefaaa2474034997875c</span><br><span class="line">    ├── 0e35cbc773d2d51c9496961c3c502cef</span><br><span class="line">    ├── 120535426aaf11668aa5064327a29c72</span><br><span class="line">    ├── 14897edf5fefeb7a00f130a4163529b1</span><br><span class="line">    ├── 1f07d5c65af8db33754189bf453ef251</span><br><span class="line">    ├── 1f72ffe7c48e778654c717e0e2d98d4a</span><br><span class="line">    ├── 2ce60c705942f017d7f3897ddaad2b16</span><br><span class="line">    ├── 2e653727288d8bf6086abeee7d9cba9f</span><br><span class="line">    ├── 310cfc9031096250f5ed519fab1eca68</span><br><span class="line">    ├── 3210f4404e6ed41e4aa404c03d883671</span><br><span class="line">    ├── 379d6534b442c28ff98fea7e8764fa6f</span><br><span class="line">    ├── 4f8f48d72307c73fa48587f57a4a14c5</span><br><span class="line">    ├── 5b53da0dfab2deaa4c66763756720755</span><br><span class="line">    ├── 5e36ca48c98de8feff8b357c3cd780fd</span><br><span class="line">    ├── 60d88fccba5c8f144812f74831b9c538</span><br><span class="line">    ├── 68198318799539777365ceef73afeed6</span><br><span class="line">    ├── 6d12a199bb93348145719d2e96e51445</span><br><span class="line">    ├── 7657e197b8075107ae7011a1fb6d8be3</span><br><span class="line">    ├── 7e36901e60cf635390ea6c0895ad857f</span><br><span class="line">    ├── 7f7f356d7a41af980b94f29ab7a146ac</span><br><span class="line">    ├── 7fa1f5d50356c9344347dc02495e5b1e</span><br><span class="line">    ├── 8308e632d6e42d86e7dc70539a8ca88f</span><br><span class="line">    ├── 99f4f61eb966810f53bb47475d6fc4ff</span><br><span class="line">    ├── 9a31dc2ad0e1b4169b12d32038519510</span><br><span class="line">    ├── a4174ee3721458bb23e51469ab5e575f</span><br><span class="line">    ├── bcdc40145d9b774da290858b1eec8a49</span><br><span class="line">    ├── be5298f46ae94a7507a14db8bbd0fb76</span><br><span class="line">    ├── bedc98239a8911859556606adec2eaaa</span><br><span class="line">    ├── cbace2814af9a69c77aa4bd27f981979</span><br><span class="line">    ├── d0ec27974d76a8256efa79a7842d4c8f</span><br><span class="line">    ├── d4bbc2feee7f7c4258f79ff7f773970e</span><br><span class="line">    ├── e0e3f313d74c0e4edcbcc741e5385a38</span><br><span class="line">    ├── e3272e47b3ebc83b6debfbfad3ec7a02</span><br><span class="line">    ├── e5eb3bb7d0146e4e6c7dbe97053f1481</span><br><span class="line">    ├── e868f248d5b4f2465eeb78671e580577</span><br><span class="line">    ├── e906bcc0ab35331fa26aa6aba87aae4c</span><br><span class="line">    ├── ebf991e9e2062d0097a7d9f99a4487a1</span><br><span class="line">    ├── ecce97bc885fb535212f7356c95adce4</span><br><span class="line">    ├── f2b99bdca7666fc462c0ceeb0b7342cc</span><br><span class="line">    ├── f76a226306794058338a5b817d9dcbda</span><br><span class="line">    ├── fb57df2ff4ff6008c0cf59b0ef4be7e4</span><br><span class="line">    └── fb9a70668b179122fb25d0440b218d04</span><br><span class="line"></span><br><span class="line">62 directories, 82 files</span><br><span class="line">[root@hcss-ecs-5425 ~]# </span><br></pre></td></tr></table></figure></li>
+</ul>
+<h2 id="缓存机制详解"><a href="#缓存机制详解" class="headerlink" title="缓存机制详解"></a>缓存机制详解</h2><h3 id="缓存对象初始化"><a href="#缓存对象初始化" class="headerlink" title="缓存对象初始化"></a>缓存对象初始化</h3><p>kubectl创建Builder实例的过程中，会创建CacheDicoveryClient</p>
+<ul>
+<li><p>环境文件有效时间6h</p>
+</li>
+<li><p>Ref：<a target="_blank" rel="noopener" href="https://github.com/kubernetes/cli-runtime/blob/777f84f55a05fe0cf98a21badfe6a0e39bf74553/pkg/genericclioptions/config_flags.go#L244">https://github.com/kubernetes/cli-runtime/blob/777f84f55a05fe0cf98a21badfe6a0e39bf74553/pkg/genericclioptions/config_flags.go#L244</a></p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="comment">// ToDiscoveryClient implements RESTClientGetter.</span></span><br><span class="line"><span class="comment">// Expects the AddFlags method to have been called.</span></span><br><span class="line"><span class="comment">// Returns a CachedDiscoveryInterface using a computed RESTConfig.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(f *ConfigFlags)</span></span> ToDiscoveryClient() (discovery.CachedDiscoveryInterface, <span class="type">error</span>) &#123;</span><br><span class="line">	<span class="keyword">if</span> f.usePersistentConfig &#123;</span><br><span class="line">		<span class="keyword">return</span> f.toPersistentDiscoveryClient()</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> f.toDiscoveryClient()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(f *ConfigFlags)</span></span> toDiscoveryClient() (discovery.CachedDiscoveryInterface, <span class="type">error</span>) &#123;</span><br><span class="line">	config, err := f.ToRESTConfig()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	config.Burst = f.discoveryBurst</span><br><span class="line">	config.QPS = f.discoveryQPS</span><br><span class="line"></span><br><span class="line">	cacheDir := getDefaultCacheDir()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// retrieve a user-provided value for the &quot;cache-dir&quot;</span></span><br><span class="line">	<span class="comment">// override httpCacheDir and discoveryCacheDir if user-value is given.</span></span><br><span class="line">	<span class="comment">// user-provided value has higher precedence than default</span></span><br><span class="line">	<span class="comment">// and KUBECACHEDIR environment variable.</span></span><br><span class="line">	<span class="keyword">if</span> f.CacheDir != <span class="literal">nil</span> &amp;&amp; *f.CacheDir != <span class="string">&quot;&quot;</span> &amp;&amp; *f.CacheDir != getDefaultCacheDir() &#123;</span><br><span class="line">		cacheDir = *f.CacheDir</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	httpCacheDir := filepath.Join(cacheDir, <span class="string">&quot;http&quot;</span>)</span><br><span class="line">	discoveryCacheDir := computeDiscoverCacheDir(filepath.Join(cacheDir, <span class="string">&quot;discovery&quot;</span>), config.Host)</span><br><span class="line">	</span><br><span class="line">	<span class="keyword">return</span> diskcached.NewCachedDiscoveryClientForConfig(config, discoveryCacheDir, httpCacheDir, time.Duration(<span class="number">6</span>*time.Hour))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h3 id="缓存填充和更新"><a href="#缓存填充和更新" class="headerlink" title="缓存填充和更新"></a>缓存填充和更新</h3><p>kubectl使用CacheDiscoveryClient查询资源组和资源信息。如果缓存目录中不存在对应的缓存文件，或者缓存文件失效，CacheDiscoveryClient会拉取或更新缓存文件</p>
+<ol>
+<li>获取API版本信息<ul>
+<li>通过访问kube-apiserver的&#x2F;api获取到API版本信息</li>
+</ul>
+</li>
+<li>获取资源组列表<ul>
+<li>通过访问kube-apiserver的&#x2F;apis获取到资源组列表</li>
+</ul>
+</li>
+<li>获取各个资源组下个各个版本的资源列表<ul>
+<li>CacheDiscoveryClient访问kube-apiserver的&#x2F;apis&#x2F;{groupname}&#x2F;{version}获取资源组个各个资源版本的资源列表</li>
+<li>为了加速，使用了并发策略访问kube-apiserver</li>
+</ul>
+</li>
+</ol>
+<ul>
+<li><p>Ref：<a target="_blank" rel="noopener" href="https://github.com/kubernetes/client-go/blob/4f1c2e7b9711846cf31255fd709616c66cb3cfea/discovery/discovery_client.go#L338">https://github.com/kubernetes/client-go/blob/4f1c2e7b9711846cf31255fd709616c66cb3cfea/discovery/discovery_client.go#L338</a></p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="comment">// fetchServerResourcesForGroupVersions uses the discovery client to fetch the resources for the specified groups in parallel.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">fetchGroupVersionResources</span><span class="params">(d DiscoveryInterface, apiGroups *metav1.APIGroupList)</span></span> (<span class="keyword">map</span>[schema.GroupVersion]*metav1.APIResourceList, <span class="keyword">map</span>[schema.GroupVersion]<span class="type">error</span>) &#123;</span><br><span class="line">	groupVersionResources := <span class="built_in">make</span>(<span class="keyword">map</span>[schema.GroupVersion]*metav1.APIResourceList)</span><br><span class="line">	failedGroups := <span class="built_in">make</span>(<span class="keyword">map</span>[schema.GroupVersion]<span class="type">error</span>)</span><br><span class="line"></span><br><span class="line">	wg := &amp;sync.WaitGroup&#123;&#125;</span><br><span class="line">	resultLock := &amp;sync.Mutex&#123;&#125;</span><br><span class="line">	<span class="keyword">for</span> _, apiGroup := <span class="keyword">range</span> apiGroups.Groups &#123;</span><br><span class="line">		<span class="keyword">for</span> _, version := <span class="keyword">range</span> apiGroup.Versions &#123;</span><br><span class="line">			groupVersion := schema.GroupVersion&#123;Group: apiGroup.Name, Version: version.Version&#125;</span><br><span class="line">			wg.Add(<span class="number">1</span>)</span><br><span class="line">			<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">				<span class="keyword">defer</span> wg.Done()</span><br><span class="line">				<span class="keyword">defer</span> utilruntime.HandleCrash()</span><br><span class="line"></span><br><span class="line">				apiResourceList, err := d.ServerResourcesForGroupVersion(groupVersion.String())</span><br><span class="line"></span><br><span class="line">				<span class="comment">// lock to record results</span></span><br><span class="line">				resultLock.Lock()</span><br><span class="line">				<span class="keyword">defer</span> resultLock.Unlock()</span><br><span class="line"></span><br><span class="line">				<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">					<span class="comment">// <span class="doctag">TODO:</span> maybe restrict this to NotFound errors</span></span><br><span class="line">					failedGroups[groupVersion] = err</span><br><span class="line">				&#125;</span><br><span class="line">				<span class="keyword">if</span> apiResourceList != <span class="literal">nil</span> &#123;</span><br><span class="line">					<span class="comment">// even in case of error, some fallback might have been returned</span></span><br><span class="line">					groupVersionResources[groupVersion] = apiResourceList</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;()</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	wg.Wait()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> groupVersionResources, failedGroups</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h3 id="缓存失效机制"><a href="#缓存失效机制" class="headerlink" title="缓存失效机制"></a>缓存失效机制</h3><p>kubectl使用缓存减少压力，但是依旧有存在失效的情况</p>
+<h4 id="缓存过期失效"><a href="#缓存过期失效" class="headerlink" title="缓存过期失效"></a>缓存过期失效</h4><p>kubectl初始化缓存对象的时候，默认指定失效时间6h，所以过期之后会再次请求kube-apiserver</p>
+<ul>
+<li><p>Ref：<a target="_blank" rel="noopener" href="https://github.com/kubernetes/client-go/blob/4f1c2e7b9711846cf31255fd709616c66cb3cfea/discovery/cached/disk/cached_discovery.go#L134">https://github.com/kubernetes/client-go/blob/4f1c2e7b9711846cf31255fd709616c66cb3cfea/discovery/cached/disk/cached_discovery.go#L134</a></p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(d *CachedDiscoveryClient)</span></span> getCachedFile(filename <span class="type">string</span>) ([]<span class="type">byte</span>, <span class="type">error</span>) &#123;</span><br><span class="line">	<span class="comment">// after invalidation ignore cache files not created by this process</span></span><br><span class="line">	d.mutex.Lock()</span><br><span class="line">	_, ourFile := d.ourFiles[filename]</span><br><span class="line">	<span class="keyword">if</span> d.invalidated &amp;&amp; !ourFile &#123;</span><br><span class="line">		d.mutex.Unlock()</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, errors.New(<span class="string">&quot;cache invalidated&quot;</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	d.mutex.Unlock()</span><br><span class="line"></span><br><span class="line">	file, err := os.Open(filename)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">defer</span> file.Close()</span><br><span class="line"></span><br><span class="line">	fileInfo, err := file.Stat()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line"> <span class="comment">// 设置过期时间</span></span><br><span class="line">	<span class="keyword">if</span> time.Now().After(fileInfo.ModTime().Add(d.ttl)) &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, errors.New(<span class="string">&quot;cache expired&quot;</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// the cache is present and its valid.  Try to read and use it.</span></span><br><span class="line">	cachedBytes, err := ioutil.ReadAll(file)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	d.mutex.Lock()</span><br><span class="line">	<span class="keyword">defer</span> d.mutex.Unlock()</span><br><span class="line">	d.fresh = d.fresh &amp;&amp; ourFile</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> cachedBytes, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h4 id="使用新的缓存目录"><a href="#使用新的缓存目录" class="headerlink" title="使用新的缓存目录"></a>使用新的缓存目录</h4><p>使用KUBECACHEDIR可以指定&#x2F;更新本地缓存目录。更新缓存目录后，之前的目录中的缓存文件不可爱使用。再调用CachedDiscoveryClient获取资源组列表会重新拉取对应的资源对象</p>
+<h4 id="主动让缓存失效"><a href="#主动让缓存失效" class="headerlink" title="主动让缓存失效"></a>主动让缓存失效</h4><ul>
+<li><p>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/client-go/blob/4f1c2e7b9711846cf31255fd709616c66cb3cfea/discovery/cached/disk/cached_discovery.go#L266">https://github.com/kubernetes/client-go/blob/4f1c2e7b9711846cf31255fd709616c66cb3cfea/discovery/cached/disk/cached_discovery.go#L266</a></p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="comment">// Invalidate enforces that no cached data is used in the future that is older than the current time.</span></span><br><span class="line"><span class="comment">// 清空CachedDiscoveryClient 记录的所有缓存文件名ourFiles</span></span><br><span class="line"><span class="comment">// 将Cached DiscoveryClient重的invalidated 失效状态设置为true，这回将之前的缓存内容全部标记为失效</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(d *CachedDiscoveryClient)</span></span> Invalidate() &#123;</span><br><span class="line">	...</span><br><span class="line">	d.ourFiles = <span class="keyword">map</span>[<span class="type">string</span>]<span class="keyword">struct</span>&#123;&#125;&#123;&#125;</span><br><span class="line">	d.fresh = <span class="literal">true</span></span><br><span class="line">	d.invalidated = <span class="literal">true</span></span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>下面这些特殊的命令，会主动让缓存失效：</p>
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>用途</th>
+<th>缓存失效场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>kubectl version</td>
+<td>查询当前客户端和服务端的版本信息</td>
+<td>为了获取最新的，让缓存失效</td>
+</tr>
+<tr>
+<td>kubectl api-resources</td>
+<td>查询kube-apiserver支持的资源列表</td>
+<td>在未显式指定缓存，–cached&#x3D;true,默认访问kube-apiserver获取资源对象，并且主动让缓存失效</td>
+</tr>
+<tr>
+<td>kubectl api-versions</td>
+<td>打印支持API版本列表</td>
+<td>为了获取最新的API版本列表，主动强制让缓存失效</td>
+</tr>
+</tbody></table>
+</li>
+</ul>
+<h4 id="访问-操作本地缓存中未识别的资源"><a href="#访问-操作本地缓存中未识别的资源" class="headerlink" title="访问&#x2F;操作本地缓存中未识别的资源"></a>访问&#x2F;操作本地缓存中未识别的资源</h4><p>K8s支持CustomResource定义更多的资源类型，以满足拓展资源和场景的使用需求</p>
+<ul>
+<li>出现未识别资源的，先尝试获取资源的R		45estMapping</li>
+<li>如果本地缓存查找不到对应的资源信息，调用RESTMapper的Reset重置方法<ul>
+<li>Reset：调用CachedDiscoveryClient.Invalidate主动让CachedDiscoveryClient缓存失效</li>
+</ul>
+</li>
+<li>kuebctl尝试获取资源的RestMapping信息，让CachedDiscoveryClient从kube-apiserver获取资源组中最新的资源列表</li>
+</ul>
+<h2 id="缓存使用场景"><a href="#缓存使用场景" class="headerlink" title="缓存使用场景"></a>缓存使用场景</h2><h3 id="资源访问"><a href="#资源访问" class="headerlink" title="资源访问"></a>资源访问</h3><p>kubectl在使用RESTful对资源操作之前，需要根据资源信息找到访问资源的客户端对象。</p>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image202411122139005.png"></p>
+<h3 id="类目展开"><a href="#类目展开" class="headerlink" title="类目展开"></a>类目展开</h3><p>通过kubectl查询所有的资源对象</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">kubectl get all -n kube-system</span><br></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th align="center">资源类目</th>
+<th align="center">展开后的资源列表</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">all</td>
+<td align="center">pods\replicationscontrollers\services\daemonsets.apps\deployment.apps\replcasets.apps\statefulsets.apps\horizontalpodautoscalers.autoscaling\horizontalpodautoscalers\cronjobs.batch\jobs.batch\cronjobs.batch</td>
+</tr>
+<tr>
+<td align="center">api-extensions</td>
+<td align="center">apiservice.apiregistration.k8s.io&#x2F;v1.                                                                                                                                                                  apiservice.apiregistration.k8s.io&#x2F;v1.admissionregistration.k8s.io                                                                                                                                      apiservice.apiregistration.k8s.io&#x2F;v1.apiextensions.k8s.io                                                                                                                                              apiservice.apiregistration.k8s.io&#x2F;v1.apps                                                                                                                                                              apiservice.apiregistration.k8s.io&#x2F;v1.authentication.k8s.io                                                                                                                                             apiservice.apiregistration.k8s.io&#x2F;v1.authorization.k8s.io                                                                                                                                              apiservice.apiregistration.k8s.io&#x2F;v1.autoscaling                                                                                                                                                       apiservice.apiregistration.k8s.io&#x2F;v1.batch                                                                                                                                                             apiservice.apiregistration.k8s.io&#x2F;v1.certificates.k8s.io                                                                                                                                               apiservice.apiregistration.k8s.io&#x2F;v1.coordination.k8s.io                                                                                                                                               apiservice.apiregistration.k8s.io&#x2F;v1.discovery.k8s.io                                                                                                                                                  apiservice.apiregistration.k8s.io&#x2F;v1.events.k8s.io                                                                                                                                                     apiservice.apiregistration.k8s.io&#x2F;v1.networking.k8s.io                                                                                                                                                 apiservice.apiregistration.k8s.io&#x2F;v1.node.k8s.io                                                                                                                                                       apiservice.apiregistration.k8s.io&#x2F;v1.policy                                                                                                                                                            apiservice.apiregistration.k8s.io&#x2F;v1.rbac.authorization.k8s.io                                                                                                                                         apiservice.apiregistration.k8s.io&#x2F;v1.scheduling.k8s.io                                                                                                                                                 apiservice.apiregistration.k8s.io&#x2F;v1.storage.k8s.io                                                                                                                                                    apiservice.apiregistration.k8s.io&#x2F;v1beta1.admissionregistration.k8s.io                                                                                                                                 apiservice.apiregistration.k8s.io&#x2F;v1beta1.apiextensions.k8s.io                                                                                                                                         apiservice.apiregistration.k8s.io&#x2F;v1beta1.authentication.k8s.io                                                                                                                                        apiservice.apiregistration.k8s.io&#x2F;v1beta1.authorization.k8s.io                                                                                                                                         apiservice.apiregistration.k8s.io&#x2F;v1beta1.batch                                                                                                                                                        apiservice.apiregistration.k8s.io&#x2F;v1beta1.certificates.k8s.io                                                                                                                                          apiservice.apiregistration.k8s.io&#x2F;v1beta1.coordination.k8s.io                                                                                                                                          apiservice.apiregistration.k8s.io&#x2F;v1beta1.discovery.k8s.io                                                                                                                                             apiservice.apiregistration.k8s.io&#x2F;v1beta1.events.k8s.io                                                                                                                                                apiservice.apiregistration.k8s.io&#x2F;v1beta1.extensions                                                                                                                                                   apiservice.apiregistration.k8s.io&#x2F;v1beta1.flowcontrol.apiserver.k8s.io                                                                                                                                 apiservice.apiregistration.k8s.io&#x2F;v1beta1.networking.k8s.io                                                                                                                                            apiservice.apiregistration.k8s.io&#x2F;v1beta1.node.k8s.io                                                                                                                                                  apiservice.apiregistration.k8s.io&#x2F;v1beta1.policy                                                                                                                                                       apiservice.apiregistration.k8s.io&#x2F;v1beta1.rbac.authorization.k8s.io                                                                                                                                    apiservice.apiregistration.k8s.io&#x2F;v1beta1.scheduling.k8s.io                                                                                                                                            apiservice.apiregistration.k8s.io&#x2F;v1beta1.storage.k8s.io                                                                                                                                               apiservice.apiregistration.k8s.io&#x2F;v2beta1.autoscaling                                                                                                                                                  apiservice.apiregistration.k8s.io&#x2F;v2beta2.autoscaling</td>
+</tr>
+</tbody></table>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image202411122205504.png"></p>
+<h3 id="缩写替换"><a href="#缩写替换" class="headerlink" title="缩写替换"></a>缩写替换</h3><p>kubetcl可以使用缩写来实现对一些资源的，比如deploy和deployment</p>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image202411122215368.png"></p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2024/11/11/cloud/k8s/kubectl/K8s-kubectl(%E7%BC%93%E5%AD%98%E6%9C%BA%E5%88%B6)/">https://piwriw.github.io/2024/11/11/cloud/k8s/kubectl/K8s-kubectl(缓存机制)/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a><a class="post-meta__tags" href="/tags/cloud/">cloud</a><a class="post-meta__tags" href="/tags/K8s%E6%BA%90%E7%A0%81/">K8s源码</a><a class="post-meta__tags" href="/tags/kubectl/">kubectl</a></div><div class="post_share"><div class="social-share" data-image="/img/k8sLogo.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i> 打赏</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/2024/11/12/cloud/k8s/kubectl/K8s-kubectl(%E5%8F%98%E6%9B%B4%E5%AF%B9%E6%AF%94%E7%AD%96%E7%95%A5)/" title="K8s-kubectl(变更对比策略和拓展命令)"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">K8s-kubectl(变更对比策略和拓展命令)</div></div></a></div><div class="next-post pull-right"><a href="/2024/11/11/cloud/k8s/kubectl/K8s-kubectl(%E6%89%A7%E8%A1%8C%E6%B5%81%E7%A8%8B)/" title="K8s-kubectl(执行流程)"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">K8s-kubectl(执行流程)</div></div></a></div></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><div><a href="/2024/11/12/cloud/k8s/kubectl/K8s-kubectl(%E5%8F%98%E6%9B%B4%E5%AF%B9%E6%AF%94%E7%AD%96%E7%95%A5)/" title="K8s-kubectl(变更对比策略和拓展命令)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2024-11-12</div><div class="title">K8s-kubectl(变更对比策略和拓展命令)</div></div></a></div><div><a href="/2024/11/11/cloud/k8s/kubectl/K8s-kubectl(%E6%89%A7%E8%A1%8C%E6%B5%81%E7%A8%8B)/" title="K8s-kubectl(执行流程)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2024-11-11</div><div class="title">K8s-kubectl(执行流程)</div></div></a></div><div><a href="/2023/12/25/cloud/k8s/kubectl/K8s-GC(%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6)/" title="K8s-GC(垃圾回收)"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-12-25</div><div class="title">K8s-GC(垃圾回收)</div></div></a></div><div><a href="/2024/12/16/cloud/k8s/kubelet/K8s-kubelet(HTTP%E6%9C%8D%E5%8A%A1%E6%8E%A5%E5%8F%A3)/" title="K8s-kubelet(HTTP服务接口)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-16</div><div class="title">K8s-kubelet(HTTP服务接口)</div></div></a></div><div><a href="/2024/12/15/cloud/k8s/kubelet/K8s-kubelet(PLEG%E6%A0%B8%E5%BF%83%E5%8E%9F%E7%90%86)/" title="K8s-kubelet(PLEG核心原理)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-15</div><div class="title">K8s-kubelet(PLEG核心原理)</div></div></a></div><div><a href="/2024/12/14/cloud/k8s/kubelet/K8s-kubelet(Cgroup%E8%B5%84%E6%BA%90%E9%9A%94%E7%A6%BB%E4%BB%A5%E5%8F%8A%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E5%8E%9F%E7%90%86)/" title="K8s-kubelet(Cgroup资源隔离以及垃圾回收原理)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-14</div><div class="title">K8s-kubelet(Cgroup资源隔离以及垃圾回收原理)</div></div></a></div></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">Joohwan.</div><div class="author-info__description">该知道的都知道，不知道的慢慢了解</div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">207</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">64</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">52</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons is-center"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#K8s-kubectl-%E7%BC%93%E5%AD%98%E6%9C%BA%E5%88%B6"><span class="toc-number">1.</span> <span class="toc-text">K8s-kubectl(缓存机制)</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BC%93%E5%AD%98%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84"><span class="toc-number">1.1.</span> <span class="toc-text">缓存数据结构</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BC%93%E5%AD%98%E6%9C%BA%E5%88%B6%E8%AF%A6%E8%A7%A3"><span class="toc-number">1.2.</span> <span class="toc-text">缓存机制详解</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%BC%93%E5%AD%98%E5%AF%B9%E8%B1%A1%E5%88%9D%E5%A7%8B%E5%8C%96"><span class="toc-number">1.2.1.</span> <span class="toc-text">缓存对象初始化</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%BC%93%E5%AD%98%E5%A1%AB%E5%85%85%E5%92%8C%E6%9B%B4%E6%96%B0"><span class="toc-number">1.2.2.</span> <span class="toc-text">缓存填充和更新</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%BC%93%E5%AD%98%E5%A4%B1%E6%95%88%E6%9C%BA%E5%88%B6"><span class="toc-number">1.2.3.</span> <span class="toc-text">缓存失效机制</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%BC%93%E5%AD%98%E8%BF%87%E6%9C%9F%E5%A4%B1%E6%95%88"><span class="toc-number">1.2.3.1.</span> <span class="toc-text">缓存过期失效</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8%E6%96%B0%E7%9A%84%E7%BC%93%E5%AD%98%E7%9B%AE%E5%BD%95"><span class="toc-number">1.2.3.2.</span> <span class="toc-text">使用新的缓存目录</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%B8%BB%E5%8A%A8%E8%AE%A9%E7%BC%93%E5%AD%98%E5%A4%B1%E6%95%88"><span class="toc-number">1.2.3.3.</span> <span class="toc-text">主动让缓存失效</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%AE%BF%E9%97%AE-%E6%93%8D%E4%BD%9C%E6%9C%AC%E5%9C%B0%E7%BC%93%E5%AD%98%E4%B8%AD%E6%9C%AA%E8%AF%86%E5%88%AB%E7%9A%84%E8%B5%84%E6%BA%90"><span class="toc-number">1.2.3.4.</span> <span class="toc-text">访问&#x2F;操作本地缓存中未识别的资源</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BC%93%E5%AD%98%E4%BD%BF%E7%94%A8%E5%9C%BA%E6%99%AF"><span class="toc-number">1.3.</span> <span class="toc-text">缓存使用场景</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%B5%84%E6%BA%90%E8%AE%BF%E9%97%AE"><span class="toc-number">1.3.1.</span> <span class="toc-text">资源访问</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%B1%BB%E7%9B%AE%E5%B1%95%E5%BC%80"><span class="toc-number">1.3.2.</span> <span class="toc-text">类目展开</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%BC%A9%E5%86%99%E6%9B%BF%E6%8D%A2"><span class="toc-number">1.3.3.</span> <span class="toc-text">缩写替换</span></a></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2025/01/01/cloud/k8s/kubeadm/K8s%E9%9B%86%E7%BE%A4%E7%89%88%E6%9C%AC%E6%9B%B4%E6%96%B0/" title="K8s集群版本更新"><img src="/img/kubeadm.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s集群版本更新"/></a><div class="content"><a class="title" href="/2025/01/01/cloud/k8s/kubeadm/K8s%E9%9B%86%E7%BE%A4%E7%89%88%E6%9C%AC%E6%9B%B4%E6%96%B0/" title="K8s集群版本更新">K8s集群版本更新</a><time datetime="2025-01-01T08:08:55.000Z" title="发表于 2025-01-01 16:08:55">2025-01-01</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2024/12/31/cloud/k8s/install/K8s%E5%AE%89%E8%A3%85-%E5%9F%BA%E4%BA%8E%E4%BA%8C%E8%BF%9B%E5%88%B6%E6%96%87%E4%BB%B6(%E9%AB%98%E5%8F%AF%E7%94%A8)/" title="K8s安装-基于二进制文件（高可用）"><img src="/img/k8sLogo.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s安装-基于二进制文件（高可用）"/></a><div class="content"><a class="title" href="/2024/12/31/cloud/k8s/install/K8s%E5%AE%89%E8%A3%85-%E5%9F%BA%E4%BA%8E%E4%BA%8C%E8%BF%9B%E5%88%B6%E6%96%87%E4%BB%B6(%E9%AB%98%E5%8F%AF%E7%94%A8)/" title="K8s安装-基于二进制文件（高可用）">K8s安装-基于二进制文件（高可用）</a><time datetime="2024-12-31T14:08:55.000Z" title="发表于 2024-12-31 22:08:55">2024-12-31</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2024/12/31/cloud/k8s/kubeadm/K8s%E5%AE%89%E8%A3%85-%E5%9F%BA%E4%BA%8Ekubeadm/" title="K8s安装-基于kubeadm"><img src="/img/kubeadm.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s安装-基于kubeadm"/></a><div class="content"><a class="title" href="/2024/12/31/cloud/k8s/kubeadm/K8s%E5%AE%89%E8%A3%85-%E5%9F%BA%E4%BA%8Ekubeadm/" title="K8s安装-基于kubeadm">K8s安装-基于kubeadm</a><time datetime="2024-12-31T08:08:55.000Z" title="发表于 2024-12-31 16:08:55">2024-12-31</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2024/12/16/cloud/k8s/kubelet/K8s-kubelet(HTTP%E6%9C%8D%E5%8A%A1%E6%8E%A5%E5%8F%A3)/" title="K8s-kubelet(HTTP服务接口)"><img src="/img/k8sLogo.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s-kubelet(HTTP服务接口)"/></a><div class="content"><a class="title" href="/2024/12/16/cloud/k8s/kubelet/K8s-kubelet(HTTP%E6%9C%8D%E5%8A%A1%E6%8E%A5%E5%8F%A3)/" title="K8s-kubelet(HTTP服务接口)">K8s-kubelet(HTTP服务接口)</a><time datetime="2024-12-16T13:22:55.000Z" title="发表于 2024-12-16 21:22:55">2024-12-16</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2024/12/15/cloud/k8s/kubelet/K8s-kubelet(PLEG%E6%A0%B8%E5%BF%83%E5%8E%9F%E7%90%86)/" title="K8s-kubelet(PLEG核心原理)"><img src="/img/k8sLogo.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s-kubelet(PLEG核心原理)"/></a><div class="content"><a class="title" href="/2024/12/15/cloud/k8s/kubelet/K8s-kubelet(PLEG%E6%A0%B8%E5%BF%83%E5%8E%9F%E7%90%86)/" title="K8s-kubelet(PLEG核心原理)">K8s-kubelet(PLEG核心原理)</a><time datetime="2024-12-15T13:22:55.000Z" title="发表于 2024-12-15 21:22:55">2024-12-15</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2023 - 2025 By Joohwan.</div><div class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="直达评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.umd.min.js"></script><div class="js-pjax"><script>(()=>{
+  const init = () => {
+    twikoo.init(Object.assign({
+      el: '#twikoo-wrap',
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: function () {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      }
+    }, null))
+  }
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(function (res) {
+      countELement.textContent = res[0].count
+    }).catch(function (err) {
+      console.error(err);
+    });
+  }
+
+  const runFn = () => {
+    init()
+    
+  }
+
+  const loadTwikoo = () => {
+    if (typeof twikoo === 'object') {
+      setTimeout(runFn,0)
+      return
+    } 
+    getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(runFn)
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = () => {
+      loadTwikoo()
+    }
+  }
+})()</script></div><script id="click-show-text" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/dist/click-show-text.min.js" data-mobile="false" data-text="Fighting,Joohwan,666" data-fontsize="15px" data-random="false" async="async"></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="is-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据库加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div class="no-result" id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div><!-- hexo injector body_end start -->
+  <script data-pjax src="undefined"></script>
+  <script data-pjax>
+        function GithubCalendarConfig(){
+            var git_githubapiurl ="undefined?piwriw";
+            var git_color =undefined;
+            var git_user ="piwriw";
+            var parent_div_git = document.getElementById('recent-posts');
+            var git_div_html = '<div class="recent-post-item" style="width:100%;height:auto;padding:10px; display: flex; align-items: center; justify-content: center;"> <img src="https://ghchart.rshah.org/piwriw" alt="piwriw" style="width: 100%; height: auto; max-width: 100%;"> </div> ';
+            if(parent_div_git && location.pathname =='/'){
+                console.log('已挂载github calendar')
+                // parent_div_git.innerHTML=git_div_html+parent_div_git.innerHTML // 无报错，但不影响使用(支持pjax跳转)
+                parent_div_git.insertAdjacentHTML("afterbegin",git_div_html) // 有报错，但不影响使用(支持pjax跳转)
+            };
+            GithubCalendar(git_githubapiurl,git_color,git_user)
+        }
+        if(document.getElementById('recent-posts')){
+            GithubCalendarConfig()
+        }
+    </script>
+    <style>#github_container{min-height:undefined}@media screen and (max-width:650px) {#github_container{background-image:;min-height:undefined}}</style>
+    <style>undefined</style><!-- hexo injector body_end end --></body></html>

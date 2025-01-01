@@ -1,0 +1,379 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>K8s-kubelet(Overview) | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="K8s-kubelet(Overview) 基于1.25  kubelet是K8s中最重要的节点代理程序，运行在集群的每个节点上。  能够自动将节点注册到集群 将节点上、Pod运行状态和资源使用情况周期性上报到控制平面 同时接受控制平面发送到工作任务、启动停止容器、维护管理Pod 也包含对cAdvusor资源用量监控、容器和镜像垃圾回收  kubelet架构设计kubelet整体架构采用了基于事件">
+<meta property="og:type" content="article">
+<meta property="og:title" content="K8s-kubelet(Overview)">
+<meta property="og:url" content="https://piwriw.github.io/2024/12/12/cloud/k8s/kubelet/K8s-kubelet(Overview)/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="K8s-kubelet(Overview) 基于1.25  kubelet是K8s中最重要的节点代理程序，运行在集群的每个节点上。  能够自动将节点注册到集群 将节点上、Pod运行状态和资源使用情况周期性上报到控制平面 同时接受控制平面发送到工作任务、启动停止容器、维护管理Pod 也包含对cAdvusor资源用量监控、容器和镜像垃圾回收  kubelet架构设计kubelet整体架构采用了基于事件">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/k8sLogo.png">
+<meta property="article:published_time" content="2024-12-12T15:22:55.000Z">
+<meta property="article:modified_time" content="2025-01-01T08:40:11.866Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="k8s">
+<meta property="article:tag" content="cloud">
+<meta property="article:tag" content="K8s源码">
+<meta property="article:tag" content="kubelet">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/k8sLogo.png"><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2024/12/12/cloud/k8s/kubelet/K8s-kubelet(Overview)/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"找不到您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  noticeOutdate: {"limitDay":365,"position":"top","messagePrev":"It has been","messageNext":"days since the last update, the content of the article may be outdated."},
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":false,"highlightHeightLimit":false},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  source: {
+    justifiedGallery: {
+      js: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.css'
+    }
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'K8s-kubelet(Overview)',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2025-01-01 16:40:11'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(win=>{
+    win.saveToLocal = {
+      set: function setWithExpiry(key, value, ttl) {
+        if (ttl === 0) return
+        const now = new Date()
+        const expiryDay = ttl * 86400000
+        const item = {
+          value: value,
+          expiry: now.getTime() + expiryDay,
+        }
+        localStorage.setItem(key, JSON.stringify(item))
+      },
+
+      get: function getWithExpiry(key) {
+        const itemStr = localStorage.getItem(key)
+
+        if (!itemStr) {
+          return undefined
+        }
+        const item = JSON.parse(itemStr)
+        const now = new Date()
+
+        if (now.getTime() > item.expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return item.value
+      }
+    }
+  
+    win.getScript = url => new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = url
+      script.async = true
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    })
+  
+    win.getCSS = (url,id = false) => new Promise((resolve, reject) => {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = url
+      if (id) link.id = id
+      link.onerror = reject
+      link.onload = link.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        link.onload = link.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(link)
+    })
+  
+      win.activateDarkMode = function () {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = function () {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+          if (t === 'dark') activateDarkMode()
+          else if (t === 'light') activateLightMode()
+        
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+    const detectApple = () => {
+      if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+    })(window)</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><meta name="generator" content="Hexo 6.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="/img/avatar.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">207</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">64</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">52</div></a></div><hr class="custom-hr"/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url('/img/k8sLogo.png')"><nav id="nav"><span id="blog-info"><a href="/" title="Joohwan"><span class="site-name">Joohwan</span></a></span><div id="menus"><div id="search-button"><a class="site-page social-icon search" href="javascript:void(0);"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">K8s-kubelet(Overview)</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2024-12-12T15:22:55.000Z" title="发表于 2024-12-12 23:22:55">2024-12-12</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2025-01-01T08:40:11.866Z" title="更新于 2025-01-01 16:40:11">2025-01-01</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/">k8s</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/kubelet/">kubelet</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">字数总计:</span><span class="word-count">1.5k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>5分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title="K8s-kubelet(Overview)"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><h1 id="K8s-kubelet-Overview"><a href="#K8s-kubelet-Overview" class="headerlink" title="K8s-kubelet(Overview)"></a>K8s-kubelet(Overview)</h1><blockquote>
+<p>基于1.25</p>
+</blockquote>
+<p>kubelet是K8s中最重要的节点代理程序，运行在集群的每个节点上。</p>
+<ul>
+<li>能够自动将节点注册到集群</li>
+<li>将节点上、Pod运行状态和资源使用情况周期性上报到控制平面</li>
+<li>同时接受控制平面发送到工作任务、启动停止容器、维护管理Pod</li>
+<li>也包含对cAdvusor资源用量监控、容器和镜像垃圾回收</li>
+</ul>
+<h2 id="kubelet架构设计"><a href="#kubelet架构设计" class="headerlink" title="kubelet架构设计"></a>kubelet架构设计</h2><p>kubelet整体架构采用了基于事件的处理模型，通过syncLoop和不断调谐Podtatus和PodSpec差距</p>
+<p>PodSpec主要来源自三个来源，kube-apiserver、file和HTTP。</p>
+<ul>
+<li>file和HTTP主要用于发现Static类型的Pod</li>
+<li>kubelet默认每隔20s执行一次检测</li>
+</ul>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image202412122053752.png"></p>
+<p>PodStatus实际状态主要是通过PLEG周期性扫描冗余运行时的运行状态获取。</p>
+<p>PLEG每隔1s，从容器运行时获取Pod和Container信息，并于本地缓存进行对比，发生变更的时候，生成PLEG事件，并且发送给事件订阅者触发执行事件处理程序。</p>
+<ul>
+<li>默认，当产生PLEG事件，kubelet会执行sync调谐</li>
+<li>kubelet提供了HTTPServer，端口10250，支持metrics指标采集、监控检查、接受来自kube-apiserver的Debug请求<ul>
+<li>比如，执行kubectl logs，kubectl 发送给kube-apiserver，kube-apiserver完成合法性校验，会向Pod所在的kubelet的日志服务端点&#x2F;containerLogs发起请求，有kubelet读取容器日志，返回给kube-apiserver</li>
+</ul>
+</li>
+</ul>
+<h2 id="管理器功能列表"><a href="#管理器功能列表" class="headerlink" title="管理器功能列表"></a>管理器功能列表</h2><table>
+<thead>
+<tr>
+<th align="center">名称</th>
+<th align="center">功能描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">cAdvisor</td>
+<td align="center">采集当前节点的容器、机器资源、内核和运行版本、文件系统等监控信息</td>
+</tr>
+<tr>
+<td align="center">CertificateManager</td>
+<td align="center">自动向kube-apiserver申请节点颁发kubelet-client证书，并在在证书过期前更新本地证书</td>
+</tr>
+<tr>
+<td align="center">CgroupManger</td>
+<td align="center">维护和管理Pod、Container的Cgroup层级结构，基层基于libcontainer的cgroups实现</td>
+</tr>
+<tr>
+<td align="center">CloudResourcesSyncManager</td>
+<td align="center">从云厂商同节点状态，如更新NodeAddress地址信息</td>
+</tr>
+<tr>
+<td align="center">ConfigMapManager</td>
+<td align="center">kubelet读取ConfigMap对象的接口，支持3种检测变更方法，分别如下1. Watch：使用Informer List-Watch机制监听ConfigMap变化，及时更新超过生存时间的ConfigMap自动失效，被重新加载2.Cache：使用固定的TTL超过时间，超过生存时间ConfigMap自动失效3. Get：不使用缓存，直接从kube-apiserver读取最新的ConfigMap对象</td>
+</tr>
+<tr>
+<td align="center">ContainerGC</td>
+<td align="center">容器垃圾回收，清理已经消亡的Container，可以通过GCPolicy控制垃圾回收策略</td>
+</tr>
+<tr>
+<td align="center">ContainerLogManager</td>
+<td align="center">容器日志管理Rotate滚动，每隔10s检查并执行一次日志Rotate操作，可以通过LogRotatePolicy控制器控制Rotate策略（如最大日志文件大小，最大日志文件数量）</td>
+</tr>
+<tr>
+<td align="center">ContainerManager</td>
+<td align="center">主要负责节点上运行的容器的cgroup配置，通过调用Cgroup配置cgroup。如果指定了kubelet的–cgroups-per-qos启动参数为true（默认true），则kubelet会建立cgroup层级结构，确保不同的QOS Pod资源隔离，目前支持3种QOS等级，分别Guaranceed、BestEffort、Burstable</td>
+</tr>
+<tr>
+<td align="center">CPUManager</td>
+<td align="center">维护和管理CPU资源分配，目前支持俩种cpuset管理策略，分别是none（默认策略）、static。定期通过CRI写入资源更新，以保证PodCPU分配和cgroup设置一致</td>
+</tr>
+<tr>
+<td align="center">DeviceManager</td>
+<td align="center">启动gRPC监听kubelet.sock，device plugin通过连接gRPC注册device信息，kubelet通过List-Watch机制监听deice更新，维护节点可分配和cgroup设置一样</td>
+</tr>
+<tr>
+<td align="center">EvictionManager</td>
+<td align="center">当节点的内存、磁盘、PID等资源不足，达到了配置了驱逐阈值的时候，驱逐管理器会按照Pod QOS等级，按顺序驱逐低优先级的Pod，以保证节点的稳定性。可以通过–eviction-hard参数配置驱逐阈值。</td>
+</tr>
+<tr>
+<td align="center">ImageGCManager</td>
+<td align="center">维护本地镜像列表，当镜像磁盘使用率达到了配置的上限阈值，清理节点上不使用的镜像，直到镜像磁盘使用率下降到配置的下限阈值，可以通过ImageGCPolciy设置镜像回收策略</td>
+</tr>
+<tr>
+<td align="center">kubeGenericRuntimeManger</td>
+<td align="center">Runtime接口的默认实现，封装了对Pod和Container常见操作，管理Pod和Container的生命周期，底层通过CRI调用Remote ContainerRuntime实现对容器运行时的操作</td>
+</tr>
+<tr>
+<td align="center">MemoryManager</td>
+<td align="center">维护和管理Memory资源分配，支持俩种管理策略分别是none（默认策略）、static。当启用MemoryManager featuregate，默认启用</td>
+</tr>
+<tr>
+<td align="center">NodeLeaseController</td>
+<td align="center">周期性声明和刷新节点的Lease对象，维持节点活跃状态</td>
+</tr>
+<tr>
+<td align="center">NodeShutdownManager</td>
+<td align="center">监听节点关机时间，在关机前，执行优雅关闭逻辑</td>
+</tr>
+<tr>
+<td align="center">OOMWatcher</td>
+<td align="center">监听操作系统OOM事件，并且记录为节点的Event</td>
+</tr>
+<tr>
+<td align="center">PluginManager</td>
+<td align="center">插件管理器，主要用于处理插件的验证、注册、反注册，目前支持Device和CSI。通过监听特定目录（&#x2F;var&#x2F;lib&#x2F;kubelet&#x2F;plugins_registry)下拓展名为 .sock的文件的创建发现插件，并且通过gRPC发起连接获取插件信息，完成对插件的管理。当拓展名.sock被移除，执行反注册</td>
+</tr>
+<tr>
+<td align="center">PodManager</td>
+<td align="center">提供存储和访问Pod信息的接口，封装关于Pod操作的接口，维持StaticPod和Mirror Pod的映射关系</td>
+</tr>
+<tr>
+<td align="center">ProbeManager</td>
+<td align="center">负责执行容器监控探测，目前支持三种探针，readiness、liveness、statup</td>
+</tr>
+<tr>
+<td align="center">QOSContainerManager</td>
+<td align="center">负责维护Pod的QOS等级，通过调用CgroupManager完成cgroup设置</td>
+</tr>
+<tr>
+<td align="center">RuntimeClassManager</td>
+<td align="center">监听和缓存RuntimeClass信息，提供kubelet启动容器时使用，Pod可通过设置RuntimeClassName字段指定容器运行时使用的特定Runtime如（runc）启动容器</td>
+</tr>
+<tr>
+<td align="center">SecretManager</td>
+<td align="center">kubelet读取secret对象接口，目前支持三种变更检测1.Watch：使用Informer监听Secret 2.Cache：使用固定的TTL超时时间，超过生存时间的Secret自动失效，被重新加载 3.Get：不使用缓存，直接从kube-apiserver读取最新的Secret</td>
+</tr>
+<tr>
+<td align="center">StatusManager</td>
+<td align="center">维护和存储最新的Pod Status信息，并将Pod Status信息不断同步回kube-apiserver</td>
+</tr>
+<tr>
+<td align="center">TokenManager</td>
+<td align="center">维护Service Account Token缓存，负责申请Token，并清理已经失效的Token</td>
+</tr>
+<tr>
+<td align="center">TopologyManager</td>
+<td align="center">负责维护CPU和硬件涉笔的拓扑状态，以支持在进行资源分配的时候进行硬件级的亲和条有哦，提升性能。支持4种分配策略，分别为Node（默认）、best-errfort、retricted、single-numa-node</td>
+</tr>
+<tr>
+<td align="center">VolumeManager</td>
+<td align="center">管理存储卷attach、mount、unmount、detach操作，底层通过调用CSI实现</td>
+</tr>
+</tbody></table>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2024/12/12/cloud/k8s/kubelet/K8s-kubelet(Overview)/">https://piwriw.github.io/2024/12/12/cloud/k8s/kubelet/K8s-kubelet(Overview)/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a><a class="post-meta__tags" href="/tags/cloud/">cloud</a><a class="post-meta__tags" href="/tags/K8s%E6%BA%90%E7%A0%81/">K8s源码</a><a class="post-meta__tags" href="/tags/kubelet/">kubelet</a></div><div class="post_share"><div class="social-share" data-image="/img/k8sLogo.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i> 打赏</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/2024/12/13/cloud/k8s/kubelet/K8s-kubelet(%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B)/" title="K8s-kubelet(Overview)"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">K8s-kubelet(Overview)</div></div></a></div><div class="next-post pull-right"><a href="/2024/12/11/cloud/k8s/kube-proxy/K8s-kube-proxy(ipvs%E4%BB%A3%E7%90%86%E6%A8%A1%E5%BC%8F)/" title="K8s-kube-proxy(ipvs代理模式)"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">K8s-kube-proxy(ipvs代理模式)</div></div></a></div></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><div><a href="/2024/12/16/cloud/k8s/kubelet/K8s-kubelet(HTTP%E6%9C%8D%E5%8A%A1%E6%8E%A5%E5%8F%A3)/" title="K8s-kubelet(HTTP服务接口)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-16</div><div class="title">K8s-kubelet(HTTP服务接口)</div></div></a></div><div><a href="/2024/12/15/cloud/k8s/kubelet/K8s-kubelet(PLEG%E6%A0%B8%E5%BF%83%E5%8E%9F%E7%90%86)/" title="K8s-kubelet(PLEG核心原理)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-15</div><div class="title">K8s-kubelet(PLEG核心原理)</div></div></a></div><div><a href="/2024/12/14/cloud/k8s/kubelet/K8s-kubelet(Cgroup%E8%B5%84%E6%BA%90%E9%9A%94%E7%A6%BB%E4%BB%A5%E5%8F%8A%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E5%8E%9F%E7%90%86)/" title="K8s-kubelet(Cgroup资源隔离以及垃圾回收原理)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-14</div><div class="title">K8s-kubelet(Cgroup资源隔离以及垃圾回收原理)</div></div></a></div><div><a href="/2024/12/13/cloud/k8s/kubelet/K8s-kubelet(Pod%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F%E7%AE%A1%E7%90%86)/" title="K8s-kubelet(Pod生命周期管理)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-13</div><div class="title">K8s-kubelet(Pod生命周期管理)</div></div></a></div><div><a href="/2024/12/13/cloud/k8s/kubelet/K8s-kubelet(%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B)/" title="K8s-kubelet(Overview)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-13</div><div class="title">K8s-kubelet(Overview)</div></div></a></div><div><a href="/2024/12/11/cloud/k8s/kube-proxy/K8s-kube-proxy(ipvs%E4%BB%A3%E7%90%86%E6%A8%A1%E5%BC%8F)/" title="K8s-kube-proxy(ipvs代理模式)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-11</div><div class="title">K8s-kube-proxy(ipvs代理模式)</div></div></a></div></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">Joohwan.</div><div class="author-info__description">该知道的都知道，不知道的慢慢了解</div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">207</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">64</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">52</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons is-center"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#K8s-kubelet-Overview"><span class="toc-number">1.</span> <span class="toc-text">K8s-kubelet(Overview)</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#kubelet%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1"><span class="toc-number">1.1.</span> <span class="toc-text">kubelet架构设计</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AE%A1%E7%90%86%E5%99%A8%E5%8A%9F%E8%83%BD%E5%88%97%E8%A1%A8"><span class="toc-number">1.2.</span> <span class="toc-text">管理器功能列表</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2025/01/01/cloud/k8s/kubeadm/K8s%E9%9B%86%E7%BE%A4%E7%89%88%E6%9C%AC%E6%9B%B4%E6%96%B0/" title="K8s集群版本更新"><img src="/img/kubeadm.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s集群版本更新"/></a><div class="content"><a class="title" href="/2025/01/01/cloud/k8s/kubeadm/K8s%E9%9B%86%E7%BE%A4%E7%89%88%E6%9C%AC%E6%9B%B4%E6%96%B0/" title="K8s集群版本更新">K8s集群版本更新</a><time datetime="2025-01-01T08:08:55.000Z" title="发表于 2025-01-01 16:08:55">2025-01-01</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2024/12/31/cloud/k8s/install/K8s%E5%AE%89%E8%A3%85-%E5%9F%BA%E4%BA%8E%E4%BA%8C%E8%BF%9B%E5%88%B6%E6%96%87%E4%BB%B6(%E9%AB%98%E5%8F%AF%E7%94%A8)/" title="K8s安装-基于二进制文件（高可用）"><img src="/img/k8sLogo.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s安装-基于二进制文件（高可用）"/></a><div class="content"><a class="title" href="/2024/12/31/cloud/k8s/install/K8s%E5%AE%89%E8%A3%85-%E5%9F%BA%E4%BA%8E%E4%BA%8C%E8%BF%9B%E5%88%B6%E6%96%87%E4%BB%B6(%E9%AB%98%E5%8F%AF%E7%94%A8)/" title="K8s安装-基于二进制文件（高可用）">K8s安装-基于二进制文件（高可用）</a><time datetime="2024-12-31T14:08:55.000Z" title="发表于 2024-12-31 22:08:55">2024-12-31</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2024/12/31/cloud/k8s/kubeadm/K8s%E5%AE%89%E8%A3%85-%E5%9F%BA%E4%BA%8Ekubeadm/" title="K8s安装-基于kubeadm"><img src="/img/kubeadm.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s安装-基于kubeadm"/></a><div class="content"><a class="title" href="/2024/12/31/cloud/k8s/kubeadm/K8s%E5%AE%89%E8%A3%85-%E5%9F%BA%E4%BA%8Ekubeadm/" title="K8s安装-基于kubeadm">K8s安装-基于kubeadm</a><time datetime="2024-12-31T08:08:55.000Z" title="发表于 2024-12-31 16:08:55">2024-12-31</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2024/12/16/cloud/k8s/kubelet/K8s-kubelet(HTTP%E6%9C%8D%E5%8A%A1%E6%8E%A5%E5%8F%A3)/" title="K8s-kubelet(HTTP服务接口)"><img src="/img/k8sLogo.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s-kubelet(HTTP服务接口)"/></a><div class="content"><a class="title" href="/2024/12/16/cloud/k8s/kubelet/K8s-kubelet(HTTP%E6%9C%8D%E5%8A%A1%E6%8E%A5%E5%8F%A3)/" title="K8s-kubelet(HTTP服务接口)">K8s-kubelet(HTTP服务接口)</a><time datetime="2024-12-16T13:22:55.000Z" title="发表于 2024-12-16 21:22:55">2024-12-16</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2024/12/15/cloud/k8s/kubelet/K8s-kubelet(PLEG%E6%A0%B8%E5%BF%83%E5%8E%9F%E7%90%86)/" title="K8s-kubelet(PLEG核心原理)"><img src="/img/k8sLogo.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s-kubelet(PLEG核心原理)"/></a><div class="content"><a class="title" href="/2024/12/15/cloud/k8s/kubelet/K8s-kubelet(PLEG%E6%A0%B8%E5%BF%83%E5%8E%9F%E7%90%86)/" title="K8s-kubelet(PLEG核心原理)">K8s-kubelet(PLEG核心原理)</a><time datetime="2024-12-15T13:22:55.000Z" title="发表于 2024-12-15 21:22:55">2024-12-15</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2023 - 2025 By Joohwan.</div><div class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="直达评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.umd.min.js"></script><div class="js-pjax"><script>(()=>{
+  const init = () => {
+    twikoo.init(Object.assign({
+      el: '#twikoo-wrap',
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: function () {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      }
+    }, null))
+  }
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(function (res) {
+      countELement.textContent = res[0].count
+    }).catch(function (err) {
+      console.error(err);
+    });
+  }
+
+  const runFn = () => {
+    init()
+    
+  }
+
+  const loadTwikoo = () => {
+    if (typeof twikoo === 'object') {
+      setTimeout(runFn,0)
+      return
+    } 
+    getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(runFn)
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = () => {
+      loadTwikoo()
+    }
+  }
+})()</script></div><script id="click-show-text" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/dist/click-show-text.min.js" data-mobile="false" data-text="Fighting,Joohwan,666" data-fontsize="15px" data-random="false" async="async"></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="is-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据库加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div class="no-result" id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div><!-- hexo injector body_end start -->
+  <script data-pjax src="undefined"></script>
+  <script data-pjax>
+        function GithubCalendarConfig(){
+            var git_githubapiurl ="undefined?piwriw";
+            var git_color =undefined;
+            var git_user ="piwriw";
+            var parent_div_git = document.getElementById('recent-posts');
+            var git_div_html = '<div class="recent-post-item" style="width:100%;height:auto;padding:10px; display: flex; align-items: center; justify-content: center;"> <img src="https://ghchart.rshah.org/piwriw" alt="piwriw" style="width: 100%; height: auto; max-width: 100%;"> </div> ';
+            if(parent_div_git && location.pathname =='/'){
+                console.log('已挂载github calendar')
+                // parent_div_git.innerHTML=git_div_html+parent_div_git.innerHTML // 无报错，但不影响使用(支持pjax跳转)
+                parent_div_git.insertAdjacentHTML("afterbegin",git_div_html) // 有报错，但不影响使用(支持pjax跳转)
+            };
+            GithubCalendar(git_githubapiurl,git_color,git_user)
+        }
+        if(document.getElementById('recent-posts')){
+            GithubCalendarConfig()
+        }
+    </script>
+    <style>#github_container{min-height:undefined}@media screen and (max-width:650px) {#github_container{background-image:;min-height:undefined}}</style>
+    <style>undefined</style><!-- hexo injector body_end end --></body></html>

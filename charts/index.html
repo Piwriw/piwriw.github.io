@@ -1,0 +1,530 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>文章统计 | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta property="og:type" content="website">
+<meta property="og:title" content="文章统计">
+<meta property="og:url" content="https://piwriw.github.io/charts/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/avatar.jpg">
+<meta property="article:published_time" content="2024-03-05T02:23:02.000Z">
+<meta property="article:modified_time" content="2025-02-23T15:29:46.487Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="Joohwan">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/avatar.jpg"><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/charts/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"><link rel="preconnect" href="//busuanzi.ibruce.info"><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"找不到您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  noticeOutdate: {"limitDay":365,"position":"top","messagePrev":"It has been","messageNext":"days since the last update, the content of the article may be outdated."},
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":false,"highlightHeightLimit":false},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  source: {
+    justifiedGallery: {
+      js: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.css'
+    }
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '文章统计',
+  isPost: false,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: false,
+  postUpdate: '2025-02-23 23:29:46'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(win=>{
+    win.saveToLocal = {
+      set: function setWithExpiry(key, value, ttl) {
+        if (ttl === 0) return
+        const now = new Date()
+        const expiryDay = ttl * 86400000
+        const item = {
+          value: value,
+          expiry: now.getTime() + expiryDay,
+        }
+        localStorage.setItem(key, JSON.stringify(item))
+      },
+
+      get: function getWithExpiry(key) {
+        const itemStr = localStorage.getItem(key)
+
+        if (!itemStr) {
+          return undefined
+        }
+        const item = JSON.parse(itemStr)
+        const now = new Date()
+
+        if (now.getTime() > item.expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return item.value
+      }
+    }
+  
+    win.getScript = url => new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = url
+      script.async = true
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    })
+  
+    win.getCSS = (url,id = false) => new Promise((resolve, reject) => {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = url
+      if (id) link.id = id
+      link.onerror = reject
+      link.onload = link.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        link.onload = link.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(link)
+    })
+  
+      win.activateDarkMode = function () {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = function () {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+          if (t === 'dark') activateDarkMode()
+          else if (t === 'light') activateLightMode()
+        
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+    const detectApple = () => {
+      if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+    })(window)</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><meta name="generator" content="Hexo 6.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="/img/avatar.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">213</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">69</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">54</div></a></div><hr class="custom-hr"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="page" id="body-wrap"><header class="not-home-page" id="page-header" style="background-image: url('/img/categories.png')"><nav id="nav"><span id="blog-info"><a href="/" title="Joohwan"><span class="site-name">Joohwan</span></a></span><div id="menus"><div id="search-button"><a class="site-page social-icon search" href="javascript:void(0);"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="page-site-info"><h1 id="site-title">文章统计</h1></div></header><main class="layout" id="content-inner"><div id="page"><div id="article-container"><!-- 文章发布时间统计图 -->
+<div id="posts-chart" data-start="2021-01" style="border-radius: 8px; height: 300px; padding: 10px;"></div>
+  <script id="postsChart">
+    var color = document.documentElement.getAttribute('data-theme') === 'light' ? '#4c4948' : 'rgba(255,255,255,0.7)'
+    var postsChart = echarts.init(document.getElementById('posts-chart'), 'light');
+    var postsOption = {
+      title: {
+        text: '文章发布统计图',
+        x: 'center',
+        textStyle: {
+          color: color
+        }
+      },
+      tooltip: {
+        trigger: 'axis'
+      },
+      xAxis: {
+        name: '日期',
+        type: 'category',
+        boundaryGap: false,
+        nameTextStyle: {
+          color: color
+        },
+        axisTick: {
+          show: false
+        },
+        axisLabel: {
+          show: true,
+          color: color
+        },
+        axisLine: {
+          show: true,
+          lineStyle: {
+            color: color
+          }
+        },
+        data: ["2021-01","2021-02","2021-03","2021-04","2021-05","2021-06","2021-07","2021-08","2021-09","2021-10","2021-11","2021-12","2022-01","2022-02","2022-03","2022-04","2022-05","2022-06","2022-07","2022-08","2022-09","2022-10","2022-11","2022-12","2023-01","2023-02","2023-03","2023-04","2023-05","2023-06","2023-07","2023-08","2023-09","2023-10","2023-11","2023-12","2024-01","2024-02","2024-03","2024-04","2024-05","2024-06","2024-07","2024-08","2024-09","2024-10","2024-11","2024-12","2025-01","2025-02"]
+      },
+      yAxis: {
+        name: '文章篇数',
+        type: 'value',
+        nameTextStyle: {
+          color: color
+        },
+        splitLine: {
+          show: false
+        },
+        axisTick: {
+          show: false
+        },
+        axisLabel: {
+          show: true,
+          color: color
+        },
+        axisLine: {
+          show: true,
+          lineStyle: {
+            color: color
+          }
+        }
+      },
+      series: [{
+        name: '文章篇数',
+        type: 'line',
+        smooth: true,
+        lineStyle: {
+            width: 0
+        },
+        showSymbol: false,
+        itemStyle: {
+          opacity: 1,
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{
+            offset: 0,
+            color: 'rgba(128, 255, 165)'
+          },
+          {
+            offset: 1,
+            color: 'rgba(1, 191, 236)'
+          }])
+        },
+        areaStyle: {
+          opacity: 1,
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{
+            offset: 0,
+            color: 'rgba(128, 255, 165)'
+          }, {
+            offset: 1,
+            color: 'rgba(1, 191, 236)'
+          }])
+        },
+        data: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,19,0,0,7,4,2,5,16,11,12,4,11,10,11,3,0,1,8,10,18,26,27,6,1],
+        markLine: {
+          data: [{
+            name: '平均值',
+            type: 'average',
+            label: {
+              color: color
+            }
+          }]
+        }
+      }]
+    };
+    postsChart.setOption(postsOption);
+    window.addEventListener('resize', () => { 
+      postsChart.resize();
+    });
+    postsChart.on('click', 'series', (event) => {
+      if (event.componentType === 'series') window.location.href = '/archives/' + event.name.replace('-', '/');
+    });
+  </script>
+<!-- 文章标签统计图 -->
+<div id="tags-chart" data-length="10" style="border-radius: 8px; height: 300px; padding: 10px;"></div>
+  <script id="tagsChart">
+    var color = document.documentElement.getAttribute('data-theme') === 'light' ? '#4c4948' : 'rgba(255,255,255,0.7)'
+    var tagsChart = echarts.init(document.getElementById('tags-chart'), 'light');
+    var tagsOption = {
+      title: {
+        text: 'Top 10 标签统计图',
+        x: 'center',
+        textStyle: {
+          color: color
+        }
+      },
+      tooltip: {},
+      xAxis: {
+        name: '标签',
+        type: 'category',
+        nameTextStyle: {
+          color: color
+        },
+        axisTick: {
+          show: false
+        },
+        axisLabel: {
+          show: true,
+          color: color,
+          interval: 0
+        },
+        axisLine: {
+          show: true,
+          lineStyle: {
+            color: color
+          }
+        },
+        data: ["k8s","cloud","K8s源码","go","web","设计模式"," Kube-controller-manager","分布式","面试","kube-apiserver"]
+      },
+      yAxis: {
+        name: '文章篇数',
+        type: 'value',
+        splitLine: {
+          show: false
+        },
+        nameTextStyle: {
+          color: color
+        },
+        axisTick: {
+          show: false
+        },
+        axisLabel: {
+          show: true,
+          color: color
+        },
+        axisLine: {
+          show: true,
+          lineStyle: {
+            color: color
+          }
+        }
+      },
+      series: [{
+        name: '文章篇数',
+        type: 'bar',
+        data: [{"name":"k8s","value":123,"path":"tags/k8s/"},{"name":"cloud","value":120,"path":"tags/cloud/"},{"name":"K8s源码","value":65,"path":"tags/K8s源码/"},{"name":"go","value":60,"path":"tags/go/"},{"name":"web","value":33,"path":"tags/web/"},{"name":"设计模式","value":13,"path":"tags/设计模式/"},{"name":" Kube-controller-manager","value":12,"path":"tags/Kube-controller-manager/"},{"name":"分布式","value":10,"path":"tags/分布式/"},{"name":"面试","value":9,"path":"tags/面试/"},{"name":"kube-apiserver","value":9,"path":"tags/kube-apiserver/"},{"name":"pod","value":9,"path":"tags/pod/"},{"name":"tools","value":8,"path":"tags/tools/"},{"name":"kubeedge","value":7,"path":"tags/kubeedge/"},{"name":"计算机网络","value":6,"path":"tags/计算机网络/"},{"name":"prometheus","value":6,"path":"tags/prometheus/"},{"name":"微服务","value":6,"path":"tags/微服务/"},{"name":"client-go","value":6,"path":"tags/client-go/"},{"name":"introduce","value":6,"path":"tags/introduce/"},{"name":"kubelet","value":6,"path":"tags/kubelet/"},{"name":"install","value":5,"path":"tags/install/"},{"name":"kube-proxy","value":5,"path":"tags/kube-proxy/"},{"name":"private","value":4,"path":"tags/private/"},{"name":"poem","value":4,"path":"tags/poem/"},{"name":" Kube-scheduler","value":4,"path":"tags/Kube-scheduler/"},{"name":"kubectl","value":4,"path":"tags/kubectl/"},{"name":"network","value":4,"path":"tags/network/"},{"name":"数据结构","value":3,"path":"tags/数据结构/"},{"name":"docker","value":3,"path":"tags/docker/"},{"name":"Gin","value":3,"path":"tags/Gin/"},{"name":"kubeadm","value":3,"path":"tags/kubeadm/"},{"name":"service","value":3,"path":"tags/service/"},{"name":"storage","value":2,"path":"tags/storage/"},{"name":"grafana","value":2,"path":"tags/grafana/"},{"name":"Gorm","value":2,"path":"tags/Gorm/"},{"name":"zap","value":2,"path":"tags/zap/"},{"name":"crd","value":2,"path":"tags/crd/"},{"name":"dasemonset","value":2,"path":"tags/dasemonset/"},{"name":"job","value":2,"path":"tags/job/"},{"name":"Harbor","value":1,"path":"tags/Harbor/"},{"name":"crio","value":1,"path":"tags/crio/"},{"name":"iptables","value":1,"path":"tags/iptables/"},{"name":"braveheart","value":1,"path":"tags/braveheart/"},{"name":"2024","value":1,"path":"tags/2024/"},{"name":"argo","value":1,"path":"tags/argo/"},{"name":"devops","value":1,"path":"tags/devops/"},{"name":"Istio","value":1,"path":"tags/Istio/"},{"name":"CKAD","value":1,"path":"tags/CKAD/"},{"name":"alertmanager","value":1,"path":"tags/alertmanager/"},{"name":"session","value":1,"path":"tags/session/"},{"name":"cookies","value":1,"path":"tags/cookies/"},{"name":"中间件","value":1,"path":"tags/中间件/"},{"name":"Linux部署Go","value":1,"path":"tags/Linux部署Go/"},{"name":"jwt","value":1,"path":"tags/jwt/"},{"name":"swagger","value":1,"path":"tags/swagger/"},{"name":"sqlx","value":1,"path":"tags/sqlx/"},{"name":"sql","value":1,"path":"tags/sql/"},{"name":"validation","value":1,"path":"tags/validation/"},{"name":"热加载","value":1,"path":"tags/热加载/"},{"name":"viper","value":1,"path":"tags/viper/"},{"name":"自定义业务状态码","value":1,"path":"tags/自定义业务状态码/"},{"name":"限流策略","value":1,"path":"tags/限流策略/"},{"name":"cronjob","value":1,"path":"tags/cronjob/"},{"name":"deployment","value":1,"path":"tags/deployment/"},{"name":"etcd","value":1,"path":"tags/etcd/"},{"name":"hpa","value":1,"path":"tags/hpa/"},{"name":"gc","value":1,"path":"tags/gc/"},{"name":"keadm","value":1,"path":"tags/keadm/"},{"name":"kubelet'","value":1,"path":"tags/kubelet/"},{"name":"kubemark","value":1,"path":"tags/kubemark/"}],
+        itemStyle: {
+          borderRadius: [5, 5, 0, 0],
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{
+            offset: 0,
+            color: 'rgba(128, 255, 165)'
+          },
+          {
+            offset: 1,
+            color: 'rgba(1, 191, 236)'
+          }])
+        },
+        emphasis: {
+          itemStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{
+              offset: 0,
+              color: 'rgba(128, 255, 195)'
+            },
+            {
+              offset: 1,
+              color: 'rgba(1, 211, 255)'
+            }])
+          }
+        },
+        markLine: {
+          data: [{
+            name: '平均值',
+            type: 'average',
+            label: {
+              color: color
+            }
+          }]
+        }
+      }]
+    };
+    tagsChart.setOption(tagsOption);
+    window.addEventListener('resize', () => { 
+      tagsChart.resize();
+    });
+    tagsChart.on('click', 'series', (event) => {
+      if(event.data.path) window.location.href = '/' + event.data.path;
+    });
+  </script>
+<!-- 文章分类统计图 -->
+<div id="categories-chart" data-parent="true" style="border-radius: 8px; height: 300px; padding: 10px;"></div>
+  <script id="categoriesChart">
+    var color = document.documentElement.getAttribute('data-theme') === 'light' ? '#4c4948' : 'rgba(255,255,255,0.7)'
+    var categoriesChart = echarts.init(document.getElementById('categories-chart'), 'light');
+    var categoryParentFlag = true
+    var categoriesOption = {
+      title: {
+        text: '文章分类统计图',
+        x: 'center',
+        textStyle: {
+          color: color
+        }
+      },
+      legend: {
+        top: 'bottom',
+        data: ["cloud","k8s","basic","web","设计模式","Kube-controller-manager","go","面试","apiserver","pod","tools","kubeedge","kubelet","prometheus","微服务","client-go","introduce","分布式","install","kube-proxy","poem","二十三岁的散文诗","Kube-scheduler","kubectl","network","docker","kubeadm","service","vm","storage","grafana","crd","cronjob","dasemonset","job","Harbor","crio","bash","homebrew","redis","chrome","git","braveheart","devops","Istio","CKAD","Gorm","rpc","deployment","etcd","hpa","argo","keadm","kubemark"],
+        textStyle: {
+          color: color
+        }
+      },
+      tooltip: {
+        trigger: 'item'
+      },
+      series: []
+    };
+    categoriesOption.series.push(
+      categoryParentFlag ? 
+      {
+        nodeClick :false,
+        name: '文章篇数',
+        type: 'sunburst',
+        radius: ['15%', '90%'],
+        center: ['50%', '55%'],
+        sort: 'desc',
+        data: [{"name":"cloud","value":136,"path":"categories/cloud/","id":"cm7hscgc20004hfq84jg9ehv8","parentId":"0","children":[{"name":"k8s","value":114,"path":"categories/cloud/k8s/","id":"cm7hscgd3001thfq84oswhvqt","parentId":"cm7hscgc20004hfq84jg9ehv8","children":[{"name":"Kube-controller-manager","value":12,"path":"categories/cloud/k8s/Kube-controller-manager/","id":"cm7hscgjy00v7hfq880dc5otv","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"apiserver","value":9,"path":"categories/cloud/k8s/apiserver/","id":"cm7hscgjq00tphfq877r61ma9","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"pod","value":9,"path":"categories/cloud/k8s/pod/","id":"cm7hscgks011mhfq858zp8t9l","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"kubelet","value":7,"path":"categories/cloud/k8s/kubelet/","id":"cm7hscgkk00zshfq8e92s5twt","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"client-go","value":6,"path":"categories/cloud/k8s/client-go/","id":"cm7hscgj300oahfq82pvmez2t","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"introduce","value":6,"path":"categories/cloud/k8s/introduce/","id":"cm7hscgjl00s6hfq81gyechkq","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"install","value":5,"path":"categories/cloud/k8s/install/","id":"cm7hscgjg00r4hfq80nyo0v1f","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"kube-proxy","value":5,"path":"categories/cloud/k8s/kube-proxy/","id":"cm7hscgk600x7hfq8fkgtf8j9","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"Kube-scheduler","value":4,"path":"categories/cloud/k8s/Kube-scheduler/","id":"cm7hscgk900y1hfq8927n5rel","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"kubectl","value":4,"path":"categories/cloud/k8s/kubectl/","id":"cm7hscgke00z7hfq83bk37e6i","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"network","value":4,"path":"categories/cloud/k8s/network/","id":"cm7hscgkp0110hfq86p0848sp","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"kubeadm","value":3,"path":"categories/cloud/k8s/kubeadm/","id":"cm7hscgkc00yphfq856du2e9m","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"service","value":3,"path":"categories/cloud/k8s/service/","id":"cm7hscgkx012vhfq8d44uc9nq","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"storage","value":2,"path":"categories/cloud/k8s/storage/","id":"cm7hscghi00ghhfq8fyyjdq4g","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"crd","value":2,"path":"categories/cloud/k8s/crd/","id":"cm7hscgj900pkhfq8776w1kgg","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"cronjob","value":2,"path":"categories/cloud/k8s/cronjob/","id":"cm7hscgjb00q0hfq8bx7recxd","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"dasemonset","value":2,"path":"categories/cloud/k8s/dasemonset/","id":"cm7hscgjd00qfhfq87i4a05x2","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"job","value":2,"path":"categories/cloud/k8s/job/","id":"cm7hscgjo00t0hfq8fovh9r9f","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"CKAD","value":1,"path":"categories/cloud/k8s/CKAD/","id":"cm7hscghf00g4hfq82q2538lx","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"deployment","value":1,"path":"categories/cloud/k8s/deployment/","id":"cm7hscgje00qohfq8ditq5iln","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"etcd","value":1,"path":"categories/cloud/k8s/etcd/","id":"cm7hscgje00qthfq82tkf86wj","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"hpa","value":1,"path":"categories/cloud/k8s/hpa/","id":"cm7hscgjf00qyhfq82x8mdjes","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"keadm","value":1,"path":"categories/cloud/k8s/keadm/","id":"cm7hscgjq00tihfq81v2r48ea","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"kubemark","value":1,"path":"categories/cloud/k8s/kubemark/","id":"cm7hscgkp010thfq8cx7t5ncm","parentId":"cm7hscgd3001thfq84oswhvqt"}]},{"name":"kubeedge","value":7,"path":"categories/cloud/kubeedge/","id":"cm7hscggi00e6hfq82dmsaruf","parentId":"cm7hscgc20004hfq84jg9ehv8"},{"name":"prometheus","value":6,"path":"categories/cloud/prometheus/","id":"cm7hscghx00i6hfq8dn5z2f3m","parentId":"cm7hscgc20004hfq84jg9ehv8"},{"name":"docker","value":3,"path":"categories/cloud/docker/","id":"cm7hscgg500d1hfq83mg35u2k","parentId":"cm7hscgc20004hfq84jg9ehv8"},{"name":"grafana","value":2,"path":"categories/cloud/grafana/","id":"cm7hscgi200inhfq84c9ofxh9","parentId":"cm7hscgc20004hfq84jg9ehv8"},{"name":"Harbor","value":1,"path":"categories/cloud/Harbor/","id":"cm7hscgcr000vhfq8098s4gqw","parentId":"cm7hscgc20004hfq84jg9ehv8"},{"name":"crio","value":1,"path":"categories/cloud/crio/","id":"cm7hscgcx001bhfq8hfgdd3vi","parentId":"cm7hscgc20004hfq84jg9ehv8"},{"name":"devops","value":1,"path":"categories/cloud/devops/","id":"cm7hscgg300cnhfq89hca6v09","parentId":"cm7hscgc20004hfq84jg9ehv8","children":[{"name":"argo","value":1,"path":"categories/cloud/devops/argo/","id":"cm7hscgjh00rnhfq8fesvgre9","parentId":"cm7hscgg300cnhfq89hca6v09"}]},{"name":"Istio","value":1,"path":"categories/cloud/Istio/","id":"cm7hscggd00drhfq88u1q7a3o","parentId":"cm7hscgc20004hfq84jg9ehv8"}]},{"name":"basic","value":33,"path":"categories/basic/","id":"cm7hscgdq003qhfq89ml06xxl","parentId":"0","children":[{"name":"设计模式","value":13,"path":"categories/basic/设计模式/","id":"cm7hscghm00gxhfq841ta8fkl","parentId":"cm7hscgdq003qhfq89ml06xxl"},{"name":"go","value":11,"path":"categories/basic/go/","id":"cm7hscgfy00c6hfq83mzme6nh","parentId":"cm7hscgdq003qhfq89ml06xxl"},{"name":"面试","value":9,"path":"categories/basic/面试/","id":"cm7hscgfx00byhfq84fq46woh","parentId":"cm7hscgdq003qhfq89ml06xxl"}]},{"name":"web","value":31,"path":"categories/web/","id":"cm7hscgd5001zhfq83yrp0sc9","parentId":"0","children":[{"name":"微服务","value":6,"path":"categories/web/微服务/","id":"cm7hscgit00m5hfq8dk9s5d18","parentId":"cm7hscgd5001zhfq83yrp0sc9"},{"name":"分布式","value":5,"path":"categories/web/分布式/","id":"cm7hscgij00khhfq8gevb6xu6","parentId":"cm7hscgd5001zhfq83yrp0sc9"},{"name":"Gorm","value":1,"path":"categories/web/Gorm/","id":"cm7hscgir00luhfq8a1uue2ni","parentId":"cm7hscgd5001zhfq83yrp0sc9"},{"name":"rpc","value":1,"path":"categories/web/rpc/","id":"cm7hscgj200o5hfq85gca2qj1","parentId":"cm7hscgd5001zhfq83yrp0sc9"}]},{"name":"tools","value":8,"path":"categories/tools/","id":"cm7hscgd1001lhfq87lm87s90","parentId":"0","children":[{"name":"vm","value":2,"path":"categories/tools/vm/","id":"cm7hscgf5007uhfq85w98dwys","parentId":"cm7hscgd1001lhfq87lm87s90"},{"name":"bash","value":1,"path":"categories/tools/bash/","id":"cm7hscge4004xhfq8fort2vyo","parentId":"cm7hscgd1001lhfq87lm87s90"},{"name":"homebrew","value":1,"path":"categories/tools/homebrew/","id":"cm7hscgf10078hfq879v14f1i","parentId":"cm7hscgd1001lhfq87lm87s90"},{"name":"redis","value":1,"path":"categories/tools/redis/","id":"cm7hscgf9008jhfq8892y8p3b","parentId":"cm7hscgd1001lhfq87lm87s90"},{"name":"chrome","value":1,"path":"categories/tools/chrome/","id":"cm7hscgff0098hfq8grmf0c0u","parentId":"cm7hscgd1001lhfq87lm87s90"},{"name":"git","value":1,"path":"categories/tools/git/","id":"cm7hscgfr00b1hfq8g5c21a48","parentId":"cm7hscgd1001lhfq87lm87s90"}]},{"name":"poem","value":4,"path":"categories/poem/","id":"cm7hscgcl000phfq882cb33py","parentId":"0","children":[{"name":"二十三岁的散文诗","value":4,"path":"categories/poem/二十三岁的散文诗/","id":"cm7hscgd9002bhfq8ffao6ll1","parentId":"cm7hscgcl000phfq882cb33py"}]},{"name":"braveheart","value":1,"path":"categories/braveheart/","id":"cm7hscgg100cfhfq80zck5tbx","parentId":"0"}],
+        itemStyle: {
+          borderColor: '#fff',
+          borderWidth: 2,
+          emphasis: {
+            focus: 'ancestor',
+            shadowBlur: 10,
+            shadowOffsetX: 0,
+            shadowColor: 'rgba(255, 255, 255, 0.5)'
+          }
+        }
+      }
+      :
+      {
+        name: '文章篇数',
+        type: 'pie',
+        radius: [30, 80],
+        roseType: 'area',
+        label: {
+          color: color,
+          formatter: '{b} : {c} ({d}%)'
+        },
+        data: [{"name":"cloud","value":136,"path":"categories/cloud/","id":"cm7hscgc20004hfq84jg9ehv8","parentId":"0"},{"name":"k8s","value":114,"path":"categories/cloud/k8s/","id":"cm7hscgd3001thfq84oswhvqt","parentId":"cm7hscgc20004hfq84jg9ehv8"},{"name":"basic","value":33,"path":"categories/basic/","id":"cm7hscgdq003qhfq89ml06xxl","parentId":"0"},{"name":"web","value":31,"path":"categories/web/","id":"cm7hscgd5001zhfq83yrp0sc9","parentId":"0"},{"name":"设计模式","value":13,"path":"categories/basic/设计模式/","id":"cm7hscghm00gxhfq841ta8fkl","parentId":"cm7hscgdq003qhfq89ml06xxl"},{"name":"Kube-controller-manager","value":12,"path":"categories/cloud/k8s/Kube-controller-manager/","id":"cm7hscgjy00v7hfq880dc5otv","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"go","value":11,"path":"categories/basic/go/","id":"cm7hscgfy00c6hfq83mzme6nh","parentId":"cm7hscgdq003qhfq89ml06xxl"},{"name":"面试","value":9,"path":"categories/basic/面试/","id":"cm7hscgfx00byhfq84fq46woh","parentId":"cm7hscgdq003qhfq89ml06xxl"},{"name":"apiserver","value":9,"path":"categories/cloud/k8s/apiserver/","id":"cm7hscgjq00tphfq877r61ma9","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"pod","value":9,"path":"categories/cloud/k8s/pod/","id":"cm7hscgks011mhfq858zp8t9l","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"tools","value":8,"path":"categories/tools/","id":"cm7hscgd1001lhfq87lm87s90","parentId":"0"},{"name":"kubeedge","value":7,"path":"categories/cloud/kubeedge/","id":"cm7hscggi00e6hfq82dmsaruf","parentId":"cm7hscgc20004hfq84jg9ehv8"},{"name":"kubelet","value":7,"path":"categories/cloud/k8s/kubelet/","id":"cm7hscgkk00zshfq8e92s5twt","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"prometheus","value":6,"path":"categories/cloud/prometheus/","id":"cm7hscghx00i6hfq8dn5z2f3m","parentId":"cm7hscgc20004hfq84jg9ehv8"},{"name":"微服务","value":6,"path":"categories/web/微服务/","id":"cm7hscgit00m5hfq8dk9s5d18","parentId":"cm7hscgd5001zhfq83yrp0sc9"},{"name":"client-go","value":6,"path":"categories/cloud/k8s/client-go/","id":"cm7hscgj300oahfq82pvmez2t","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"introduce","value":6,"path":"categories/cloud/k8s/introduce/","id":"cm7hscgjl00s6hfq81gyechkq","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"分布式","value":5,"path":"categories/web/分布式/","id":"cm7hscgij00khhfq8gevb6xu6","parentId":"cm7hscgd5001zhfq83yrp0sc9"},{"name":"install","value":5,"path":"categories/cloud/k8s/install/","id":"cm7hscgjg00r4hfq80nyo0v1f","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"kube-proxy","value":5,"path":"categories/cloud/k8s/kube-proxy/","id":"cm7hscgk600x7hfq8fkgtf8j9","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"poem","value":4,"path":"categories/poem/","id":"cm7hscgcl000phfq882cb33py","parentId":"0"},{"name":"二十三岁的散文诗","value":4,"path":"categories/poem/二十三岁的散文诗/","id":"cm7hscgd9002bhfq8ffao6ll1","parentId":"cm7hscgcl000phfq882cb33py"},{"name":"Kube-scheduler","value":4,"path":"categories/cloud/k8s/Kube-scheduler/","id":"cm7hscgk900y1hfq8927n5rel","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"kubectl","value":4,"path":"categories/cloud/k8s/kubectl/","id":"cm7hscgke00z7hfq83bk37e6i","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"network","value":4,"path":"categories/cloud/k8s/network/","id":"cm7hscgkp0110hfq86p0848sp","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"docker","value":3,"path":"categories/cloud/docker/","id":"cm7hscgg500d1hfq83mg35u2k","parentId":"cm7hscgc20004hfq84jg9ehv8"},{"name":"kubeadm","value":3,"path":"categories/cloud/k8s/kubeadm/","id":"cm7hscgkc00yphfq856du2e9m","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"service","value":3,"path":"categories/cloud/k8s/service/","id":"cm7hscgkx012vhfq8d44uc9nq","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"vm","value":2,"path":"categories/tools/vm/","id":"cm7hscgf5007uhfq85w98dwys","parentId":"cm7hscgd1001lhfq87lm87s90"},{"name":"storage","value":2,"path":"categories/cloud/k8s/storage/","id":"cm7hscghi00ghhfq8fyyjdq4g","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"grafana","value":2,"path":"categories/cloud/grafana/","id":"cm7hscgi200inhfq84c9ofxh9","parentId":"cm7hscgc20004hfq84jg9ehv8"},{"name":"crd","value":2,"path":"categories/cloud/k8s/crd/","id":"cm7hscgj900pkhfq8776w1kgg","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"cronjob","value":2,"path":"categories/cloud/k8s/cronjob/","id":"cm7hscgjb00q0hfq8bx7recxd","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"dasemonset","value":2,"path":"categories/cloud/k8s/dasemonset/","id":"cm7hscgjd00qfhfq87i4a05x2","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"job","value":2,"path":"categories/cloud/k8s/job/","id":"cm7hscgjo00t0hfq8fovh9r9f","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"Harbor","value":1,"path":"categories/cloud/Harbor/","id":"cm7hscgcr000vhfq8098s4gqw","parentId":"cm7hscgc20004hfq84jg9ehv8"},{"name":"crio","value":1,"path":"categories/cloud/crio/","id":"cm7hscgcx001bhfq8hfgdd3vi","parentId":"cm7hscgc20004hfq84jg9ehv8"},{"name":"bash","value":1,"path":"categories/tools/bash/","id":"cm7hscge4004xhfq8fort2vyo","parentId":"cm7hscgd1001lhfq87lm87s90"},{"name":"homebrew","value":1,"path":"categories/tools/homebrew/","id":"cm7hscgf10078hfq879v14f1i","parentId":"cm7hscgd1001lhfq87lm87s90"},{"name":"redis","value":1,"path":"categories/tools/redis/","id":"cm7hscgf9008jhfq8892y8p3b","parentId":"cm7hscgd1001lhfq87lm87s90"},{"name":"chrome","value":1,"path":"categories/tools/chrome/","id":"cm7hscgff0098hfq8grmf0c0u","parentId":"cm7hscgd1001lhfq87lm87s90"},{"name":"git","value":1,"path":"categories/tools/git/","id":"cm7hscgfr00b1hfq8g5c21a48","parentId":"cm7hscgd1001lhfq87lm87s90"},{"name":"braveheart","value":1,"path":"categories/braveheart/","id":"cm7hscgg100cfhfq80zck5tbx","parentId":"0"},{"name":"devops","value":1,"path":"categories/cloud/devops/","id":"cm7hscgg300cnhfq89hca6v09","parentId":"cm7hscgc20004hfq84jg9ehv8"},{"name":"Istio","value":1,"path":"categories/cloud/Istio/","id":"cm7hscggd00drhfq88u1q7a3o","parentId":"cm7hscgc20004hfq84jg9ehv8"},{"name":"CKAD","value":1,"path":"categories/cloud/k8s/CKAD/","id":"cm7hscghf00g4hfq82q2538lx","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"Gorm","value":1,"path":"categories/web/Gorm/","id":"cm7hscgir00luhfq8a1uue2ni","parentId":"cm7hscgd5001zhfq83yrp0sc9"},{"name":"rpc","value":1,"path":"categories/web/rpc/","id":"cm7hscgj200o5hfq85gca2qj1","parentId":"cm7hscgd5001zhfq83yrp0sc9"},{"name":"deployment","value":1,"path":"categories/cloud/k8s/deployment/","id":"cm7hscgje00qohfq8ditq5iln","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"etcd","value":1,"path":"categories/cloud/k8s/etcd/","id":"cm7hscgje00qthfq82tkf86wj","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"hpa","value":1,"path":"categories/cloud/k8s/hpa/","id":"cm7hscgjf00qyhfq82x8mdjes","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"argo","value":1,"path":"categories/cloud/devops/argo/","id":"cm7hscgjh00rnhfq8fesvgre9","parentId":"cm7hscgg300cnhfq89hca6v09"},{"name":"keadm","value":1,"path":"categories/cloud/k8s/keadm/","id":"cm7hscgjq00tihfq81v2r48ea","parentId":"cm7hscgd3001thfq84oswhvqt"},{"name":"kubemark","value":1,"path":"categories/cloud/k8s/kubemark/","id":"cm7hscgkp010thfq8cx7t5ncm","parentId":"cm7hscgd3001thfq84oswhvqt"}],
+        itemStyle: {
+          emphasis: {
+            shadowBlur: 10,
+            shadowOffsetX: 0,
+            shadowColor: 'rgba(255, 255, 255, 0.5)'
+          }
+        }
+      }
+    )
+    categoriesChart.setOption(categoriesOption);
+    window.addEventListener('resize', () => { 
+      categoriesChart.resize();
+    });
+    categoriesChart.on('click', 'series', (event) => {
+      if(event.data.path) window.location.href = '/' + event.data.path;
+    });
+  </script></div><hr class="custom-hr"><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-map"><div class="card-content"><div class="item-headline"><i class="fas fa-globe-asia" aria-hidden="true"></i><span>访客地图</span></div><script id="clstr_globe" type="text/javascript" defer="defer" src="//clustrmaps.com/globe.js?d=YyoMMHBiWFLjoLGTWWty-KlZJ1LcgGpGR22unnbKzaE"></script></div></div><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"></div><div class="author-info__name">Joohwan.</div><div class="author-info__description">该知道的都知道，不知道的慢慢了解</div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">213</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">69</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">54</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons is-center"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2025/02/23/cloud/k8s/CKAD%E6%A8%A1%E6%8B%9F%E9%A2%98A2025/" title="CKAD模拟题A2025"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="CKAD模拟题A2025"></a><div class="content"><a class="title" href="/2025/02/23/cloud/k8s/CKAD%E6%A8%A1%E6%8B%9F%E9%A2%98A2025/" title="CKAD模拟题A2025">CKAD模拟题A2025</a><time datetime="2025-02-23T04:57:55.000Z" title="发表于 2025-02-23 12:57:55">2025-02-23</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/01/08/cloud/braveheart/2024%E5%B9%B4%E7%BB%88%E6%80%BB%E7%BB%93/" title="2024年终总结"><img src="/img/braveheart.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="2024年终总结"></a><div class="content"><a class="title" href="/2025/01/08/cloud/braveheart/2024%E5%B9%B4%E7%BB%88%E6%80%BB%E7%BB%93/" title="2024年终总结">2024年终总结</a><time datetime="2025-01-08T15:38:55.000Z" title="发表于 2025-01-08 23:38:55">2025-01-08</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/01/07/cloud/k8s/introduce/K8s%E4%B8%AD%E7%9A%84%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/" title="K8s中的垃圾回收"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s中的垃圾回收"></a><div class="content"><a class="title" href="/2025/01/07/cloud/k8s/introduce/K8s%E4%B8%AD%E7%9A%84%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/" title="K8s中的垃圾回收">K8s中的垃圾回收</a><time datetime="2025-01-07T04:08:55.000Z" title="发表于 2025-01-07 12:08:55">2025-01-07</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/01/06/cloud/k8s/kubelet/Kubelet%E8%BF%90%E8%A1%8C%E6%9C%BA%E5%88%B6%E8%A7%A3%E6%9E%90/" title="Kubelet运行机制解析"><img src="/img/k8sLogo.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Kubelet运行机制解析"></a><div class="content"><a class="title" href="/2025/01/06/cloud/k8s/kubelet/Kubelet%E8%BF%90%E8%A1%8C%E6%9C%BA%E5%88%B6%E8%A7%A3%E6%9E%90/" title="Kubelet运行机制解析">Kubelet运行机制解析</a><time datetime="2025-01-06T13:22:55.000Z" title="发表于 2025-01-06 21:22:55">2025-01-06</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/01/05/cloud/k8s/kube-proxy/kube-proxy%E8%BF%90%E8%A1%8C%E6%9C%BA%E5%88%B6%E8%A7%A3%E6%9E%90/" title="kube-proxy运行机制解析"><img src="/img/k8sLogo.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="kube-proxy运行机制解析"></a><div class="content"><a class="title" href="/2025/01/05/cloud/k8s/kube-proxy/kube-proxy%E8%BF%90%E8%A1%8C%E6%9C%BA%E5%88%B6%E8%A7%A3%E6%9E%90/" title="kube-proxy运行机制解析">kube-proxy运行机制解析</a><time datetime="2025-01-05T14:31:55.000Z" title="发表于 2025-01-05 22:31:55">2025-01-05</time></div></div></div></div><div class="card-widget card-categories"><div class="item-headline">
+            <i class="fas fa-folder-open"></i>
+            <span>分类</span>
+            <a class="card-more-btn" href="/categories/" title="查看更多">
+    <i class="fas fa-angle-right"></i></a>
+            </div>
+            <ul class="card-category-list" id="aside-cat-list">
+            <li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/"><span class="card-category-list-name">basic</span><span class="card-category-list-count">33</span></a><ul class="card-category-list child"><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/go/"><span class="card-category-list-name">go</span><span class="card-category-list-count">11</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/"><span class="card-category-list-name">设计模式</span><span class="card-category-list-count">13</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/%E9%9D%A2%E8%AF%95/"><span class="card-category-list-name">面试</span><span class="card-category-list-count">9</span></a></li></ul></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/braveheart/"><span class="card-category-list-name">braveheart</span><span class="card-category-list-count">1</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/cloud/"><span class="card-category-list-name">cloud</span><span class="card-category-list-count">136</span></a><ul class="card-category-list child"><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/cloud/Harbor/"><span class="card-category-list-name">Harbor</span><span class="card-category-list-count">1</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/cloud/Istio/"><span class="card-category-list-name">Istio</span><span class="card-category-list-count">1</span></a></li></ul></li>
+            </ul></div><div class="card-widget card-tags"><div class="item-headline"><i class="fas fa-tags"></i><span>标签</span></div><div class="card-tag-cloud"><a href="/tags/kubemark/" style="font-size: 1.1em; color: #999">kubemark</a> <a href="/tags/cookies/" style="font-size: 1.1em; color: #999">cookies</a> <a href="/tags/kubelet/" style="font-size: 1.25em; color: #999fa8">kubelet</a> <a href="/tags/deployment/" style="font-size: 1.1em; color: #999">deployment</a> <a href="/tags/%E7%83%AD%E5%8A%A0%E8%BD%BD/" style="font-size: 1.1em; color: #999">热加载</a> <a href="/tags/Kube-scheduler/" style="font-size: 1.19em; color: #999da2"> Kube-scheduler</a> <a href="/tags/%E8%87%AA%E5%AE%9A%E4%B9%89%E4%B8%9A%E5%8A%A1%E7%8A%B6%E6%80%81%E7%A0%81/" style="font-size: 1.1em; color: #999">自定义业务状态码</a> <a href="/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" style="font-size: 1.16em; color: #999b9f">数据结构</a> <a href="/tags/keadm/" style="font-size: 1.1em; color: #999">keadm</a> <a href="/tags/2024/" style="font-size: 1.1em; color: #999">2024</a> <a href="/tags/docker/" style="font-size: 1.16em; color: #999b9f">docker</a> <a href="/tags/dasemonset/" style="font-size: 1.13em; color: #999a9c">dasemonset</a> <a href="/tags/introduce/" style="font-size: 1.25em; color: #999fa8">introduce</a> <a href="/tags/Kube-controller-manager/" style="font-size: 1.38em; color: #99a4b3"> Kube-controller-manager</a> <a href="/tags/K8s%E6%BA%90%E7%A0%81/" style="font-size: 1.47em; color: #99a8bc">K8s源码</a> <a href="/tags/braveheart/" style="font-size: 1.1em; color: #999">braveheart</a> <a href="/tags/%E4%B8%AD%E9%97%B4%E4%BB%B6/" style="font-size: 1.1em; color: #999">中间件</a> <a href="/tags/Gin/" style="font-size: 1.16em; color: #999b9f">Gin</a> <a href="/tags/sql/" style="font-size: 1.1em; color: #999">sql</a> <a href="/tags/devops/" style="font-size: 1.1em; color: #999">devops</a> <a href="/tags/kubeadm/" style="font-size: 1.16em; color: #999b9f">kubeadm</a> <a href="/tags/go/" style="font-size: 1.44em; color: #99a7b9">go</a> <a href="/tags/kubectl/" style="font-size: 1.19em; color: #999da2">kubectl</a> <a href="/tags/gc/" style="font-size: 1.1em; color: #999">gc</a> <a href="/tags/Gorm/" style="font-size: 1.13em; color: #999a9c">Gorm</a> <a href="/tags/tools/" style="font-size: 1.28em; color: #99a0ab">tools</a> <a href="/tags/client-go/" style="font-size: 1.25em; color: #999fa8">client-go</a> <a href="/tags/cloud/" style="font-size: 1.5em; color: #99a9bf">cloud</a> <a href="/tags/install/" style="font-size: 1.22em; color: #999ea5">install</a> <a href="/tags/pod/" style="font-size: 1.32em; color: #99a2ad">pod</a> <a href="/tags/zap/" style="font-size: 1.13em; color: #999a9c">zap</a> <a href="/tags/web/" style="font-size: 1.41em; color: #99a5b6">web</a> <a href="/tags/poem/" style="font-size: 1.19em; color: #999da2">poem</a> <a href="/tags/swagger/" style="font-size: 1.1em; color: #999">swagger</a> <a href="/tags/crd/" style="font-size: 1.13em; color: #999a9c">crd</a> <a href="/tags/crio/" style="font-size: 1.1em; color: #999">crio</a> <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" style="font-size: 1.35em; color: #99a3b0">分布式</a> <a href="/tags/Linux%E9%83%A8%E7%BD%B2Go/" style="font-size: 1.1em; color: #999">Linux部署Go</a> <a href="/tags/argo/" style="font-size: 1.1em; color: #999">argo</a> <a href="/tags/prometheus/" style="font-size: 1.25em; color: #999fa8">prometheus</a></div></div><div class="card-widget card-archives"><div class="item-headline"><i class="fas fa-archive"></i><span>归档</span><a class="card-more-btn" href="/archives/" title="查看更多">
+    <i class="fas fa-angle-right"></i></a></div><ul class="card-archive-list"><li class="card-archive-list-item"><a class="card-archive-list-link" href="/archives/2025/02/"><span class="card-archive-list-date">二月 2025</span><span class="card-archive-list-count">1</span></a></li><li class="card-archive-list-item"><a class="card-archive-list-link" href="/archives/2025/01/"><span class="card-archive-list-date">一月 2025</span><span class="card-archive-list-count">6</span></a></li><li class="card-archive-list-item"><a class="card-archive-list-link" href="/archives/2024/12/"><span class="card-archive-list-date">十二月 2024</span><span class="card-archive-list-count">27</span></a></li><li class="card-archive-list-item"><a class="card-archive-list-link" href="/archives/2024/11/"><span class="card-archive-list-date">十一月 2024</span><span class="card-archive-list-count">26</span></a></li><li class="card-archive-list-item"><a class="card-archive-list-link" href="/archives/2024/10/"><span class="card-archive-list-date">十月 2024</span><span class="card-archive-list-count">18</span></a></li><li class="card-archive-list-item"><a class="card-archive-list-link" href="/archives/2024/09/"><span class="card-archive-list-date">九月 2024</span><span class="card-archive-list-count">10</span></a></li><li class="card-archive-list-item"><a class="card-archive-list-link" href="/archives/2024/08/"><span class="card-archive-list-date">八月 2024</span><span class="card-archive-list-count">8</span></a></li><li class="card-archive-list-item"><a class="card-archive-list-link" href="/archives/2024/07/"><span class="card-archive-list-date">七月 2024</span><span class="card-archive-list-count">1</span></a></li></ul></div><div class="card-widget card-webinfo"><div class="item-headline"><i class="fas fa-chart-line"></i><span>网站资讯</span></div><div class="webinfo"><div class="webinfo-item"><div class="item-name">文章数目 :</div><div class="item-count">213</div></div><div class="webinfo-item"><div class="item-name">本站总字数 :</div><div class="item-count">344.3k</div></div><div class="webinfo-item"><div class="item-name">本站访客数 :</div><div class="item-count" id="busuanzi_value_site_uv"><i class="fa-solid fa-spinner fa-spin"></i></div></div><div class="webinfo-item"><div class="item-name">本站总访问量 :</div><div class="item-count" id="busuanzi_value_site_pv"><i class="fa-solid fa-spinner fa-spin"></i></div></div><div class="webinfo-item"><div class="item-name">最后更新时间 :</div><div class="item-count" id="last-push-date" data-lastpushdate="2025-02-23T15:30:23.759Z"><i class="fa-solid fa-spinner fa-spin"></i></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">©2023 - 2025 By Joohwan.</div><div class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><a id="to_comment" href="#post-comment" title="直达评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.umd.min.js"></script><div class="js-pjax"><script>(()=>{
+  const init = () => {
+    twikoo.init(Object.assign({
+      el: '#twikoo-wrap',
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: function () {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      }
+    }, null))
+  }
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(function (res) {
+      countELement.textContent = res[0].count
+    }).catch(function (err) {
+      console.error(err);
+    });
+  }
+
+  const runFn = () => {
+    init()
+    
+  }
+
+  const loadTwikoo = () => {
+    if (typeof twikoo === 'object') {
+      setTimeout(runFn,0)
+      return
+    } 
+    getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(runFn)
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = () => {
+      loadTwikoo()
+    }
+  }
+})()</script></div><script id="click-show-text" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/dist/click-show-text.min.js" data-mobile="false" data-text="Fighting,Joohwan,666" data-fontsize="15px" data-random="false" async="async"></script><script async="" data-pjax="" src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="is-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据库加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"></div></div><hr><div class="no-result" id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div><!-- hexo injector body_end start -->
+  <script data-pjax="" src="undefined"></script>
+  <script data-pjax="">
+        function GithubCalendarConfig(){
+            var git_githubapiurl ="undefined?piwriw";
+            var git_color =undefined;
+            var git_user ="piwriw";
+            var parent_div_git = document.getElementById('recent-posts');
+            var git_div_html = '<div class="recent-post-item" style="width:100%;height:auto;padding:10px; display: flex; align-items: center; justify-content: center;"> <img src="https://ghchart.rshah.org/piwriw" alt="piwriw" style="width: 100%; height: auto; max-width: 100%;"> </div> ';
+            if(parent_div_git && location.pathname =='/'){
+                console.log('已挂载github calendar')
+                // parent_div_git.innerHTML=git_div_html+parent_div_git.innerHTML // 无报错，但不影响使用(支持pjax跳转)
+                parent_div_git.insertAdjacentHTML("afterbegin",git_div_html) // 有报错，但不影响使用(支持pjax跳转)
+            };
+            GithubCalendar(git_githubapiurl,git_color,git_user)
+        }
+        if(document.getElementById('recent-posts')){
+            GithubCalendarConfig()
+        }
+    </script>
+    <style>#github_container{min-height:undefined}@media screen and (max-width:650px) {#github_container{background-image:;min-height:undefined}}</style>
+    <style>undefined</style><!-- hexo injector body_end end --></body></html>

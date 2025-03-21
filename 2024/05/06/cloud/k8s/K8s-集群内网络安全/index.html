@@ -1,0 +1,286 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>K8s-集群内网络安全 | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="K8s-集群内网络安全在Pod中使用宿主节点的Linux命名空间Pod中的容器一般都在分开的Linux命名空间中，他们通过不同IPC和PID命名空间，彼此隔离 Pod使用宿主机网络命名空间Pod需要使用主机网络，使用宿主机的网络适配器，而不是虚拟网络设备。 通过设置hostNetwork&#x3D;true实现 绑定宿主机端口号而不是使用宿主机网络命名空间Pod映射到到主机上的端口，但是不设置共享">
+<meta property="og:type" content="article">
+<meta property="og:title" content="K8s-集群内网络安全">
+<meta property="og:url" content="https://piwriw.github.io/2024/05/06/cloud/k8s/K8s-%E9%9B%86%E7%BE%A4%E5%86%85%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="K8s-集群内网络安全在Pod中使用宿主节点的Linux命名空间Pod中的容器一般都在分开的Linux命名空间中，他们通过不同IPC和PID命名空间，彼此隔离 Pod使用宿主机网络命名空间Pod需要使用主机网络，使用宿主机的网络适配器，而不是虚拟网络设备。 通过设置hostNetwork&#x3D;true实现 绑定宿主机端口号而不是使用宿主机网络命名空间Pod映射到到主机上的端口，但是不设置共享">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/k8sLogo.png">
+<meta property="article:published_time" content="2024-05-06T15:08:55.000Z">
+<meta property="article:modified_time" content="2025-03-21T10:00:25.507Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="k8s">
+<meta property="article:tag" content="go">
+<meta property="article:tag" content="cloud">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/k8sLogo.png"><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2024/05/06/cloud/k8s/K8s-%E9%9B%86%E7%BE%A4%E5%86%85%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"找不到您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  noticeOutdate: {"limitDay":365,"position":"top","messagePrev":"It has been","messageNext":"days since the last update, the content of the article may be outdated."},
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":false,"highlightHeightLimit":false},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  source: {
+    justifiedGallery: {
+      js: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.css'
+    }
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'K8s-集群内网络安全',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2025-03-21 18:00:25'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(win=>{
+    win.saveToLocal = {
+      set: function setWithExpiry(key, value, ttl) {
+        if (ttl === 0) return
+        const now = new Date()
+        const expiryDay = ttl * 86400000
+        const item = {
+          value: value,
+          expiry: now.getTime() + expiryDay,
+        }
+        localStorage.setItem(key, JSON.stringify(item))
+      },
+
+      get: function getWithExpiry(key) {
+        const itemStr = localStorage.getItem(key)
+
+        if (!itemStr) {
+          return undefined
+        }
+        const item = JSON.parse(itemStr)
+        const now = new Date()
+
+        if (now.getTime() > item.expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return item.value
+      }
+    }
+  
+    win.getScript = url => new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = url
+      script.async = true
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    })
+  
+    win.getCSS = (url,id = false) => new Promise((resolve, reject) => {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = url
+      if (id) link.id = id
+      link.onerror = reject
+      link.onload = link.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        link.onload = link.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(link)
+    })
+  
+      win.activateDarkMode = function () {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = function () {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+          if (t === 'dark') activateDarkMode()
+          else if (t === 'light') activateLightMode()
+        
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+    const detectApple = () => {
+      if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+    })(window)</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><meta name="generator" content="Hexo 6.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="/img/avatar.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">222</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">70</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">56</div></a></div><hr class="custom-hr"/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url('/img/k8sLogo.png')"><nav id="nav"><span id="blog-info"><a href="/" title="Joohwan"><span class="site-name">Joohwan</span></a></span><div id="menus"><div id="search-button"><a class="site-page social-icon search" href="javascript:void(0);"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">K8s-集群内网络安全</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2024-05-06T15:08:55.000Z" title="发表于 2024-05-06 23:08:55">2024-05-06</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2025-03-21T10:00:25.507Z" title="更新于 2025-03-21 18:00:25">2025-03-21</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/">k8s</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">字数总计:</span><span class="word-count">862</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>2分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title="K8s-集群内网络安全"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><h1 id="K8s-集群内网络安全"><a href="#K8s-集群内网络安全" class="headerlink" title="K8s-集群内网络安全"></a>K8s-集群内网络安全</h1><h2 id="在Pod中使用宿主节点的Linux命名空间"><a href="#在Pod中使用宿主节点的Linux命名空间" class="headerlink" title="在Pod中使用宿主节点的Linux命名空间"></a>在Pod中使用宿主节点的Linux命名空间</h2><p>Pod中的容器一般都在分开的Linux命名空间中，他们通过不同IPC和PID命名空间，彼此隔离</p>
+<h3 id="Pod使用宿主机网络命名空间"><a href="#Pod使用宿主机网络命名空间" class="headerlink" title="Pod使用宿主机网络命名空间"></a>Pod使用宿主机网络命名空间</h3><p>Pod需要使用主机网络，使用宿主机的网络适配器，而不是虚拟网络设备。</p>
+<p><strong>通过设置hostNetwork&#x3D;true</strong>实现</p>
+<h3 id="绑定宿主机端口号而不是使用宿主机网络命名空间"><a href="#绑定宿主机端口号而不是使用宿主机网络命名空间" class="headerlink" title="绑定宿主机端口号而不是使用宿主机网络命名空间"></a>绑定宿主机端口号而不是使用宿主机网络命名空间</h3><p>Pod映射到到主机上的端口，但是不设置共享主机的网络命名空间</p>
+<p>设置Pod的spec.containers.ports的hostPort实现</p>
+<p>hostPort的Pod流量转发过程：</p>
+<ul>
+<li>到达宿主机的端口连接直接转发到Pod 的对应的端口</li>
+</ul>
+<p><strong>与NodePort不同，NodePort会给所有的节点绑定上端口，即使Node没有对应Pod</strong></p>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20240506203647.png" alt="20240506203647"></p>
+<p>Pod hostPort案例：</p>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20240506203724.png" alt="20240506203724"></p>
+<h3 id="使用宿主机的PID和IPC命名空间"><a href="#使用宿主机的PID和IPC命名空间" class="headerlink" title="使用宿主机的PID和IPC命名空间"></a>使用宿主机的PID和IPC命名空间</h3><p>当使用spec中hostPID&#x3D;true 和 hostIPC&#x3D;true之后，pod容器就可以看到所有宿主机上的进程</p>
+<h2 id="配置节点的安全上下文"><a href="#配置节点的安全上下文" class="headerlink" title="配置节点的安全上下文"></a>配置节点的安全上下文</h2><p>通过 security Context 边项配置其他与安全性相关的特性</p>
+<p>配置安全上下文以后功能：</p>
+<ul>
+<li>指定容器中运行进程的用户（用户ID）</li>
+<li>阻止容器使用root用户运行（容器的默认运行用户通常在其镜像中指定，所 以可能需要阻止容器 root 用户运行〉</li>
+<li>使用特权模式运行容器，使其对宿主节点的内核有完全访问的权限</li>
+<li>与以上相反，通过添加或禁用内核功能，配置细粒度的内核访问权限</li>
+<li>设 SELinux C Security aced Linux 安全增强型 Linux ）边项，加强对容 器的限制</li>
+<li>阻止进程写入容器的根文件系统</li>
+</ul>
+<h3 id="运行Pod不配置安全上下文"><a href="#运行Pod不配置安全上下文" class="headerlink" title="运行Pod不配置安全上下文"></a>运行Pod不配置安全上下文</h3><p>通过<code>kuhectl exec pod-with-defaults id</code>查看</p>
+<p><font color=red>容器运行的用户在Dockerfile中指定，不指定默认root</font></p>
+<h3 id="指定用户运行容器"><a href="#指定用户运行容器" class="headerlink" title="指定用户运行容器"></a>指定用户运行容器</h3><figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Pod</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">pod-as-user-guest</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">containers:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">main</span></span><br><span class="line">      <span class="attr">image:</span> <span class="string">alpine</span></span><br><span class="line">      <span class="attr">command:</span> [<span class="string">&quot;/bin/sleep&quot;</span>,<span class="string">&quot;99999&quot;</span>]</span><br><span class="line">      <span class="attr">securityContext:</span></span><br><span class="line">        <span class="attr">runAsUser:</span> <span class="number">405</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20240506212206.png" alt="20240506212206"></p>
+<h3 id="阻止容器以root运行"><a href="#阻止容器以root运行" class="headerlink" title="阻止容器以root运行"></a>阻止容器以root运行</h3><p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20240506212301.png" alt="20240506212301"></p>
+<h3 id="使用特权模式运行Pod"><a href="#使用特权模式运行Pod" class="headerlink" title="使用特权模式运行Pod"></a>使用特权模式运行Pod</h3><p>pod 需要做它们的宿主节点上能够做的任何事，例如操作被保护的系统设备，或使用其他在通常容器中不能使用的内核功能</p>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20240506213019.png" alt="20240506213019"></p>
+<h3 id="为容器单独添加内核功能"><a href="#为容器单独添加内核功能" class="headerlink" title="为容器单独添加内核功能"></a>为容器单独添加内核功能</h3><p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20240506213206.png" alt="20240506213206"></p>
+<h3 id="为容器禁止内核功能"><a href="#为容器禁止内核功能" class="headerlink" title="为容器禁止内核功能"></a>为容器禁止内核功能</h3><p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20240506213325.png" alt="20240506213325"></p>
+<h3 id="阻止对容器根文件系统写入"><a href="#阻止对容器根文件系统写入" class="headerlink" title="阻止对容器根文件系统写入"></a>阻止对容器根文件系统写入</h3><p>考虑到安全，阻止容器进程对根文件系统写入，只能允许写入特定的挂载卷</p>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20240506213557.png" alt="20240506213557"></p>
+<h4 id="设置Pod级别的安全上下文"><a href="#设置Pod级别的安全上下文" class="headerlink" title="设置Pod级别的安全上下文"></a>设置Pod级别的安全上下文</h4><p>虽然pod.spec.securityContext属性可以设置Pod级别的安全上下文，但是会被容器级别安全上下文覆盖</p>
+<h3 id="Pod的容器使用不同用户共享存储卷"><a href="#Pod的容器使用不同用户共享存储卷" class="headerlink" title="Pod的容器使用不同用户共享存储卷"></a>Pod的容器使用不同用户共享存储卷</h3><p>一个Pod下的多个容器，使用不同用户运行容器，共享某一个文件夹</p>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20240506220254.png" alt="20240506220254"></p>
+<h2 id="限制Pod使用安全相关特性"><a href="#限制Pod使用安全相关特性" class="headerlink" title="限制Pod使用安全相关特性"></a>限制Pod使用安全相关特性</h2><p>通过创建<code>PodSecurityPolicy</code>实现，限制资源的特性使用</p>
+<h4 id="被移除的特性"><a href="#被移除的特性" class="headerlink" title="被移除的特性"></a>被移除的特性</h4><p>PodSecurityPolicy 在 Kubernetes v1.21 中<a target="_blank" rel="noopener" href="https://kubernetes.io/blog/2021/04/08/kubernetes-1-21-release-announcement/#podsecuritypolicy-deprecation">被弃用</a>， 在 Kubernetes v1.25 中被移除。</p>
+<h2 id="隔离Pod的网络"><a href="#隔离Pod的网络" class="headerlink" title="隔离Pod的网络"></a>隔离Pod的网络</h2><p>通过<code>NetworkPolicy</code>资源实现</p>
+<h3 id="在一个命名空间中启用网络隔离"><a href="#在一个命名空间中启用网络隔离" class="headerlink" title="在一个命名空间中启用网络隔离"></a>在一个命名空间中启用网络隔离</h3><p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20240506223217.png" alt="20240506223217"></p>
+<h3 id="允许同一命名空间的部分Pod访问一个服务端Pod"><a href="#允许同一命名空间的部分Pod访问一个服务端Pod" class="headerlink" title="允许同一命名空间的部分Pod访问一个服务端Pod"></a>允许同一命名空间的部分Pod访问一个服务端Pod</h3><p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20240506225710.png" alt="20240506225710"></p>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20240506225908.png" alt="20240506225908"></p>
+<p><font color=red>但是一般使用svc访问Pod，NetworkPolicy也会被触发</font></p>
+<h3 id="在不同Namespace进行网络隔离"><a href="#在不同Namespace进行网络隔离" class="headerlink" title="在不同Namespace进行网络隔离"></a>在不同Namespace进行网络隔离</h3><p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20240506231559.png" alt="20240506231559"></p>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20240506231650.png" alt="20240506231650"></p>
+<h3 id="使用CIDR隔离网络"><a href="#使用CIDR隔离网络" class="headerlink" title="使用CIDR隔离网络"></a>使用CIDR隔离网络</h3><p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20240506231758.png" alt="20240506231758"></p>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20240506231819.png" alt="20240506231819"></p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2024/05/06/cloud/k8s/K8s-%E9%9B%86%E7%BE%A4%E5%86%85%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8/">https://piwriw.github.io/2024/05/06/cloud/k8s/K8s-集群内网络安全/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a><a class="post-meta__tags" href="/tags/go/">go</a><a class="post-meta__tags" href="/tags/cloud/">cloud</a></div><div class="post_share"><div class="social-share" data-image="/img/k8sLogo.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i> 打赏</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/2024/05/07/cloud/k8s/hpa/K8s-%E8%87%AA%E5%8A%A8%E4%BC%B8%E7%BC%A9/" title="K8s-自动伸缩"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">K8s-自动伸缩</div></div></a></div><div class="next-post pull-right"><a href="/2024/05/06/cloud/k8s/K8s-%E8%AE%A4%E8%AF%81%E6%9C%BA%E5%88%B6%EF%BC%9AServiceAcccounts/" title="K8s-认证机制：ServiceAccounts"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">K8s-认证机制：ServiceAccounts</div></div></a></div></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><div><a href="/2024/05/06/cloud/k8s/K8s-%E8%AE%A4%E8%AF%81%E6%9C%BA%E5%88%B6%EF%BC%9AServiceAcccounts/" title="K8s-认证机制：ServiceAccounts"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2024-05-06</div><div class="title">K8s-认证机制：ServiceAccounts</div></div></a></div><div><a href="/2023/12/30/cloud/kubeedge/Kubeedge-%E8%A7%A3%E6%9E%90%E8%8E%B7%E5%8F%96Token%EF%BC%88keadm%20gettoken)/" title="Kubeedge-解析获取Token（keadm gettoken)"><img class="cover" src="/img/kubeedge.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-12-30</div><div class="title">Kubeedge-解析获取Token（keadm gettoken)</div></div></a></div><div><a href="/2023/06/10/cloud/k8s/install/K8s%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81%E5%85%AC%E7%BD%91%E8%AE%BF%E9%97%AE/" title="K8s如何支持公网访问"><img class="cover" src="/img/kubernetes.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-06-10</div><div class="title">K8s如何支持公网访问</div></div></a></div><div><a href="/2023/03/12/cloud/kubeedge/Kubeedge-5_%E7%8E%A9%E8%BD%ACRouter/" title="玩转 Router"><img class="cover" src="/img/kubeedge.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-03-12</div><div class="title">玩转 Router</div></div></a></div><div><a href="/2023/03/12/cloud/kubeedge/Kubeedge-4_%E7%8E%A9%E8%BD%ACDevicetwin/" title="玩转 Device twin"><img class="cover" src="/img/kubeedge.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-03-12</div><div class="title">玩转 Device twin</div></div></a></div><div><a href="/2023/03/05/cloud/kubeedge/Kubeedge-2_%E9%83%A8%E7%BD%B2%E5%AE%89%E8%A3%85KubeEdge/" title="部署安装KubeEdge"><img class="cover" src="/img/kubeedge.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-03-05</div><div class="title">部署安装KubeEdge</div></div></a></div></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">Joohwan.</div><div class="author-info__description">该知道的都知道，不知道的慢慢了解</div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">222</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">70</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">56</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons is-center"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#K8s-%E9%9B%86%E7%BE%A4%E5%86%85%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8"><span class="toc-number">1.</span> <span class="toc-text">K8s-集群内网络安全</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9C%A8Pod%E4%B8%AD%E4%BD%BF%E7%94%A8%E5%AE%BF%E4%B8%BB%E8%8A%82%E7%82%B9%E7%9A%84Linux%E5%91%BD%E5%90%8D%E7%A9%BA%E9%97%B4"><span class="toc-number">1.1.</span> <span class="toc-text">在Pod中使用宿主节点的Linux命名空间</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Pod%E4%BD%BF%E7%94%A8%E5%AE%BF%E4%B8%BB%E6%9C%BA%E7%BD%91%E7%BB%9C%E5%91%BD%E5%90%8D%E7%A9%BA%E9%97%B4"><span class="toc-number">1.1.1.</span> <span class="toc-text">Pod使用宿主机网络命名空间</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%BB%91%E5%AE%9A%E5%AE%BF%E4%B8%BB%E6%9C%BA%E7%AB%AF%E5%8F%A3%E5%8F%B7%E8%80%8C%E4%B8%8D%E6%98%AF%E4%BD%BF%E7%94%A8%E5%AE%BF%E4%B8%BB%E6%9C%BA%E7%BD%91%E7%BB%9C%E5%91%BD%E5%90%8D%E7%A9%BA%E9%97%B4"><span class="toc-number">1.1.2.</span> <span class="toc-text">绑定宿主机端口号而不是使用宿主机网络命名空间</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8%E5%AE%BF%E4%B8%BB%E6%9C%BA%E7%9A%84PID%E5%92%8CIPC%E5%91%BD%E5%90%8D%E7%A9%BA%E9%97%B4"><span class="toc-number">1.1.3.</span> <span class="toc-text">使用宿主机的PID和IPC命名空间</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%85%8D%E7%BD%AE%E8%8A%82%E7%82%B9%E7%9A%84%E5%AE%89%E5%85%A8%E4%B8%8A%E4%B8%8B%E6%96%87"><span class="toc-number">1.2.</span> <span class="toc-text">配置节点的安全上下文</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%BF%90%E8%A1%8CPod%E4%B8%8D%E9%85%8D%E7%BD%AE%E5%AE%89%E5%85%A8%E4%B8%8A%E4%B8%8B%E6%96%87"><span class="toc-number">1.2.1.</span> <span class="toc-text">运行Pod不配置安全上下文</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8C%87%E5%AE%9A%E7%94%A8%E6%88%B7%E8%BF%90%E8%A1%8C%E5%AE%B9%E5%99%A8"><span class="toc-number">1.2.2.</span> <span class="toc-text">指定用户运行容器</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%98%BB%E6%AD%A2%E5%AE%B9%E5%99%A8%E4%BB%A5root%E8%BF%90%E8%A1%8C"><span class="toc-number">1.2.3.</span> <span class="toc-text">阻止容器以root运行</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8%E7%89%B9%E6%9D%83%E6%A8%A1%E5%BC%8F%E8%BF%90%E8%A1%8CPod"><span class="toc-number">1.2.4.</span> <span class="toc-text">使用特权模式运行Pod</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%BA%E5%AE%B9%E5%99%A8%E5%8D%95%E7%8B%AC%E6%B7%BB%E5%8A%A0%E5%86%85%E6%A0%B8%E5%8A%9F%E8%83%BD"><span class="toc-number">1.2.5.</span> <span class="toc-text">为容器单独添加内核功能</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%BA%E5%AE%B9%E5%99%A8%E7%A6%81%E6%AD%A2%E5%86%85%E6%A0%B8%E5%8A%9F%E8%83%BD"><span class="toc-number">1.2.6.</span> <span class="toc-text">为容器禁止内核功能</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%98%BB%E6%AD%A2%E5%AF%B9%E5%AE%B9%E5%99%A8%E6%A0%B9%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%E5%86%99%E5%85%A5"><span class="toc-number">1.2.7.</span> <span class="toc-text">阻止对容器根文件系统写入</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%AE%BE%E7%BD%AEPod%E7%BA%A7%E5%88%AB%E7%9A%84%E5%AE%89%E5%85%A8%E4%B8%8A%E4%B8%8B%E6%96%87"><span class="toc-number">1.2.7.1.</span> <span class="toc-text">设置Pod级别的安全上下文</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Pod%E7%9A%84%E5%AE%B9%E5%99%A8%E4%BD%BF%E7%94%A8%E4%B8%8D%E5%90%8C%E7%94%A8%E6%88%B7%E5%85%B1%E4%BA%AB%E5%AD%98%E5%82%A8%E5%8D%B7"><span class="toc-number">1.2.8.</span> <span class="toc-text">Pod的容器使用不同用户共享存储卷</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%99%90%E5%88%B6Pod%E4%BD%BF%E7%94%A8%E5%AE%89%E5%85%A8%E7%9B%B8%E5%85%B3%E7%89%B9%E6%80%A7"><span class="toc-number">1.3.</span> <span class="toc-text">限制Pod使用安全相关特性</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%A2%AB%E7%A7%BB%E9%99%A4%E7%9A%84%E7%89%B9%E6%80%A7"><span class="toc-number">1.3.0.1.</span> <span class="toc-text">被移除的特性</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%9A%94%E7%A6%BBPod%E7%9A%84%E7%BD%91%E7%BB%9C"><span class="toc-number">1.4.</span> <span class="toc-text">隔离Pod的网络</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%9C%A8%E4%B8%80%E4%B8%AA%E5%91%BD%E5%90%8D%E7%A9%BA%E9%97%B4%E4%B8%AD%E5%90%AF%E7%94%A8%E7%BD%91%E7%BB%9C%E9%9A%94%E7%A6%BB"><span class="toc-number">1.4.1.</span> <span class="toc-text">在一个命名空间中启用网络隔离</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%85%81%E8%AE%B8%E5%90%8C%E4%B8%80%E5%91%BD%E5%90%8D%E7%A9%BA%E9%97%B4%E7%9A%84%E9%83%A8%E5%88%86Pod%E8%AE%BF%E9%97%AE%E4%B8%80%E4%B8%AA%E6%9C%8D%E5%8A%A1%E7%AB%AFPod"><span class="toc-number">1.4.2.</span> <span class="toc-text">允许同一命名空间的部分Pod访问一个服务端Pod</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%9C%A8%E4%B8%8D%E5%90%8CNamespace%E8%BF%9B%E8%A1%8C%E7%BD%91%E7%BB%9C%E9%9A%94%E7%A6%BB"><span class="toc-number">1.4.3.</span> <span class="toc-text">在不同Namespace进行网络隔离</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8CIDR%E9%9A%94%E7%A6%BB%E7%BD%91%E7%BB%9C"><span class="toc-number">1.4.4.</span> <span class="toc-text">使用CIDR隔离网络</span></a></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2025/03/21/basic/go/Go-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Sort/" title="GO-深入理解Sort"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="GO-深入理解Sort"/></a><div class="content"><a class="title" href="/2025/03/21/basic/go/Go-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Sort/" title="GO-深入理解Sort">GO-深入理解Sort</a><time datetime="2025-03-21T11:42:55.000Z" title="发表于 2025-03-21 19:42:55">2025-03-21</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/03/17/cloud/k8s/job/K8sController-CronJob(%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1)/" title="K8sController-CronJob(定时任务)"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8sController-CronJob(定时任务)"/></a><div class="content"><a class="title" href="/2025/03/17/cloud/k8s/job/K8sController-CronJob(%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1)/" title="K8sController-CronJob(定时任务)">K8sController-CronJob(定时任务)</a><time datetime="2025-03-17T14:08:55.000Z" title="发表于 2025-03-17 22:08:55">2025-03-17</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/03/15/cloud/k8s/job/K8sController-Job(%E6%89%B9%E5%A4%84%E7%90%86%E4%BB%BB%E5%8A%A1)/" title="K8sController-Job(批处理任务)"><img src="/img/k8sLogo.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8sController-Job(批处理任务)"/></a><div class="content"><a class="title" href="/2025/03/15/cloud/k8s/job/K8sController-Job(%E6%89%B9%E5%A4%84%E7%90%86%E4%BB%BB%E5%8A%A1)/" title="K8sController-Job(批处理任务)">K8sController-Job(批处理任务)</a><time datetime="2025-03-15T14:08:55.000Z" title="发表于 2025-03-15 22:08:55">2025-03-15</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/03/14/database/mysql/MySQL-PerformanceSchema/" title="MySQL-PerformanceSchema"><img src="/img/mysql.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="MySQL-PerformanceSchema"/></a><div class="content"><a class="title" href="/2025/03/14/database/mysql/MySQL-PerformanceSchema/" title="MySQL-PerformanceSchema">MySQL-PerformanceSchema</a><time datetime="2025-03-14T14:08:55.000Z" title="发表于 2025-03-14 22:08:55">2025-03-14</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/03/14/database/mysql/MySQL-schema%E8%AE%BE%E8%AE%A1%E4%B8%8E%E7%AE%A1%E7%90%86/" title="MySQL-schema设计与管理"><img src="/img/mysql.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="MySQL-schema设计与管理"/></a><div class="content"><a class="title" href="/2025/03/14/database/mysql/MySQL-schema%E8%AE%BE%E8%AE%A1%E4%B8%8E%E7%AE%A1%E7%90%86/" title="MySQL-schema设计与管理">MySQL-schema设计与管理</a><time datetime="2025-03-14T14:08:55.000Z" title="发表于 2025-03-14 22:08:55">2025-03-14</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2023 - 2025 By Joohwan.</div><div class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="直达评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.umd.min.js"></script><div class="js-pjax"><script>(()=>{
+  const init = () => {
+    twikoo.init(Object.assign({
+      el: '#twikoo-wrap',
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: function () {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      }
+    }, null))
+  }
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(function (res) {
+      countELement.textContent = res[0].count
+    }).catch(function (err) {
+      console.error(err);
+    });
+  }
+
+  const runFn = () => {
+    init()
+    
+  }
+
+  const loadTwikoo = () => {
+    if (typeof twikoo === 'object') {
+      setTimeout(runFn,0)
+      return
+    } 
+    getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(runFn)
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = () => {
+      loadTwikoo()
+    }
+  }
+})()</script></div><script id="click-show-text" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/dist/click-show-text.min.js" data-mobile="false" data-text="Fighting,Joohwan,666" data-fontsize="15px" data-random="false" async="async"></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="is-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据库加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div class="no-result" id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div><!-- hexo injector body_end start -->
+  <script data-pjax src="undefined"></script>
+  <script data-pjax>
+        function GithubCalendarConfig(){
+            var git_githubapiurl ="undefined?piwriw";
+            var git_color =undefined;
+            var git_user ="piwriw";
+            var parent_div_git = document.getElementById('recent-posts');
+            var git_div_html = '<div class="recent-post-item" style="width:100%;height:auto;padding:10px; display: flex; align-items: center; justify-content: center;"> <img src="https://ghchart.rshah.org/piwriw" alt="piwriw" style="width: 100%; height: auto; max-width: 100%;"> </div> ';
+            if(parent_div_git && location.pathname =='/'){
+                console.log('已挂载github calendar')
+                // parent_div_git.innerHTML=git_div_html+parent_div_git.innerHTML // 无报错，但不影响使用(支持pjax跳转)
+                parent_div_git.insertAdjacentHTML("afterbegin",git_div_html) // 有报错，但不影响使用(支持pjax跳转)
+            };
+            GithubCalendar(git_githubapiurl,git_color,git_user)
+        }
+        if(document.getElementById('recent-posts')){
+            GithubCalendarConfig()
+        }
+    </script>
+    <style>#github_container{min-height:undefined}@media screen and (max-width:650px) {#github_container{background-image:;min-height:undefined}}</style>
+    <style>undefined</style><!-- hexo injector body_end end --></body></html>

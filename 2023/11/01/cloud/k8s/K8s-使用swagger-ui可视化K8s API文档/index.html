@@ -1,0 +1,297 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>K8s-使用swagger-ui可视化K8s API文档 | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="使用swagger-ui可视化K8s API文档背景需要进行K8s API开发的时候，不方便查看 具体实现1234567891011121314151617# 启动代理kubectl proxy --port&#x3D;8080# 获取到swagger.jsoncurl localhost:8080&#x2F;openapi&#x2F;v2 &gt; k8s-swagger.json# docker启动swaggerdocke">
+<meta property="og:type" content="article">
+<meta property="og:title" content="K8s-使用swagger-ui可视化K8s API文档">
+<meta property="og:url" content="https://piwriw.github.io/2023/11/01/cloud/k8s/K8s-%E4%BD%BF%E7%94%A8swagger-ui%E5%8F%AF%E8%A7%86%E5%8C%96K8s%20API%E6%96%87%E6%A1%A3/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="使用swagger-ui可视化K8s API文档背景需要进行K8s API开发的时候，不方便查看 具体实现1234567891011121314151617# 启动代理kubectl proxy --port&#x3D;8080# 获取到swagger.jsoncurl localhost:8080&#x2F;openapi&#x2F;v2 &gt; k8s-swagger.json# docker启动swaggerdocke">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/k8s-go.jpg">
+<meta property="article:published_time" content="2023-11-01T04:08:55.000Z">
+<meta property="article:modified_time" content="2025-07-27T15:40:32.513Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="k8s">
+<meta property="article:tag" content="cloud">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/k8s-go.jpg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "K8s-使用swagger-ui可视化K8s API文档",
+  "url": "https://piwriw.github.io/2023/11/01/cloud/k8s/K8s-%E4%BD%BF%E7%94%A8swagger-ui%E5%8F%AF%E8%A7%86%E5%8C%96K8s%20API%E6%96%87%E6%A1%A3/",
+  "image": "https://piwriw.github.io/img/k8s-go.jpg",
+  "datePublished": "2023-11-01T04:08:55.000Z",
+  "dateModified": "2025-07-27T15:40:32.513Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2023/11/01/cloud/k8s/K8s-%E4%BD%BF%E7%94%A8swagger-ui%E5%8F%AF%E8%A7%86%E5%8C%96K8s%20API%E6%96%87%E6%A1%A3/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'K8s-使用swagger-ui可视化K8s API文档',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">242</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">75</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">59</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/k8s-go.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">K8s-使用swagger-ui可视化K8s API文档</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">K8s-使用swagger-ui可视化K8s API文档</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2023-11-01T04:08:55.000Z" title="发表于 2023-11-01 12:08:55">2023-11-01</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2025-07-27T15:40:32.513Z" title="更新于 2025-07-27 23:40:32">2025-07-27</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/">k8s</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">83</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>1分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2025-07-27 23:40:32&quot;}" hidden></div><h1 id="使用swagger-ui可视化K8s-API文档"><a href="#使用swagger-ui可视化K8s-API文档" class="headerlink" title="使用swagger-ui可视化K8s API文档"></a>使用swagger-ui可视化K8s API文档</h1><h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>需要进行K8s API开发的时候，不方便查看</p>
+<h2 id="具体实现"><a href="#具体实现" class="headerlink" title="具体实现"></a>具体实现</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 启动代理</span></span><br><span class="line">kubectl proxy --port=8080</span><br><span class="line"></span><br><span class="line"><span class="comment"># 获取到swagger.json</span></span><br><span class="line">curl localhost:8080/openapi/v2 &gt; k8s-swagger.json</span><br><span class="line"></span><br><span class="line"><span class="comment"># docker启动swagger</span></span><br><span class="line">docker run \</span><br><span class="line">    --<span class="built_in">rm</span> \</span><br><span class="line">    -d \</span><br><span class="line">    -p 8087:8080 \</span><br><span class="line">    -e SWAGGER_JSON=/k8s-swagger.json \</span><br><span class="line">    -v $(<span class="built_in">pwd</span>)/k8s-swagger.json:/k8s-swagger.json \</span><br><span class="line">    swaggerapi/swagger-ui</span><br><span class="line">    </span><br><span class="line">    </span><br><span class="line"><span class="comment"># 通过http://ip:8087</span></span><br></pre></td></tr></table></figure>
+
+
+
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2023/11/01/cloud/k8s/K8s-%E4%BD%BF%E7%94%A8swagger-ui%E5%8F%AF%E8%A7%86%E5%8C%96K8s%20API%E6%96%87%E6%A1%A3/">https://piwriw.github.io/2023/11/01/cloud/k8s/K8s-使用swagger-ui可视化K8s API文档/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a><a class="post-meta__tags" href="/tags/cloud/">cloud</a></div><div class="post-share"><div class="social-share" data-image="/img/k8s-go.jpg" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2023/11/01/cloud/k8s/K8s-%E9%9B%86%E7%BE%A4%E5%AE%89%E8%A3%85%E8%AE%A4%E8%AF%81/" title="K8s-集群安装认证"><img class="cover" src="/img/k8s-go.jpg" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">K8s-集群安装认证</div></div><div class="info-2"><div class="info-item-1">K8s-集群安装认证API Server认证三大K8s API访问模式：  以Service Account方式访问K8s的内部服务进程 以匿名方式访问的进程 以证书方式访问的普通用户或进程，包括运维人员及kubectl、 kubelets等进程  K8s的用户认证方式：  HTTPS证书认证：基于CA根证书前面的双向数字证书认证方式 HTTP Bearer Token认证：通过一个Bearer Token识别合法用户 OpenID Connect Token第三方认证：通过第三方OIDC协议进行认证 Webhook Token认证：通过外部Webhook服务进行认证 Authenticating Proxy认证：通过认证代理程序进行认证  HTTPS证书认证这里需要有一个CA证书，CA是PKI系统中通信双方都信任的实 体，被称为可信第三方（Trusted Third Party，TTP）。CA作为可信第三 方的重要条件之一，就是其行为具有非否认性。作为第三方而不是简单 的上级，就必须让信任者有追究自己责任的能力。CA通过证书证实他 人的公钥信息，在证书上有CA的签名。如果用户因...</div></div></div></a><a class="pagination-related" href="/2023/10/29/cloud/k8s/K8s-%E4%B8%89%E5%A4%A7%E6%A0%B8%E5%BF%83%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" title="K8s-三大核心数据结构"><img class="cover" src="/img/kubernetes.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">K8s-三大核心数据结构</div></div><div class="info-2"><div class="info-item-1">K8s-三大核心数据结构构成 Group：资源组，在K8s API Server称之为APIGroup Version：资源版本，在K8s API Server称为APIVersion Resource：资源，在K8s API Server称为APIResource Kind：资源种类，描述K8s种类，与Resource统一级别  K8s支持多Group,每个Group支持多Version，每个Version支持多Resource，部分资源还有自己的子资源（Sub Resource),比如Deployment的status 一般的，具体表示&#x2F;&#x2F;&#x2F;，比如Deployment就是apps&#x2F;v1&#x2F;deploymets&#x2F;status  不常见的deletecollection资源在支持delete的情况下，如果支持删除多个字眼，比如删除命名空间所有的Pod,那就算啥给予deletecollection 12# 查看所有kubectl api -resources --sort-by name -o wide  资源组Group资...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2025/03/27/cloud/k8s/service/K8s-kustomize/" title="K8s-kustomize"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-03-27</div><div class="info-item-2">K8s-kustomize</div></div><div class="info-2"><div class="info-item-1">K8s-kustomize背景K8s为 减少维护很多YAML文件，选择定义K8s资源，从1.14开始，kustomize默认提供 kustomize提供以下管理各种配置文件：  从其他文件来源生成K8s资源对象 统一为所有资源设置命名空间、Label、注解或者特殊格式的名称 组合不同的资源作为一个应用或者一个管理单元进行整体注解  概述kustomize核心配置是kustomizeation.yaml，这个文件类似于一个一个模版文件，里面定义了相应的操作指令，主要操作指令以及作用如下：  namespace：为所有资源都添加命名空间  namePrefix：要添加到所有资源名称之前的前缀  nameSuffix：要添加到所有资源名称之后的后缀  commonLabels：要添加到所有资源和选择器中的Label  commonAnnoations:要添加到所有资源的注解  resources：列表中的每个条目都会生成资源配置  configMapGenerator：针对列表中的每个条目都会生成一个ConfigMap  secrertGenerator：列表中的每个条目都会生成一个S...</div></div></div></a><a class="pagination-related" href="/2025/03/26/cloud/k8s/service/K8s-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Service/" title="K8s-深入理解Service"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-03-26</div><div class="info-item-2">K8s-深入理解Service</div></div><div class="info-2"><div class="info-item-1">K8s-深入理解Service 基于K8s v1.31  OverviewService是K8s实现微服务的核心，通过创建Srvice，可以实现具有相同的功能都容器提供一个统一的入口 Service的概念和原理负载均衡机制当一个Service对象被定义出来，客户端都可以通过ServiceIP访问Pod容器，到每个Node山上交与kube-porxy实现 kube-porxy的代理模式 iptables模式 （v1.28中实现） 通过基于Linux 的 Linux Kernel的iptables规则实现，实现了从Service到后端Endpoints列表的负载均衡规则 每次创建Service和Endpoints发生变化，kube-proxy都会刷新本Node得全部iptables，在大规模集群（service和endpoints数量达到数百万），刷新时间过长，系统性能下降，可以通过调整kube-proxy的资源对象KubeProxyConguration中的同步行为； 12345iptables:	# 设置同步最短时间，默认1s	minSyncPeriod: 1s	# 同步时间间隔...</div></div></div></a><a class="pagination-related" href="/2025/03/17/cloud/k8s/job/K8sController-CronJob(%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1)/" title="K8sController-CronJob(定时任务)"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-03-17</div><div class="info-item-2">K8sController-CronJob(定时任务)</div></div><div class="info-2"><div class="info-item-1">K8sController-CronJob(定时任务) 基于K8s v1.31  Cron Job支持用于每隔一段时间创建定期运行的批处理任务 CronJob定时表达式12345678910# ┌───────────── 分钟 (0 - 59)# │ ┌───────────── 小时 (0 - 23)# │ │ ┌───────────── 月的某天 (1 - 31)# │ │ │ ┌───────────── 月份 (1 - 12)# │ │ │ │ ┌───────────── 周的某天 (0 - 6)（周日到周六）# │ │ │ │ │                          或者是 sun，mon，tue，web，thu，fri，sat# │ │ │ │ │# │ │ │ │ │# * * * * *Minutes Hours DayofMonth Month DayofWeek   Minutes: , - * &#x2F; 或者0-59的整数  Hours： , - * &#x2F; 或者0-23的整数  DayofMonth： , - * &#x2F;...</div></div></div></a><a class="pagination-related" href="/2025/03/15/cloud/k8s/job/K8sController-Job(%E6%89%B9%E5%A4%84%E7%90%86%E4%BB%BB%E5%8A%A1)/" title="K8sController-Job(批处理任务)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-03-15</div><div class="info-item-2">K8sController-Job(批处理任务)</div></div><div class="info-2"><div class="info-item-1">K8sController-Job(批处理任务) 基于K8s 1.31  主要配置和工作机制123456789101112131415161718192021222324252627282930313233343536apiVersion: batch/v1kind: Jobmetadata:  name: hellospec:  # 可以并行任务数量，默认1  parallelism: 3  completions: 3  # Pod完成模式，NonIndexed（数量达到completions推出，默认），Indexed  # Indexed模式：会被设置为Pod服务名  # - 设置Pod名称：&lt;Job Name&gt;-&lt;索引序号&gt;-&lt;随机字符串&gt;  # - 设置Annotation &quot;batch.kubernetes.io/job-completion-index&quot;: &lt;索引序号&gt;  # - 设置Label &quot;batch.kubernetes.io/job-completion-index&quot...</div></div></div></a><a class="pagination-related" href="/2025/03/11/cloud/k8s/CKAD%E8%80%83%E8%AF%95/" title="CKAD考试经验2025"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-03-11</div><div class="info-item-2">CKAD考试经验2025</div></div><div class="info-2"><div class="info-item-1">CKAD考试经验 证书镇楼    考试过程 整体考试不难，如果有一些K8s的使用经验，基本上都能做出来，但是我实际上是参与了第二次的复考，第一次因为没仔细阅读考前须知，不知道怎么开K8s文档，浪费了20分钟，最后以差3分未通过 第二次复考，大部分题目与第一次一样，最后也再检查一边以后，提前了半个小时就提交了，最后以82PASS了  其他问题：  俩次考试检察官都要求环境检查，但是感觉严格程度不一样，因为选用中文，所以考官用中文聊天，但是不确定是不是国人 整个考试中，终端我都用Mac无法实现复制粘贴，不过也不影响 第一次考试，浏览器K8s文档无法查看到全部，包括无法选用中文（未解之谜） 浏览器中不知道怎么用Ctrl + F的搜索，都靠上下滑动   </div></div></div></a><a class="pagination-related" href="/2025/03/10/cloud/k8s/daemonset/K8sController-DaemonSet(%E5%9C%A8%E6%AF%8F%E4%B8%AANode%E4%B8%8A%E4%BB%85%E8%BF%90%E8%A1%8C%E4%B8%80%E4%B8%AAPod)/" title="K8sController-DaemonSet(在每个Node上仅运行一个Pod)"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-03-10</div><div class="info-item-2">K8sController-DaemonSet(在每个Node上仅运行一个Pod)</div></div><div class="info-2"><div class="info-item-1">K8sController-DaemonSet(在每个Node上仅运行一个Pod) 基于K8s 1.31  DaemonSet概述DS的常见场景  在每个Node上运行一个共享存储的驱动守护进程，比如ceph driver 在每个Node上运行一个日志采集程序，采集Node上全部日志，比如flaunted 在每个Node上运行一个性能采集程序  配置信息123456789101112131415161718192021222324252627282930313233343536373839apiVersion: apps/v1kind: DaemonSetmetadata:  name: fluentdspec:  # 修订历史最大数量 默认10  revisionHistoryLimit: 10  # 最短就绪时间 默认0  minReadySeconds: 5  # 更新策略  updateStrategy:    type: RollingUpdate    rollingUpdate:      maxUnavailable: 1  selector:    matchL...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">242</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">75</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">59</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8swagger-ui%E5%8F%AF%E8%A7%86%E5%8C%96K8s-API%E6%96%87%E6%A1%A3"><span class="toc-number">1.</span> <span class="toc-text">使用swagger-ui可视化K8s API文档</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%83%8C%E6%99%AF"><span class="toc-number">1.1.</span> <span class="toc-text">背景</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%B7%E4%BD%93%E5%AE%9E%E7%8E%B0"><span class="toc-number">1.2.</span> <span class="toc-text">具体实现</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2025/07/26/cloud/prometheus/Prometheus-Rules%E5%91%8A%E8%AD%A6%E8%AF%84%E4%BC%B0/" title="Prometheus-Rules告警评估"><img src="/img/prometheus.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Prometheus-Rules告警评估"/></a><div class="content"><a class="title" href="/2025/07/26/cloud/prometheus/Prometheus-Rules%E5%91%8A%E8%AD%A6%E8%AF%84%E4%BC%B0/" title="Prometheus-Rules告警评估">Prometheus-Rules告警评估</a><time datetime="2025-07-26T14:08:55.000Z" title="发表于 2025-07-26 22:08:55">2025-07-26</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/07/25/cloud/prometheus/Prometheus-Srape%E6%8C%87%E6%A0%87%E6%8A%93%E5%8F%96/" title="Prometheus-Scrape指标抓取"><img src="/img/prometheus.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Prometheus-Scrape指标抓取"/></a><div class="content"><a class="title" href="/2025/07/25/cloud/prometheus/Prometheus-Srape%E6%8C%87%E6%A0%87%E6%8A%93%E5%8F%96/" title="Prometheus-Scrape指标抓取">Prometheus-Scrape指标抓取</a><time datetime="2025-07-25T14:08:55.000Z" title="发表于 2025-07-25 22:08:55">2025-07-25</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/07/24/cloud/prometheus/Prometheus-notifier%E5%91%8A%E8%AD%A6%E6%8E%A8%E9%80%81/" title="Prometheus-notifier告警推送"><img src="/img/prometheus.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Prometheus-notifier告警推送"/></a><div class="content"><a class="title" href="/2025/07/24/cloud/prometheus/Prometheus-notifier%E5%91%8A%E8%AD%A6%E6%8E%A8%E9%80%81/" title="Prometheus-notifier告警推送">Prometheus-notifier告警推送</a><time datetime="2025-07-24T14:08:55.000Z" title="发表于 2025-07-24 22:08:55">2025-07-24</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/07/23/cloud/prometheus/Prometheus-Discoverer%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0/" title="Prometheus-Discoverer服务发现"><img src="/img/prometheus.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Prometheus-Discoverer服务发现"/></a><div class="content"><a class="title" href="/2025/07/23/cloud/prometheus/Prometheus-Discoverer%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0/" title="Prometheus-Discoverer服务发现">Prometheus-Discoverer服务发现</a><time datetime="2025-07-23T14:08:55.000Z" title="发表于 2025-07-23 22:08:55">2025-07-23</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/07/22/cloud/prometheus/Prometheus-%E9%85%8D%E7%BD%AE%E7%AE%A1%E7%90%86/" title="Prometheus-载入配置"><img src="/img/prometheus.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Prometheus-载入配置"/></a><div class="content"><a class="title" href="/2025/07/22/cloud/prometheus/Prometheus-%E9%85%8D%E7%BD%AE%E7%AE%A1%E7%90%86/" title="Prometheus-载入配置">Prometheus-载入配置</a><time datetime="2025-07-22T14:08:55.000Z" title="发表于 2025-07-22 22:08:55">2025-07-22</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;2023 - 2025 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div><!-- hexo injector body_end start -->
+  <script data-pjax src="undefined"></script>
+  <script data-pjax>
+        function GithubCalendarConfig(){
+            var git_githubapiurl ="undefined?piwriw";
+            var git_color =undefined;
+            var git_user ="piwriw";
+            var parent_div_git = document.getElementById('recent-posts');
+            var git_div_html = '<div class="recent-post-item" style="width:100%;height:auto;padding:10px; display: flex; align-items: center; justify-content: center;"> <img src="https://ghchart.rshah.org/piwriw" alt="piwriw" style="width: 100%; height: auto; max-width: 100%;"> </div> ';
+            if(parent_div_git && location.pathname =='/'){
+                console.log('已挂载github calendar')
+                // parent_div_git.innerHTML=git_div_html+parent_div_git.innerHTML // 无报错，但不影响使用(支持pjax跳转)
+                parent_div_git.insertAdjacentHTML("afterbegin",git_div_html) // 有报错，但不影响使用(支持pjax跳转)
+            };
+            GithubCalendar(git_githubapiurl,git_color,git_user)
+        }
+        if(document.getElementById('recent-posts')){
+            GithubCalendarConfig()
+        }
+    </script>
+    <style>#github_container{min-height:undefined}@media screen and (max-width:650px) {#github_container{background-image:;min-height:undefined}}</style>
+    <style>undefined</style><!-- hexo injector body_end end --></body></html>

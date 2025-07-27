@@ -1,0 +1,354 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="该知道的都知道，不知道的慢慢了解">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Joohwan">
+<meta property="og:url" content="https://piwriw.github.io/page/8/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="该知道的都知道，不知道的慢慢了解">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/avatar.jpg">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="Joohwan">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/avatar.jpg"><script type="application/ld+json"></script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/page/8/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Joohwan',
+  isHighlightShrink: false,
+  isToc: false,
+  pageType: 'home'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">242</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">75</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">59</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="page" id="body-wrap"><header class="full_page" id="page-header" style="background-image: url(/img/background.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="site-info"><h1 id="site-title">Joohwan</h1><div id="site-subtitle"><span id="subtitle"></span></div><div id="site_social_icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div id="scroll-down"><i class="fas fa-angle-down scroll-down-effects"></i></div></header><main class="layout" id="content-inner"><div class="recent-posts nc" id="recent-posts"><div class="recent-post-items"><div class="recent-post-item"><div class="post_cover left"><a href="/2024/11/23/cloud/k8s/kube-apiserver/K8s-kube-apiserver(%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B)/" title="K8s-kube-apiserver(启动流程)"><img class="post-bg" src="/img/k8sLogo.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s-kube-apiserver(启动流程)"></a></div><div class="recent-post-info"><a class="article-title" href="/2024/11/23/cloud/k8s/kube-apiserver/K8s-kube-apiserver(%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B)/" title="K8s-kube-apiserver(启动流程)">K8s-kube-apiserver(启动流程)</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2024-11-23T14:31:55.000Z" title="发表于 2024-11-23 22:31:55">2024-11-23</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/k8s/">k8s</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/k8s/apiserver/">apiserver</a></span></div><div class="content">K8s-kube-apiserver(启动流程) 基于1.25  APIServer启动流程：  Schema资源注册 Cobra命令桉树解析 创建API Server通用配置 创建API EXtensionsServer 创建KubeAPIServer 创建AggregatorServer GenericAPIServer初始化 准备和启动HTTPS服务   Scheme资源注册使用Scheme所有资源注册到APIServer中 Scheme资源注册不算使用显式代码触发，通过init注册。 初始化Scheme资源注册表 Ref:https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/api/legacyscheme/scheme.go#L24 1234567891011121314151617var (	// Scheme is the default instance of runtime.Scheme to which types in the Ku...</div></div></div><div class="recent-post-item"><div class="post_cover right"><a href="/2024/11/22/cloud/k8s/kube-apiserver/K8s-kube-apiserver(Overview)/" title="K8s-kube-apiserver(Overview)"><img class="post-bg" src="/img/k8sLogo.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s-kube-apiserver(Overview)"></a></div><div class="recent-post-info"><a class="article-title" href="/2024/11/22/cloud/k8s/kube-apiserver/K8s-kube-apiserver(Overview)/" title="K8s-kube-apiserver(Overview)">K8s-kube-apiserver(Overview)</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2024-11-22T14:31:55.000Z" title="发表于 2024-11-22 22:31:55">2024-11-22</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/k8s/">k8s</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/k8s/apiserver/">apiserver</a></span></div><div class="content">K8s-kube-apiserver(Overview) 基于1.25  什么是Kube-apiserverkube-apiserver是K8s控制面的组件之一  主要提供集群管理的RESTAPI接口，包括认证授权、数据校验、配置变更 只有kube-apiserver才能直接操作etcd集群中的数据  Pod创建的关键流程：  用户通过客户端向kube-apiserver发起Pod请求 kube-apiserver验证请求的有效性，并将其持久化保存到etcd集群 kube- schedule基于Watch机制感知到新Pod创建的事件 kube- schedule执行调度算法 kube-apiserver验证Bind请求，将结果持久化道etcd集群 kubelet基于Watch机制感知到Pod完成绑定事件 kubelet对应节点的容器运行时交互，启动容器，并向kube-apiserver上报Pod的运行状态 kube-apiserver将Pod的最新状态持久化到etcd集群 用户通过客户端向kube-apiserver发起Pod查询请求   网络通信框架kube-apiserver...</div></div></div><div class="recent-post-item"><div class="post_cover left"><a href="/2024/11/16/cloud/k8s/etcd/K8s-etcd%E6%A0%B8%E5%BF%83%E5%AD%98%E5%82%A8%E5%AE%9E%E7%8E%B0/" title="K8s-etcd核心存储实现"><img class="post-bg" src="/img/k8sLogo.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s-etcd核心存储实现"></a></div><div class="recent-post-info"><a class="article-title" href="/2024/11/16/cloud/k8s/etcd/K8s-etcd%E6%A0%B8%E5%BF%83%E5%AD%98%E5%82%A8%E5%AE%9E%E7%8E%B0/" title="K8s-etcd核心存储实现">K8s-etcd核心存储实现</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2024-11-16T14:08:55.000Z" title="发表于 2024-11-16 22:08:55">2024-11-16</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/k8s/">k8s</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/k8s/etcd/">etcd</a></span></div><div class="content">K8s-etcd核心存储实现 基于1.25  什么是Etcdetcd是K8s默认的数据持久化端存储，主要用于保存集群配置和状态  etcd是分布式键值存储集群 基于Raft协议提供可靠强一致性数据存取服务  架构设计REST Storage genericregistory.Storegenericregistory.Store封装了资源对象的CRUD操作，并且支持资源版本ResourceVersion的冲突检查  在存储资源对象前执行Beofre Func，存储资源对象后执行（After Func），以及处理DryRun  storage.Interface底层通用存储接口，定义了资源的操作方法，Create｜Delete｜Watch｜Get｜Count｜GETList｜GuranteedUpdate｜Versioner cachestorage.Cacher为了减轻etcd读取压力和提供了Cache，可以通过设置kube-apiserver的–watch-cache启动或者关闭Cacher，默认开启 Underlying Storage后端存储，默认K8s使用etcd3，使用...</div></div></div><div class="recent-post-item"><div class="post_cover right"><a href="/2024/11/12/cloud/k8s/kubectl/K8s-kubectl(%E5%8F%98%E6%9B%B4%E5%AF%B9%E6%AF%94%E7%AD%96%E7%95%A5)/" title="K8s-kubectl(变更对比策略和拓展命令)"><img class="post-bg" src="/img/k8sLogo.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s-kubectl(变更对比策略和拓展命令)"></a></div><div class="recent-post-info"><a class="article-title" href="/2024/11/12/cloud/k8s/kubectl/K8s-kubectl(%E5%8F%98%E6%9B%B4%E5%AF%B9%E6%AF%94%E7%AD%96%E7%95%A5)/" title="K8s-kubectl(变更对比策略和拓展命令)">K8s-kubectl(变更对比策略和拓展命令)</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2024-11-12T14:31:55.000Z" title="发表于 2024-11-12 22:31:55">2024-11-12</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/k8s/">k8s</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/k8s/kubectl/">kubectl</a></span></div><div class="content">K8s-kubectl(变更对比策略和拓展命令) 基于1.25  什么是变更对比策略 kuebctl apply 通过JSON&#x2F;YAML，标准输入输出获取K8s集群进行配置更新  Kubectl edit 实时编辑K8s资源对象  kubectl patch 提供更新资源对象  kubectl diff 本地文件和实时资源对比   所以存在了不同的对比策略场景：  变更对比逻辑在哪进行（服务端还是客户端） 针对什么资源对象可以进行变更对象 使用说明变更对比算法  服务端应用和客户端应用服务端应用通过声明式的方法，kuebctl 发送完整的对象描述去创建和更新对象。 kubectl提供了俩个命令参数实现支持服务端：  server-side：服务端应用的开关，当设置为true时，开启并使用服务端应用 force-conflicts：冲突解决策略，当设置为true；会强制应用变更   kubectl apply 和kubectl diff 都支持启用服务端应用 kubectl patch 值提供服务端应用的变更方式   客户端应用与服务端不同，客户端在处理变更和冲突逻辑之后...</div></div></div><div class="recent-post-item"><div class="post_cover left"><a href="/2024/11/11/cloud/k8s/kubectl/K8s-kubectl(%E7%BC%93%E5%AD%98%E6%9C%BA%E5%88%B6)/" title="K8s-kubectl(缓存机制)"><img class="post-bg" src="/img/k8sLogo.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s-kubectl(缓存机制)"></a></div><div class="recent-post-info"><a class="article-title" href="/2024/11/11/cloud/k8s/kubectl/K8s-kubectl(%E7%BC%93%E5%AD%98%E6%9C%BA%E5%88%B6)/" title="K8s-kubectl(缓存机制)">K8s-kubectl(缓存机制)</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2024-11-11T14:31:55.000Z" title="发表于 2024-11-11 22:31:55">2024-11-11</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/k8s/">k8s</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/k8s/kubectl/">kubectl</a></span></div><div class="content">K8s-kubectl(缓存机制) 基于1.25  kubectl的关键步骤是构造操作&#x2F;查询资源的请求 kubectl为了减小kube-apiserver的压力，使用Client-go中的CacheDisoveryClient提供的本地磁盘能力。 缓存数据结构kubectl使用servergroups.json文件缓存从kube-apiserver获取所有的资源信息  缓存文件存在$KUBECACHEDIR&#x2F;disocvery中  没有设置环境变量KUBECACHEDIR，默认位置$HOME&#x2F;.kube&#x2F;cache 123456789101112131415161718192021222324252627282930313233343536373839404142434445464748495051525354555657585960616263646566676869707172737475767778798081828384858687888990919293949596979899100101102103104105106107108...</div></div></div><div class="recent-post-item"><div class="post_cover right"><a href="/2024/11/11/cloud/k8s/kubectl/K8s-kubectl(%E6%89%A7%E8%A1%8C%E6%B5%81%E7%A8%8B)/" title="K8s-kubectl(执行流程)"><img class="post-bg" src="/img/k8sLogo.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s-kubectl(执行流程)"></a></div><div class="recent-post-info"><a class="article-title" href="/2024/11/11/cloud/k8s/kubectl/K8s-kubectl(%E6%89%A7%E8%A1%8C%E6%B5%81%E7%A8%8B)/" title="K8s-kubectl(执行流程)">K8s-kubectl(执行流程)</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2024-11-11T12:31:55.000Z" title="发表于 2024-11-11 20:31:55">2024-11-11</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/k8s/">k8s</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/k8s/kubectl/">kubectl</a></span></div><div class="content">K8s-kubectl(执行流程) 基于1.25  什么是kubectlkubectl是kube-apiserver的客户端，通过向kube-apiserver发送HTTP请求，实现对K8s集群的控制 初始化命令对象kubectl使用NewCmdXX 进行初始化，主要有俩类对象：  cobra.Command：提供命令对象 XXXoptions：Options命令参数对象  补全命令参数支持补全成命令执行的相关工具类，形成完整的Options，主要工具包含三种  Genericclioptions.Recorder:用于记录资源对象发生变化的原因,对于由kubectl触发的变更，genericclioptions.Recoder会将完整的命令记录到资源对象的kubernetes.io&#x2F;change-cause注解中 resource.QueryParamVerifier:用于检查资源对象是否支持DryRun和资源对象娇艳 options.ToPrinter&#x2F;options.PrintObj:打印相关函数，用于获取命令执行结果之后，执行结果打印到终端  校验命令...</div></div></div><div class="recent-post-item"><div class="post_cover left"><a href="/2024/11/10/cloud/k8s/client-go/K8s-client-go(%E5%B8%B8%E7%94%A8%E5%B7%A5%E5%85%B7%E7%B1%BB)/" title="K8s-client-go(常用工具类:事件管理机制+Leader选举机制)"><img class="post-bg" src="/img/k8sLogo.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s-client-go(常用工具类:事件管理机制+Leader选举机制)"></a></div><div class="recent-post-info"><a class="article-title" href="/2024/11/10/cloud/k8s/client-go/K8s-client-go(%E5%B8%B8%E7%94%A8%E5%B7%A5%E5%85%B7%E7%B1%BB)/" title="K8s-client-go(常用工具类:事件管理机制+Leader选举机制)">K8s-client-go(常用工具类:事件管理机制+Leader选举机制)</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2024-11-10T15:08:55.000Z" title="发表于 2024-11-10 23:08:55">2024-11-10</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/k8s/">k8s</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/k8s/client-go/">client-go</a></span></div><div class="content">K8s-client-go(常用工具类:事件管理机制+Leader选举机制) 基于1.25  事件管理机制Event是一种对象资源，展示集群中发生的事件，包含调度器的操作、Pod为什么被驱逐  存储在kube-apiserver的Pod中，有强制保留策略，在最后一次事件发生之后，删除一个小时之前的事件  Ref:https://github.com/kubernetes/api/blob/f7b7ea4f0fcc6cb8c8dd42eb46a94c7e163d1b9d/core/v1/types.go#L5776 1234567891011121314151617181920212223242526272829303132333435363738394041424344454647484950515253545556575859606162type Event struct &#123;        // metav1.TypeMeta 嵌入类型，包含 APIVersion 和 Kind 字段，用于标识对象的 API 版本和类型        metav1.TypeMeta `...</div></div></div><div class="recent-post-item"><div class="post_cover right"><a href="/2024/11/10/cloud/k8s/client-go/K8s-client-go(Informer%E6%9C%BA%E5%88%B6)/" title="K8s-client-go(Informer机制)"><img class="post-bg" src="/img/k8sLogo.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s-client-go(Informer机制)"></a></div><div class="recent-post-info"><a class="article-title" href="/2024/11/10/cloud/k8s/client-go/K8s-client-go(Informer%E6%9C%BA%E5%88%B6)/" title="K8s-client-go(Informer机制)">K8s-client-go(Informer机制)</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2024-11-10T12:08:55.000Z" title="发表于 2024-11-10 20:08:55">2024-11-10</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/k8s/">k8s</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/k8s/client-go/">client-go</a></span></div><div class="content">K8s-client-go(Informer机制) 基于1.25  什么是InformerInformer实现了组件之间使用HTTP通信，但是不依赖任何中间件的情况下，实现了保证消息的实时性、可靠性、顺序性等 使用示例123456789101112131415161718192021222324252627282930313233343536373839404142434445464748495051525354555657585960616263646566676869707172737475767778798081828384858687888990package mainimport (	&quot;flag&quot;	&quot;fmt&quot;	&quot;path/filepath&quot;	&quot;time&quot;	v1 &quot;k8s.io/api/apps/v1&quot;	&quot;k8s.io/apimachinery/pkg/labels&quot;	&quot;k8s.io/client-go/informers&quot;	&quo...</div></div></div><div class="recent-post-item"><div class="post_cover left"><a href="/2024/11/09/cloud/k8s/client-go/K8s-client-go/" title="K8s-client-go"><img class="post-bg" src="/img/k8sLogo.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s-client-go"></a></div><div class="recent-post-info"><a class="article-title" href="/2024/11/09/cloud/k8s/client-go/K8s-client-go/" title="K8s-client-go">K8s-client-go</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2024-11-09T14:08:55.000Z" title="发表于 2024-11-09 22:08:55">2024-11-09</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/k8s/">k8s</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/k8s/client-go/">client-go</a></span></div><div class="content">K8s-client-go什么是Client-goClient-go是K8s提供的调用K8s对西那个的客户端，实现了访问kube-apiserver，对K8s集群中的资源对象管理  Link：https://github.com/kubernetes/client-go  客户端client-go支持Client Set、DynamicClient、Discovery Client、RESTClient四种  RESTClient是最基础的客户端，对HTTP请求进行了封装 ClientSet对在RESTClient基础上，封装了Resource和Version的管理方法 ClientSet只能处理K8s内置资源 通过client-gen代码生成器生成   DynamicClient：DynamicClient可以处理所有的资源，包括CRD DiscoveryClient:用于发现kube-apisever所支持的Group、Versions、Resources  kuebconfig配置管理kubeconfig就是管理访问kube-apiserver的配置信息，支持管理访问多个k...</div></div></div><div class="recent-post-item"><div class="post_cover right"><a href="/2024/11/06/cloud/k8s/crd/K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-CRD/" title="K8s核心资源对象-CRD"><img class="post-bg" src="/img/k8sLogo.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s核心资源对象-CRD"></a></div><div class="recent-post-info"><a class="article-title" href="/2024/11/06/cloud/k8s/crd/K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-CRD/" title="K8s核心资源对象-CRD">K8s核心资源对象-CRD</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2024-11-05T20:57:55.000Z" title="发表于 2024-11-06 04:57:55">2024-11-06</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/k8s/">k8s</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/k8s/crd/">crd</a></span></div><div class="content">K8s核心资源对象-CRD 基于1.25  什么是CRDK8s的拓展主要通过几类实现：  客户端拓展：实现kubectl插件 API拓展：包含使用CRD API访问拓展：在请求到达kube-apiserver之前，经过的认证、授权、动态准入都可以拓展 基础设施拓展：设备拓展啊发现新的节点资源、存储插件、网络插件  最广泛使用的目前还是从1.7版本出现的CRD，属于资源组apiextension.k8s.io  Ref:https://github.com/kubernetes/apiextensions-apiserver/blob/cb213f096359711547f69316aeac67982b626b07/pkg/apis/apiextensions/v1/types.go#L390  1234567891011121314151617181920// +genclient// +genclient:nonNamespaced// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object// +...</div></div></div></div><nav id="pagination"><div class="pagination"><a class="extend prev" rel="prev" href="/page/7/#content-inner"><i class="fas fa-chevron-left fa-fw"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/7/#content-inner">7</a><span class="page-number current">8</span><a class="page-number" href="/page/9/#content-inner">9</a><span class="space">&hellip;</span><a class="page-number" href="/page/25/#content-inner">25</a><a class="extend next" rel="next" href="/page/9/#content-inner"><i class="fas fa-chevron-right fa-fw"></i></a></div></nav></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">242</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">75</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">59</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2025/07/26/cloud/prometheus/Prometheus-Rules%E5%91%8A%E8%AD%A6%E8%AF%84%E4%BC%B0/" title="Prometheus-Rules告警评估"><img src="/img/prometheus.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Prometheus-Rules告警评估"/></a><div class="content"><a class="title" href="/2025/07/26/cloud/prometheus/Prometheus-Rules%E5%91%8A%E8%AD%A6%E8%AF%84%E4%BC%B0/" title="Prometheus-Rules告警评估">Prometheus-Rules告警评估</a><time datetime="2025-07-26T14:08:55.000Z" title="发表于 2025-07-26 22:08:55">2025-07-26</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/07/25/cloud/prometheus/Prometheus-Srape%E6%8C%87%E6%A0%87%E6%8A%93%E5%8F%96/" title="Prometheus-Scrape指标抓取"><img src="/img/prometheus.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Prometheus-Scrape指标抓取"/></a><div class="content"><a class="title" href="/2025/07/25/cloud/prometheus/Prometheus-Srape%E6%8C%87%E6%A0%87%E6%8A%93%E5%8F%96/" title="Prometheus-Scrape指标抓取">Prometheus-Scrape指标抓取</a><time datetime="2025-07-25T14:08:55.000Z" title="发表于 2025-07-25 22:08:55">2025-07-25</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/07/24/cloud/prometheus/Prometheus-notifier%E5%91%8A%E8%AD%A6%E6%8E%A8%E9%80%81/" title="Prometheus-notifier告警推送"><img src="/img/prometheus.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Prometheus-notifier告警推送"/></a><div class="content"><a class="title" href="/2025/07/24/cloud/prometheus/Prometheus-notifier%E5%91%8A%E8%AD%A6%E6%8E%A8%E9%80%81/" title="Prometheus-notifier告警推送">Prometheus-notifier告警推送</a><time datetime="2025-07-24T14:08:55.000Z" title="发表于 2025-07-24 22:08:55">2025-07-24</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/07/23/cloud/prometheus/Prometheus-Discoverer%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0/" title="Prometheus-Discoverer服务发现"><img src="/img/prometheus.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Prometheus-Discoverer服务发现"/></a><div class="content"><a class="title" href="/2025/07/23/cloud/prometheus/Prometheus-Discoverer%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0/" title="Prometheus-Discoverer服务发现">Prometheus-Discoverer服务发现</a><time datetime="2025-07-23T14:08:55.000Z" title="发表于 2025-07-23 22:08:55">2025-07-23</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/07/22/cloud/prometheus/Prometheus-%E9%85%8D%E7%BD%AE%E7%AE%A1%E7%90%86/" title="Prometheus-载入配置"><img src="/img/prometheus.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Prometheus-载入配置"/></a><div class="content"><a class="title" href="/2025/07/22/cloud/prometheus/Prometheus-%E9%85%8D%E7%BD%AE%E7%AE%A1%E7%90%86/" title="Prometheus-载入配置">Prometheus-载入配置</a><time datetime="2025-07-22T14:08:55.000Z" title="发表于 2025-07-22 22:08:55">2025-07-22</time></div></div></div></div><div class="card-widget card-categories"><div class="item-headline">
+            <i class="fas fa-folder-open"></i>
+            <span>分类</span>
+            <a class="card-more-btn" href="/categories/" title="查看更多">
+      <i class="fas fa-angle-right"></i></a>
+          </div>
+          <ul class="card-category-list" id="aside-cat-list">
+            <li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/"><span class="card-category-list-name">basic</span><span class="card-category-list-count">34</span></a><ul class="card-category-list child"><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/go/"><span class="card-category-list-name">go</span><span class="card-category-list-count">12</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/"><span class="card-category-list-name">设计模式</span><span class="card-category-list-count">13</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/%E9%9D%A2%E8%AF%95/"><span class="card-category-list-name">面试</span><span class="card-category-list-count">9</span></a></li></ul></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/braveheart/"><span class="card-category-list-name">braveheart</span><span class="card-category-list-count">1</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/cloud/"><span class="card-category-list-name">cloud</span><span class="card-category-list-count">161</span></a><ul class="card-category-list child"><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/cloud/Harbor/"><span class="card-category-list-name">Harbor</span><span class="card-category-list-count">1</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/cloud/Istio/"><span class="card-category-list-name">Istio</span><span class="card-category-list-count">1</span></a></li></ul></li>
+          </ul></div><div class="card-widget card-tags"><div class="item-headline"><i class="fas fa-tags"></i><span>标签</span></div><div class="card-tag-cloud"><a href="/tags/alertmanager/" style="font-size: 1.27em; color: #99a0a9">alertmanager</a> <a href="/tags/keadm/" style="font-size: 1.1em; color: #999">keadm</a> <a href="/tags/storage/" style="font-size: 1.13em; color: #999a9c">storage</a> <a href="/tags/kubeadm/" style="font-size: 1.17em; color: #999c9f">kubeadm</a> <a href="/tags/service/" style="font-size: 1.2em; color: #999da3">service</a> <a href="/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/" style="font-size: 1.27em; color: #99a0a9">计算机网络</a> <a href="/tags/crio/" style="font-size: 1.1em; color: #999">crio</a> <a href="/tags/zap/" style="font-size: 1.13em; color: #999a9c">zap</a> <a href="/tags/web/" style="font-size: 1.43em; color: #99a6b9">web</a> <a href="/tags/pod/" style="font-size: 1.33em; color: #99a2af">pod</a> <a href="/tags/job/" style="font-size: 1.2em; color: #999da3">job</a> <a href="/tags/dasemonset/" style="font-size: 1.17em; color: #999c9f">dasemonset</a> <a href="/tags/Kube-scheduler/" style="font-size: 1.2em; color: #999da3"> Kube-scheduler</a> <a href="/tags/poem/" style="font-size: 1.2em; color: #999da3">poem</a> <a href="/tags/Harbor/" style="font-size: 1.1em; color: #999">Harbor</a> <a href="/tags/kubemark/" style="font-size: 1.1em; color: #999">kubemark</a> <a href="/tags/cronjob/" style="font-size: 1.1em; color: #999">cronjob</a> <a href="/tags/kubeedge/" style="font-size: 1.3em; color: #99a1ac">kubeedge</a> <a href="/tags/network/" style="font-size: 1.2em; color: #999da3">network</a> <a href="/tags/prometheus/" style="font-size: 1.4em; color: #99a5b6">prometheus</a> <a href="/tags/devops/" style="font-size: 1.1em; color: #999">devops</a> <a href="/tags/%E7%83%AD%E5%8A%A0%E8%BD%BD/" style="font-size: 1.1em; color: #999">热加载</a> <a href="/tags/prometheus%E6%BA%90%E7%A0%81/" style="font-size: 1.27em; color: #99a0a9">prometheus源码</a> <a href="/tags/%E4%B8%AD%E9%97%B4%E4%BB%B6/" style="font-size: 1.1em; color: #999">中间件</a> <a href="/tags/validation/" style="font-size: 1.1em; color: #999">validation</a> <a href="/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" style="font-size: 1.37em; color: #99a4b2">设计模式</a> <a href="/tags/cloud/" style="font-size: 1.5em; color: #99a9bf">cloud</a> <a href="/tags/book/" style="font-size: 1.1em; color: #999">book</a> <a href="/tags/iptables/" style="font-size: 1.13em; color: #999a9c">iptables</a> <a href="/tags/kubelet/" style="font-size: 1.1em; color: #999">kubelet'</a> <a href="/tags/go/" style="font-size: 1.47em; color: #99a8bc">go</a> <a href="/tags/grafana/" style="font-size: 1.13em; color: #999a9c">grafana</a> <a href="/tags/kubectl/" style="font-size: 1.2em; color: #999da3">kubectl</a> <a href="/tags/%E8%87%AA%E5%AE%9A%E4%B9%89%E4%B8%9A%E5%8A%A1%E7%8A%B6%E6%80%81%E7%A0%81/" style="font-size: 1.1em; color: #999">自定义业务状态码</a> <a href="/tags/CKAD/" style="font-size: 1.13em; color: #999a9c">CKAD</a> <a href="/tags/containerd/" style="font-size: 1.23em; color: #999ea6">containerd</a> <a href="/tags/Istio/" style="font-size: 1.1em; color: #999">Istio</a> <a href="/tags/sql/" style="font-size: 1.1em; color: #999">sql</a> <a href="/tags/sqlx/" style="font-size: 1.1em; color: #999">sqlx</a> <a href="/tags/kustomize/" style="font-size: 1.1em; color: #999">kustomize</a></div></div><div class="card-widget card-archives">
+    <div class="item-headline">
+      <i class="fas fa-archive"></i>
+      <span>归档</span>
+      <a class="card-more-btn" href="/archives/"
+            title="查看更多">
+            <i class="fas fa-angle-right"></i>
+          </a>
+    </div>
+  
+    <ul class="card-archive-list">
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/07/">
+            <span class="card-archive-list-date">
+              七月 2025
+            </span>
+            <span class="card-archive-list-count">11</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/06/">
+            <span class="card-archive-list-date">
+              六月 2025
+            </span>
+            <span class="card-archive-list-count">1</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/05/">
+            <span class="card-archive-list-date">
+              五月 2025
+            </span>
+            <span class="card-archive-list-count">1</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/03/">
+            <span class="card-archive-list-date">
+              三月 2025
+            </span>
+            <span class="card-archive-list-count">11</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/02/">
+            <span class="card-archive-list-date">
+              二月 2025
+            </span>
+            <span class="card-archive-list-count">1</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/01/">
+            <span class="card-archive-list-date">
+              一月 2025
+            </span>
+            <span class="card-archive-list-count">6</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2024/12/">
+            <span class="card-archive-list-date">
+              十二月 2024
+            </span>
+            <span class="card-archive-list-count">32</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2024/11/">
+            <span class="card-archive-list-date">
+              十一月 2024
+            </span>
+            <span class="card-archive-list-count">26</span>
+          </a>
+        </li>
+      
+    </ul>
+  </div><div class="card-widget card-webinfo"><div class="item-headline"><i class="fas fa-chart-line"></i><span>网站信息</span></div><div class="webinfo"><div class="webinfo-item"><div class="item-name">文章数目 :</div><div class="item-count">242</div></div><div class="webinfo-item"><div class="item-name">本站总字数 :</div><div class="item-count">396.4k</div></div><div class="webinfo-item"><div class="item-name">本站访客数 :</div><div class="item-count" id="busuanzi_value_site_uv"><i class="fa-solid fa-spinner fa-spin"></i></div></div><div class="webinfo-item"><div class="item-name">本站总浏览量 :</div><div class="item-count" id="busuanzi_value_site_pv"><i class="fa-solid fa-spinner fa-spin"></i></div></div><div class="webinfo-item"><div class="item-name">最后更新时间 :</div><div class="item-count" id="last-push-date" data-lastPushDate="2025-07-27T15:40:59.161Z"><i class="fa-solid fa-spinner fa-spin"></i></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;2023 - 2025 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>window.typedJSFn = {
+  init: str => {
+    window.typed = new Typed('#subtitle', Object.assign({
+      strings: str,
+      startDelay: 300,
+      typeSpeed: 150,
+      loop: true,
+      backSpeed: 50,
+    }, null))
+  },
+  run: subtitleType => {
+    if (true) {
+      if (typeof Typed === 'function') {
+        subtitleType()
+      } else {
+        btf.getScript('https://cdn.jsdelivr.net/npm/typed.js/dist/typed.umd.min.js').then(subtitleType)
+      }
+    } else {
+      subtitleType()
+    }
+  },
+  processSubtitle: (content, extraContents = []) => {
+    if (true) {
+      const sub = ["我们登上并非我们所选择的舞台，演出并非我们所选择的剧本","该知道的都知道，不知道的慢慢了解","偶尔怀念一下就好了，脚下的路更重要"].slice()
+
+      if (extraContents.length > 0) {
+        sub.unshift(...extraContents)
+      }
+
+      if (typeof content === 'string') {
+        sub.unshift(content)
+      } else if (Array.isArray(content)) {
+        sub.unshift(...content)
+      }
+
+      sub.length > 0 && typedJSFn.init(sub)
+    } else {
+      document.getElementById('subtitle').textContent = typeof content === 'string' ? content :
+        (Array.isArray(content) && content.length > 0 ? content[0] : '')
+    }
+  }
+}
+btf.addGlobalFn('pjaxSendOnce', () => { typed.destroy() }, 'typedDestroy')
+</script><script>function subtitleType () {
+  typedJSFn.processSubtitle(["我们登上并非我们所选择的舞台，演出并非我们所选择的剧本","该知道的都知道，不知道的慢慢了解","偶尔怀念一下就好了，脚下的路更重要"])
+}
+typedJSFn.run(subtitleType)</script><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div><!-- hexo injector body_end start -->
+  <script data-pjax src="undefined"></script>
+  <script data-pjax>
+        function GithubCalendarConfig(){
+            var git_githubapiurl ="undefined?piwriw";
+            var git_color =undefined;
+            var git_user ="piwriw";
+            var parent_div_git = document.getElementById('recent-posts');
+            var git_div_html = '<div class="recent-post-item" style="width:100%;height:auto;padding:10px; display: flex; align-items: center; justify-content: center;"> <img src="https://ghchart.rshah.org/piwriw" alt="piwriw" style="width: 100%; height: auto; max-width: 100%;"> </div> ';
+            if(parent_div_git && location.pathname =='/'){
+                console.log('已挂载github calendar')
+                // parent_div_git.innerHTML=git_div_html+parent_div_git.innerHTML // 无报错，但不影响使用(支持pjax跳转)
+                parent_div_git.insertAdjacentHTML("afterbegin",git_div_html) // 有报错，但不影响使用(支持pjax跳转)
+            };
+            GithubCalendar(git_githubapiurl,git_color,git_user)
+        }
+        if(document.getElementById('recent-posts')){
+            GithubCalendarConfig()
+        }
+    </script>
+    <style>#github_container{min-height:undefined}@media screen and (max-width:650px) {#github_container{background-image:;min-height:undefined}}</style>
+    <style>undefined</style><!-- hexo injector body_end end --></body></html>

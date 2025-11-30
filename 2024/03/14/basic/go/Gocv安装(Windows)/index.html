@@ -1,0 +1,317 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Gocv安装(Windows) | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="Gocv安装(Windows)什么是GoCVgocv 是 OpenCV 4.x 计算机视觉库的包装器。 它为最新版本的 OpenCV 提供了 Go 语言接口 官网链接：https:&#x2F;&#x2F;gocv.io&#x2F; 安装1.安装Go（PASS）2.安装GoCV12go get -u -d gocv.io&#x2F;x&#x2F;gocv# 执行完这条命令后，%GOPATH%\pkg\mod下会出现一个文件夹&quot;[http:">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Gocv安装(Windows)">
+<meta property="og:url" content="https://piwriw.github.io/2024/03/14/basic/go/Gocv%E5%AE%89%E8%A3%85(Windows)/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="Gocv安装(Windows)什么是GoCVgocv 是 OpenCV 4.x 计算机视觉库的包装器。 它为最新版本的 OpenCV 提供了 Go 语言接口 官网链接：https:&#x2F;&#x2F;gocv.io&#x2F; 安装1.安装Go（PASS）2.安装GoCV12go get -u -d gocv.io&#x2F;x&#x2F;gocv# 执行完这条命令后，%GOPATH%\pkg\mod下会出现一个文件夹&quot;[http:">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/go.png">
+<meta property="article:published_time" content="2024-03-14T04:08:55.000Z">
+<meta property="article:modified_time" content="2025-11-30T10:27:10.368Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="go">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/go.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Gocv安装(Windows)",
+  "url": "https://piwriw.github.io/2024/03/14/basic/go/Gocv%E5%AE%89%E8%A3%85(Windows)/",
+  "image": "https://piwriw.github.io/img/go.png",
+  "datePublished": "2024-03-14T04:08:55.000Z",
+  "dateModified": "2025-11-30T10:27:10.368Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2024/03/14/basic/go/Gocv%E5%AE%89%E8%A3%85(Windows)/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Gocv安装(Windows)',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">249</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">75</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">59</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/go.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">Gocv安装(Windows)</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">Gocv安装(Windows)</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2024-03-14T04:08:55.000Z" title="发表于 2024-03-14 12:08:55">2024-03-14</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2025-11-30T10:27:10.368Z" title="更新于 2025-11-30 18:27:10">2025-11-30</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/basic/">basic</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/basic/go/">go</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">570</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>3分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2025-11-30 18:27:10&quot;}" hidden></div><h1 id="Gocv安装-Windows"><a href="#Gocv安装-Windows" class="headerlink" title="Gocv安装(Windows)"></a>Gocv安装(Windows)</h1><h2 id="什么是GoCV"><a href="#什么是GoCV" class="headerlink" title="什么是GoCV"></a>什么是GoCV</h2><p>gocv 是 OpenCV 4.x 计算机视觉库的包装器。 它为最新版本的 OpenCV 提供了 Go 语言接口</p>
+<p>官网链接：<a target="_blank" rel="noopener" href="https://gocv.io/">https://gocv.io/</a></p>
+<h2 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h2><h3 id="1-安装Go（PASS）"><a href="#1-安装Go（PASS）" class="headerlink" title="1.安装Go（PASS）"></a>1.安装Go（PASS）</h3><h3 id="2-安装GoCV"><a href="#2-安装GoCV" class="headerlink" title="2.安装GoCV"></a>2.安装GoCV</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">go get -u -d gocv.io/x/gocv</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">执行完这条命令后，%GOPATH%\pkg\mod下会出现一个文件夹<span class="string">&quot;[http://gocv.io](https://link.zhihu.com/?target=http%3A//gocv.io)&quot;</span></span></span><br></pre></td></tr></table></figure>
+
+<h3 id="3-安装MinGW-W64"><a href="#3-安装MinGW-W64" class="headerlink" title="3.安装MinGW-W64"></a>3.安装MinGW-W64</h3><p>注意安装版本：8.1.0</p>
+<p><a target="_blank" rel="noopener" href="https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/7.3.0/">MinGW-W64版本</a></p>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20240314115453.png" alt="20240314115453"></p>
+<blockquote>
+<p>添加环境变量到系统环境变量</p>
+</blockquote>
+<h3 id="4-安装Cmake"><a href="#4-安装Cmake" class="headerlink" title="4.安装Cmake"></a>4.安装Cmake</h3><p><a target="_blank" rel="noopener" href="https://cmake.org/download/">安装链接</a></p>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20240314115716.png" alt="20240314115716"></p>
+<h3 id="5-安装opencv（谨记，要手动添加环境变量，不要忘了！）"><a href="#5-安装opencv（谨记，要手动添加环境变量，不要忘了！）" class="headerlink" title="5 安装opencv（谨记，要手动添加环境变量，不要忘了！）"></a>5 安装opencv（谨记，要手动添加环境变量，不要忘了！）</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">chdir %GOPATH%\src\gocv.io\x\gocv</span><br><span class="line">win_build_opencv.cmd</span><br></pre></td></tr></table></figure>
+
+<p>主要是win_build_opencv.cmd文件：</p>
+<p>可以把文件opencv-4.6.0.zip和opencv_contrib-4.6.0.zip先放到C:\opencv </p>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20240314120138.png" alt="20240314120138"></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line">echo off</span><br><span class="line"></span><br><span class="line">if not exist &quot;C:\opencv&quot; mkdir &quot;C:\opencv&quot;</span><br><span class="line">if not exist &quot;C:\opencv\build&quot; mkdir &quot;C:\opencv\build&quot;</span><br><span class="line"></span><br><span class="line">echo Downloading OpenCV sources</span><br><span class="line">echo.</span><br><span class="line">echo For monitoring the download progress please check the C:\opencv directory.</span><br><span class="line">echo.</span><br><span class="line"></span><br><span class="line">REM This is why there is no progress bar:</span><br><span class="line">REM https://github.com/PowerShell/PowerShell/issues/2138</span><br><span class="line"></span><br><span class="line">REM  echo Downloading: opencv-4.6.0.zip [91MB]</span><br><span class="line">REM  powershell -command &quot;[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $ProgressPreference = &#x27;SilentlyContinue&#x27;; Invoke-WebRequest -Uri https://github.com/opencv/opencv/archive/4.6.0.zip -OutFile c:\opencv\opencv-4.6.0.zip&quot;</span><br><span class="line">echo Extracting...</span><br><span class="line">powershell -command &quot;$ProgressPreference = &#x27;SilentlyContinue&#x27;; Expand-Archive -Path c:\opencv\opencv-4.6.0.zip -DestinationPath c:\opencv&quot;</span><br><span class="line">REM  del c:\opencv\opencv-4.6.0.zip /q</span><br><span class="line">echo.</span><br><span class="line"></span><br><span class="line">REM  echo Downloading: opencv_contrib-4.6.0.zip [58MB]</span><br><span class="line">REM powershell -command &quot;[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $ProgressPreference = &#x27;SilentlyContinue&#x27;; Invoke-WebRequest -Uri https://github.com/opencv/opencv_contrib/archive/4.6.0.zip -OutFile c:\opencv\opencv_contrib-4.6.0.zip&quot;</span><br><span class="line">echo Extracting...</span><br><span class="line">powershell -command &quot;$ProgressPreference = &#x27;SilentlyContinue&#x27;; Expand-Archive -Path c:\opencv\opencv_contrib-4.6.0.zip -DestinationPath c:\opencv&quot;</span><br><span class="line">REM del c:\opencv\opencv_contrib-4.6.0.zip /q</span><br><span class="line">echo.</span><br><span class="line"></span><br><span class="line">echo Done with downloading and extracting sources.</span><br><span class="line">echo.</span><br><span class="line"></span><br><span class="line">echo on</span><br><span class="line"></span><br><span class="line">cd /D C:\opencv\build</span><br><span class="line">set PATH=%PATH%;C:\Program Files (x86)\CMake\bin;F:\env\mingw64</span><br><span class="line">if [%1]==[static] (</span><br><span class="line">  echo Build static opencv</span><br><span class="line">  set enable_shared=OFF</span><br><span class="line">) else (</span><br><span class="line">  set enable_shared=ON</span><br><span class="line">)</span><br><span class="line">cmake C:\opencv\opencv-4.6.0 -G &quot;MinGW Makefiles&quot; -BC:\opencv\build -DENABLE_CXX11=ON -DOPENCV_EXTRA_MODULES_PATH=C:\opencv\opencv_contrib-4.6.0\modules -DBUILD_SHARED_LIBS=%enable_shared% -DWITH_IPP=OFF -DWITH_MSMF=OFF -DBUILD_EXAMPLES=OFF -DBUILD_TESTS=OFF -DBUILD_PERF_TESTS=OFF -DBUILD_opencv_java=OFF -DBUILD_opencv_python=OFF -DBUILD_opencv_python2=OFF -DBUILD_opencv_python3=OFF -DBUILD_DOCS=OFF -DENABLE_PRECOMPILED_HEADERS=OFF -DBUILD_opencv_saliency=OFF -DBUILD_opencv_wechat_qrcode=ON -DCPU_DISPATCH= -DOPENCV_GENERATE_PKGCONFIG=ON -DWITH_OPENCL_D3D11_NV=OFF -DOPENCV_ALLOCATOR_STATS_COUNTER_TYPE=int64_t -Wno-dev</span><br><span class="line">mingw32-make -j%NUMBER_OF_PROCESSORS%</span><br><span class="line">mingw32-make install</span><br><span class="line">rmdir c:\opencv\opencv-4.6.0 /s /q</span><br><span class="line">rmdir c:\opencv\opencv_contrib-4.6.0 /s /q</span><br><span class="line">chdir D:\GoLand2021.2\sdk\gopath\pkg\mod\gocv.io</span><br></pre></td></tr></table></figure>
+
+<h3 id="验证"><a href="#验证" class="headerlink" title="验证"></a>验证</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd /d %GOPATH%\pkg\mod\gocv.io\x\gocv@v0.32.0</span><br><span class="line">go run cmd\version\main.go</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20240314120324.png" alt="20240314120324"></p>
+<h3 id="其他问题"><a href="#其他问题" class="headerlink" title="其他问题"></a>其他问题</h3><blockquote>
+<p>出现exit status 0xc0000135</p>
+</blockquote>
+<p>解决方案：重启</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2024/03/14/basic/go/Gocv%E5%AE%89%E8%A3%85(Windows)/">https://piwriw.github.io/2024/03/14/basic/go/Gocv安装(Windows)/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/go/">go</a></div><div class="post-share"><div class="social-share" data-image="/img/go.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2024/03/28/web/rpc/%E5%88%9D%E8%AF%86RPC/" title="初识RPC"><img class="cover" src="/img/go.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">初识RPC</div></div><div class="info-2"><div class="info-item-1">初识RPC介绍RPC 是远程过程调用的简称，是分布式系统中不同节点间流行的通信方式。在互联网时代，RPC 已经和 IPC 一样成为一个不可或缺的基础构件。因此 Go 语言的标准库也提供了一个简单的 RPC 实现，我们将以此为入口学习 RPC 的各种用法。 hello RPC server端代码  12345678910111213141516171819202122232425262728293031package mainimport (	&quot;log&quot;	&quot;net&quot;	&quot;net/rpc&quot;)type HelloService struct&#123;&#125;func (p *HelloService) Hello(request string, reply *string) error &#123;	*reply = &quot;hello:&quot; + request	return nil&#125;func main() &#123;	rpc.RegisterName(&quot;HelloService&quot...</div></div></div></a><a class="pagination-related" href="/2024/03/08/cloud/k8s/K8s-%E6%96%87%E4%BB%B6%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9Fnfs/" title="K8s-文件管理系统nfs（centos）"><img class="cover" src="/img/k8s-go.jpg" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">K8s-文件管理系统nfs（centos）</div></div><div class="info-2"><div class="info-item-1">K8s-文件管理系统nfs（centos）什么是nfsNFS在文件传送或信息传输过程中依赖于RPC协议，RPC协议可以在不同的系统之间使用。使用NFS用户端时只需要把远程文件系统挂载到自己的文件系统下即可访问，NFS有客户端和服务端 Deploynfs部署 centos部署nfs 12yum install -y nfs-utils rpcbind  执行命令 vim /etc/exports，创建 exports 文件，文件内容如下 1/data/nfs_root/ *(insecure,rw,sync,no_root_squash)	  启动nfs 12345678mkdir -p /data/nfs_rootsystemctl enable rpcbindsystemctl enable nfs-serversystemctl start rpcbindsystemctl start nfs-serverexportfs -r  nfs-provisoner部署12345678910111213141516171819202122# 获取helm chartshelm re...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2025/08/22/basic/go/Gorm-Open(DB%E8%BF%9E%E6%8E%A5%E4%B8%8E%E9%85%8D%E7%BD%AE)/" title="Gorm-Open（DB连接与配置）"><img class="cover" src="/img/go.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-08-22</div><div class="info-item-2">Gorm-Open（DB连接与配置）</div></div><div class="info-2"><div class="info-item-1">Gorm-Open（DB连接与配置） 基于1.31.0  工作原理graph TD     A[Open&lt;br/&gt;打开数据库连接] --&gt; B[Initialize Config&lt;br/&gt;初始化配置]     B --&gt; C[Initialize Dialector&lt;br/&gt;初始化数据库方言]     C --&gt; D[Setup Connection Pool&lt;br/&gt;设置连接池]     D --&gt; E[Setup Callbacks&lt;br/&gt;设置回调]     E --&gt; F[Ping Database&lt;br/&gt;连接数据库测试]     F --&gt; G[DB Instance Ready&lt;br/&gt;数据库实例就绪]          G --&gt; H[Session&lt;br/&gt;创建会话]     H --&gt; I[Create New Session&lt;br/&gt;创建新会话]     I --&gt; J[Apply Session ...</div></div></div></a><a class="pagination-related" href="/2025/08/20/basic/go/Gin-%E9%A1%B9%E7%9B%AE%E5%88%9D%E5%A7%8B%E5%8C%96(New)/" title="Gin-项目初始化（New）"><img class="cover" src="/img/go.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-08-20</div><div class="info-item-2">Gin-项目初始化（New）</div></div><div class="info-2"><div class="info-item-1">Gin-项目初始化（New） 基于1.10.0  工作原理Engine核心结构体graph TD     A[Engine] --&gt; B[RouterGroup]     A --&gt; C[trees: methodTrees]     A --&gt; D[pool: sync.Pool]     A --&gt; E[HTMLRender]     A --&gt; F[配置选项]          F --&gt; F1[RedirectTrailingSlash]     F --&gt; F2[RedirectFixedPath]     F --&gt; F3[HandleMethodNotAllowed]     F --&gt; F4[ForwardedByClientIP]     F --&gt; F5[UseH2C]   路由注册流程graph TD     A[AddRoute] --&gt; B&#123;检查路径和方法&#125;     B --&gt; C[获取对应method的tree]     C --&gt; D[创建新node如果...</div></div></div></a><a class="pagination-related" href="/2025/03/21/basic/go/Go-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Sort/" title="GO-深入理解Sort"><img class="cover" src="/img/go.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-03-21</div><div class="info-item-2">GO-深入理解Sort</div></div><div class="info-2"><div class="info-item-1">GO-深入理解SortGo 语言的 sort 包提供了对切片和用户自定义集合进行排序的功能。它的设计非常灵活，支持多种数据类型的排序，并且允许用户通过实现接口来自定义排序规则。以下是对 sort 包的深入解析，包括其核心接口、实现原理以及使用方法 核心接口12345678910type Interface interface &#123;    // Len 返回集合中的元素数量    Len() int    // Less 返回索引为 i 的元素是否应该排在索引为 j 的元素之前    Less(i, j int) bool    // Swap 交换索引为 i 和 j 的元素    Swap(i, j int)&#125;  排序函数sort.Sort 对实现了 sort.Interface 接口的类型进行排序  exmaple： 12345678910111213141516171819202122232425262728package mainimport (	&quot;fmt&quot;	&quot;sort&quot;)type Person struct &#1...</div></div></div></a><a class="pagination-related" href="/2024/10/15/basic/go/%E5%AE%B9%E5%99%A8%E7%8E%AF%E5%A2%83-GOMAXPROCS%E5%8F%82%E6%95%B0%E8%AE%BE%E7%BD%AE/" title="容器环境-GOMAXPROCS参数设置"><img class="cover" src="/img/golang.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-10-15</div><div class="info-item-2">容器环境-GOMAXPROCS参数设置</div></div><div class="info-2"><div class="info-item-1">容器环境-GOMAXPROCS参数设置  GOMAXPROCS通过设定 GOMAXPROCS，用户可以调整调度器中 Processor（简称P）的数量。由于每个系统线程，必须要绑定 P ，P 才能把G交给 M 执行。所以 P 的数量会很大程度上影响 Go Runtime 的并发表现。GOMAXPROCS 在版本 1.5后的默认值是机器的 CPU 核数 （runtime.NumCPU） 设置GOMAXPROCS1234567891011121314package mainimport (    &quot;fmt&quot;    &quot;runtime&quot;)func main() &#123;    n := runtime.NumCPU() // 获取机器的CPU核心数    fmt.Printf(&quot;NumCPU: %d\n&quot;, n)    if n &gt; 0 &#123;       runtime.GOMAXPROCS(n) // 设置GOMAXPROCS为CPU核心数    &#125;&#125;   容器内运行输出的是宿主机的CPU...</div></div></div></a><a class="pagination-related" href="/2024/10/11/basic/go/Go-Options%E6%A8%A1%E5%BC%8F/" title="Go-Options模式"><img class="cover" src="/img/go.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-10-11</div><div class="info-item-2">Go-Options模式</div></div><div class="info-2"><div class="info-item-1">Go-Options模式Options模式Options模式可以让具有多个可选参数的函数或者方法更整洁和好扩展，当一个函数具有五六个甚至十个以上的可选参数时使用这种模式的优势会体现的很明显 问题当我们发送一个Http请求，可能需要携带很多参数。比如： 1func HttpRequest(method string, url string, body []byte, headers map[string]string, timeout time.Duration)   有的时候又可能有些参数是不需要的,所以可能变成了： 1HttpRequest(&#x27;GET&#x27;, &#x27;https://www.baidu.com&#x27;, nil, nil, 2 * time.Second)  解决办法一:把配置全转换为结构体对象1234567type HttpClientConfig struct &#123;  timeout time.Duration  headers map[string]string  body    []byte&#125;func HttpR...</div></div></div></a><a class="pagination-related" href="/2024/09/15/basic/go/GO-%E6%B7%B1%E6%8B%B7%E8%B4%9D/" title="GO-深拷贝"><img class="cover" src="/img/go.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-09-15</div><div class="info-item-2">GO-深拷贝</div></div><div class="info-2"><div class="info-item-1">GO-深拷贝复习在 Go 语言中，所有的函数参数传递都是值传递（pass by value），当将参数传递给函数时，实际上是将参数的副本传递给函数。 然而，这并不意味着在函数内部对参数的修改都不会影响原始数据。因为在 Go 中，有些数据类型本身就是引用类型，比如切片（slice）、映射（map）、通道（channel）、接口（interface）和指针（pointer）。当这些类型作为参数传递给函数时，虽然传递的是值，但值本身就是一个引用 代码陷阱切片是结构 预期：Before和After是一样的值，因为参数传递都是值传递  123456789101112131415161718192021222324252627282930package mainimport (	&quot;fmt&quot;	&quot;strconv&quot;)type Person struct &#123;	Name    string	Age     int	Address []string&#125;func changepeople(people []Person) &#123;	people...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">249</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">75</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">59</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Gocv%E5%AE%89%E8%A3%85-Windows"><span class="toc-number">1.</span> <span class="toc-text">Gocv安装(Windows)</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%80%E4%B9%88%E6%98%AFGoCV"><span class="toc-number">1.1.</span> <span class="toc-text">什么是GoCV</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%89%E8%A3%85"><span class="toc-number">1.2.</span> <span class="toc-text">安装</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E5%AE%89%E8%A3%85Go%EF%BC%88PASS%EF%BC%89"><span class="toc-number">1.2.1.</span> <span class="toc-text">1.安装Go（PASS）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E5%AE%89%E8%A3%85GoCV"><span class="toc-number">1.2.2.</span> <span class="toc-text">2.安装GoCV</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-%E5%AE%89%E8%A3%85MinGW-W64"><span class="toc-number">1.2.3.</span> <span class="toc-text">3.安装MinGW-W64</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-%E5%AE%89%E8%A3%85Cmake"><span class="toc-number">1.2.4.</span> <span class="toc-text">4.安装Cmake</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-%E5%AE%89%E8%A3%85opencv%EF%BC%88%E8%B0%A8%E8%AE%B0%EF%BC%8C%E8%A6%81%E6%89%8B%E5%8A%A8%E6%B7%BB%E5%8A%A0%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F%EF%BC%8C%E4%B8%8D%E8%A6%81%E5%BF%98%E4%BA%86%EF%BC%81%EF%BC%89"><span class="toc-number">1.2.5.</span> <span class="toc-text">5 安装opencv（谨记，要手动添加环境变量，不要忘了！）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%AA%8C%E8%AF%81"><span class="toc-number">1.2.6.</span> <span class="toc-text">验证</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%85%B6%E4%BB%96%E9%97%AE%E9%A2%98"><span class="toc-number">1.2.7.</span> <span class="toc-text">其他问题</span></a></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2025/09/24/cloud/prometheus/Prometheus%E6%BA%90%E7%A0%81-Relabel%20address/" title="Prometheus源码-Relabel"><img src="/img/prometheus.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Prometheus源码-Relabel"/></a><div class="content"><a class="title" href="/2025/09/24/cloud/prometheus/Prometheus%E6%BA%90%E7%A0%81-Relabel%20address/" title="Prometheus源码-Relabel">Prometheus源码-Relabel</a><time datetime="2025-09-24T14:08:55.000Z" title="发表于 2025-09-24 22:08:55">2025-09-24</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/08/24/cloud/k8s/K8s%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97-%E5%AE%A2%E6%88%B7%E7%AB%AF/" title="K8s开发指南-客户端"><img src="/img/k8sLogo.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s开发指南-客户端"/></a><div class="content"><a class="title" href="/2025/08/24/cloud/k8s/K8s%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97-%E5%AE%A2%E6%88%B7%E7%AB%AF/" title="K8s开发指南-客户端">K8s开发指南-客户端</a><time datetime="2025-08-24T04:57:55.000Z" title="发表于 2025-08-24 12:57:55">2025-08-24</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/08/23/cloud/k8s/K8s%E5%BC%80%E5%8F%91-API%E8%AF%A6%E8%A7%A3/" title="K8s开发-API详解"><img src="/img/k8sLogo.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s开发-API详解"/></a><div class="content"><a class="title" href="/2025/08/23/cloud/k8s/K8s%E5%BC%80%E5%8F%91-API%E8%AF%A6%E8%A7%A3/" title="K8s开发-API详解">K8s开发-API详解</a><time datetime="2025-08-23T04:57:55.000Z" title="发表于 2025-08-23 12:57:55">2025-08-23</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/08/22/basic/go/Gorm-Open(DB%E8%BF%9E%E6%8E%A5%E4%B8%8E%E9%85%8D%E7%BD%AE)/" title="Gorm-Open（DB连接与配置）"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-Open（DB连接与配置）"/></a><div class="content"><a class="title" href="/2025/08/22/basic/go/Gorm-Open(DB%E8%BF%9E%E6%8E%A5%E4%B8%8E%E9%85%8D%E7%BD%AE)/" title="Gorm-Open（DB连接与配置）">Gorm-Open（DB连接与配置）</a><time datetime="2025-08-22T11:57:51.000Z" title="发表于 2025-08-22 19:57:51">2025-08-22</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/08/22/cloud/k8s/K8s%E8%AE%A4%E8%AF%81%E6%9C%BA%E5%88%B6-%E6%8B%93%E5%B1%95%E8%AE%A4%E8%AF%81/" title="K8s认证机制-拓展认证"><img src="/img/k8sLogo.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s认证机制-拓展认证"/></a><div class="content"><a class="title" href="/2025/08/22/cloud/k8s/K8s%E8%AE%A4%E8%AF%81%E6%9C%BA%E5%88%B6-%E6%8B%93%E5%B1%95%E8%AE%A4%E8%AF%81/" title="K8s认证机制-拓展认证">K8s认证机制-拓展认证</a><time datetime="2025-08-22T04:57:55.000Z" title="发表于 2025-08-22 12:57:55">2025-08-22</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2025 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div><!-- hexo injector body_end start -->
+  <script data-pjax src="undefined"></script>
+  <script data-pjax>
+        function GithubCalendarConfig(){
+            var git_githubapiurl ="undefined?piwriw";
+            var git_color =undefined;
+            var git_user ="piwriw";
+            var parent_div_git = document.getElementById('recent-posts');
+            var git_div_html = '<div class="recent-post-item" style="width:100%;height:auto;padding:10px; display: flex; align-items: center; justify-content: center;"> <img src="https://ghchart.rshah.org/piwriw" alt="piwriw" style="width: 100%; height: auto; max-width: 100%;"> </div> ';
+            if(parent_div_git && location.pathname =='/'){
+                console.log('已挂载github calendar')
+                // parent_div_git.innerHTML=git_div_html+parent_div_git.innerHTML // 无报错，但不影响使用(支持pjax跳转)
+                parent_div_git.insertAdjacentHTML("afterbegin",git_div_html) // 有报错，但不影响使用(支持pjax跳转)
+            };
+            GithubCalendar(git_githubapiurl,git_color,git_user)
+        }
+        if(document.getElementById('recent-posts')){
+            GithubCalendarConfig()
+        }
+    </script>
+    <style>#github_container{min-height:undefined}@media screen and (max-width:650px) {#github_container{background-image:;min-height:undefined}}</style>
+    <style>undefined</style><!-- hexo injector body_end end --></body></html>

@@ -1,0 +1,308 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Docker-Linux Cgroups | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="Docker-Linux Cgroups什么是Linux CgroupsLinux Cgroups提供了对一组进程以及将来子进程的资源限制、控制和统计的能力，包含CPU、内存、存储、网络等。通过Cgroups，可以方便的限制某个进程的资源占用，并且可以实时统计监控进程和统计消息。 Cgroups的组件cgroupcgroup是对进程分组管理的一种机制，一个cgroup包含一组进程，并且在cgrou">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Docker-Linux Cgroups">
+<meta property="og:url" content="https://piwriw.github.io/2024/09/23/cloud/docker/Docker-Linux%20Cgroups/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="Docker-Linux Cgroups什么是Linux CgroupsLinux Cgroups提供了对一组进程以及将来子进程的资源限制、控制和统计的能力，包含CPU、内存、存储、网络等。通过Cgroups，可以方便的限制某个进程的资源占用，并且可以实时统计监控进程和统计消息。 Cgroups的组件cgroupcgroup是对进程分组管理的一种机制，一个cgroup包含一组进程，并且在cgrou">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/docker.png">
+<meta property="article:published_time" content="2024-09-23T14:08:55.000Z">
+<meta property="article:modified_time" content="2026-02-28T13:29:12.659Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="docker">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/docker.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Docker-Linux Cgroups",
+  "url": "https://piwriw.github.io/2024/09/23/cloud/docker/Docker-Linux%20Cgroups/",
+  "image": "https://piwriw.github.io/img/docker.png",
+  "datePublished": "2024-09-23T14:08:55.000Z",
+  "dateModified": "2026-02-28T13:29:12.659Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2024/09/23/cloud/docker/Docker-Linux%20Cgroups/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Docker-Linux Cgroups',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/docker.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">Docker-Linux Cgroups</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">Docker-Linux Cgroups</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2024-09-23T14:08:55.000Z" title="发表于 2024-09-23 22:08:55">2024-09-23</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-02-28T13:29:12.659Z" title="更新于 2026-02-28 21:29:12">2026-02-28</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/docker/">docker</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">554</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>1分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-02-28 21:29:12&quot;}" hidden></div><h1 id="Docker-Linux-Cgroups"><a href="#Docker-Linux-Cgroups" class="headerlink" title="Docker-Linux Cgroups"></a>Docker-Linux Cgroups</h1><h2 id="什么是Linux-Cgroups"><a href="#什么是Linux-Cgroups" class="headerlink" title="什么是Linux Cgroups"></a>什么是Linux Cgroups</h2><p>Linux Cgroups提供了对一组进程以及将来子进程的资源限制、控制和统计的能力，包含CPU、内存、存储、网络等。通过Cgroups，可以方便的限制某个进程的资源占用，并且可以实时统计监控进程和统计消息。</p>
+<h2 id="Cgroups的组件"><a href="#Cgroups的组件" class="headerlink" title="Cgroups的组件"></a>Cgroups的组件</h2><h3 id="cgroup"><a href="#cgroup" class="headerlink" title="cgroup"></a>cgroup</h3><p>cgroup是对进程分组管理的一种机制，一个cgroup包含一组进程，并且在cgroup 上增加Linux subsystem的各种参数配置，将一组进程和一组subsystem系统参数关联起来</p>
+<h3 id="subsystem"><a href="#subsystem" class="headerlink" title="subsystem"></a>subsystem</h3><p>subsystem是一组资源控制模块，有下面的几个模块</p>
+<ul>
+<li><p><code>blkio</code>设置对块设备（比如硬盘）输入输出的访问控制</p>
+</li>
+<li><p><code>cpu</code>设置cgroup中进程的CPU被调度的策略</p>
+</li>
+<li><p><code>cpuacct</code>可以统计cgroup中进程调度的CPu占用</p>
+</li>
+<li><p><code>cpuset</code>在多核机器上设置cgroup中进程可以使用的CPU和内存（此内存仅适用于NUMA架构）</p>
+</li>
+<li><p><code>devices</code>控制cgroup中进程对于设备的访问</p>
+</li>
+<li><p><code>freezer</code>用于挂起（suspend)和恢复（resume)cgroup中的进程</p>
+</li>
+<li><p><code>memory</code>用于控制cgroup中进程的内存占用</p>
+</li>
+<li><p><code>net_cls</code>用于将cgroup中进程产生的网络包分类，以便Linux的tc（traffic controller）可以根据分类区分出来自某个cgroup的包做限流和监控</p>
+</li>
+<li><p><code>net_prio</code>设置cgroup中进程产生的网络流量的优先级</p>
+</li>
+<li><p><code>ns</code>使cgroup中的进程在新的Namespace中fork新进程（NEWNS）时，创建出一个新的cgroup，这个cgroup包含新的Namespace中的进程</p>
+</li>
+</ul>
+<blockquote>
+<p>查看当前版本的Kernel支持的subsytem</p>
+</blockquote>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/ lssubsys -a</span><br></pre></td></tr></table></figure>
+
+<h3 id="hierarchy"><a href="#hierarchy" class="headerlink" title="hierarchy"></a>hierarchy</h3><p>把一组cgroup串成一个树状结构，一个这样的树便是一个hierarchy，通过树状结构，Cgroup实现了继承。</p>
+<h3 id="三个组件的关系"><a href="#三个组件的关系" class="headerlink" title="三个组件的关系"></a>三个组件的关系</h3><ul>
+<li>系统在创建了新的hierarchy之后，系统中所有的进程都会加入到hierarchy的cgroup的根节点，这个cgroup根节点是hierarchy默认创建的</li>
+<li>一个subsystem只能附加到一个hierarchy上面</li>
+<li>一个hierarchy可以附加多个subsystem</li>
+<li>一个进程可以作为多个cgroup的成员，但是这些cgroup必须在不同的hierarchy中</li>
+<li>一个进程fork出子进程时，子进程和父进程在同一个cgroup，也可以根据需要将其移动到其他的cgroup中</li>
+</ul>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2024/09/23/cloud/docker/Docker-Linux%20Cgroups/">https://piwriw.github.io/2024/09/23/cloud/docker/Docker-Linux Cgroups/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/docker/">docker</a></div><div class="post-share"><div class="social-share" data-image="/img/docker.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2024/10/01/cloud/prometheus/prometheus%E6%BA%90%E7%A0%81%EF%BC%9A%E5%90%AF%E5%8A%A8/" title="Prometheus源码：启动"><img class="cover" src="/img/prometheus.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">Prometheus源码：启动</div></div><div class="info-2"><div class="info-item-1">Prometheus源码：启动 基于release-3.0  目录结构 cmd主程序入口 config 默认配置参数设置及配置文件解析 discovery 服务发现方式的实现，如 consul ，kubernetes ，dns 等 notifier 生成告警信息及告警信息发送 promql 目录为 规则计算的具体实现，根据载入的规则进行规则计算，并生成告警配置 prompb 目录定义了三种协议，远程存储协议、rpc通信协议和types协议 scrape 指标采集 relabel 目录实现了对指标维度（label）的重置处理，根据promtheus.yaml中配置文件中relabel_config配置项内容重置指标维度 retrieval 目录为Prometheus的数据采集模块，实现了对采集服务的调度和对指标数据的采集 rules 目录为Prometheus的规则管理模块，用于实现规则加载、计算调度和告警信息的回调； storage 目录为Prometheus的指标存储模块，又remote、tsdb存储俩种 tsdb 数据存储相关 web 目录是 Prometheus Web服务...</div></div></div></a><a class="pagination-related" href="/2024/09/23/cloud/iptables/" title="Iptables-概述"><img class="cover" src="/img/golang.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">Iptables-概述</div></div><div class="info-2"><div class="info-item-1">iptables  什么是iptablesiptables其实只是一个简称，其真正代表的是netfilter/iptables这个IP数据包过滤系统。为了简便，本文也将整套系统用iptables简称。iptables是3.5版本的Linux内核集成的IP数据包过滤系统。当系统接入网络时，该系统有利于在Linux系统上更好地控制IP信息包和防火墙配置。此外，iptables还可以进行NAT规则的管理。 上面有提到netfilter&#x2F;iptables这个组合，这个组合中：  netfilter位于内核空间，是内核的一部分，由一些数据包过滤表组成，这些表包含内核用来控制数据包过滤处理的规则集；而netfilter又是由内核中若干hook组成的，程序在执行到内核hook处时便会执行数据包过滤的相关逻辑。 iptables位于用户空间，是一种工具。该工具可以很便捷地对netfilter所维护的表数据进行修改。从而可以很便捷地控制数据包的过滤规则  执行顺序 什么是包过滤防火墙包过滤防火墙在网络层截取网络数据包的包头（header），针对数据包的包头，根据事先定义好的防火墙过滤规则...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2024/03/01/cloud/docker/Docker-%E9%95%9C%E5%83%8F%E4%BC%98%E5%8C%96/" title="Docker-镜像优化"><img class="cover" src="/img/docker.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-03-01</div><div class="info-item-2">Docker-镜像优化</div></div><div class="info-2"><div class="info-item-1">Docker-镜像优化BackGroundDocker如果最后的镜像很大，所以是需要优化的。  安装不必要的软件包会增加攻击面，从而增加安全风险。 镜像传输需要更多时间。 部署大镜像需要更多时间。  优化方法优化一：合并RUN 原始Docker  1234567891011121314FROM hub.c.163.com/netease_comb/centos:7                                                                                                                                       MAINTAINER netease                                                                                                                                                                 ...</div></div></div></a><a class="pagination-related" href="/2023/08/16/cloud/docker/Docker-%E5%BC%80%E5%90%AF%E8%BF%9C%E7%A8%8BCli/" title="Docker配置远程访问"><img class="cover" src="/img/docker.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2023-08-16</div><div class="info-item-2">Docker配置远程访问</div></div><div class="info-2"><div class="info-item-1">Docker配置远程访问暴力修改这种就很简单暴力，直接修改/lib/systemd/system/docker.service文件，注释掉默认的 ExecStart 并添加新的 ExecStart 配置： 12# ExecStart=/usr/bin/dockerd -H fd://ExecStart=/usr/bin/dockerd -H tcp://0.0.0.0:2375 -H unix:///var/run/docker.sock  然后重启 docker.service： 12$ sudo systemctl daemon-reload$ sudo systemctl restart docker.service  这样 docker 就开始监听 tcp 端口 2375 了 systemctl修改是使用 systemctl edit docker 来调用文本编辑器修改指定的单元或单元实例，ubuntu 默认调用的是 nano 编辑器，不是很好用，如果不熟悉 nano 编辑器的操作可以使用 vim 编辑器。主要也就是新建或修改 /etc/systemd/system/do...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Docker-Linux-Cgroups"><span class="toc-number">1.</span> <span class="toc-text">Docker-Linux Cgroups</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%80%E4%B9%88%E6%98%AFLinux-Cgroups"><span class="toc-number">1.1.</span> <span class="toc-text">什么是Linux Cgroups</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Cgroups%E7%9A%84%E7%BB%84%E4%BB%B6"><span class="toc-number">1.2.</span> <span class="toc-text">Cgroups的组件</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#cgroup"><span class="toc-number">1.2.1.</span> <span class="toc-text">cgroup</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#subsystem"><span class="toc-number">1.2.2.</span> <span class="toc-text">subsystem</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#hierarchy"><span class="toc-number">1.2.3.</span> <span class="toc-text">hierarchy</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%89%E4%B8%AA%E7%BB%84%E4%BB%B6%E7%9A%84%E5%85%B3%E7%B3%BB"><span class="toc-number">1.2.4.</span> <span class="toc-text">三个组件的关系</span></a></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-日志系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明">Gorm-日志系统模块原理说明</a><time datetime="2026-01-11T11:56:27.000Z" title="发表于 2026-01-11 19:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-迁移功能模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明">Gorm-迁移功能模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-插件系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明">Gorm-插件系统模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-事务处理模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明">Gorm-事务处理模块原理说明</a><time datetime="2026-01-11T09:56:27.000Z" title="发表于 2026-01-11 17:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-关联关系模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明">Gorm-关联关系模块原理说明</a><time datetime="2026-01-11T08:56:27.000Z" title="发表于 2026-01-11 16:56:27">2026-01-11</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

@@ -1,0 +1,312 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>K8s-kube-proxy（Overview） | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="K8s-kube-proxy（Overview） 基于1.25  什么是kube-proxykube-proxy是K8s控制面组件之一，需要在每个节点部署。  kube-proxy根据Service定义和Endpoints、EndpointSlice资源对象中存储的内容，在宿主机上配置iptables、ipvs等规则，实现Service的负载均衡和服务发现功能  kube-proxy主要支持俩种模">
+<meta property="og:type" content="article">
+<meta property="og:title" content="K8s-kube-proxy（Overview）">
+<meta property="og:url" content="https://piwriw.github.io/2024/12/10/cloud/k8s/kube-proxy/K8s-kube-proxy(Overview)/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="K8s-kube-proxy（Overview） 基于1.25  什么是kube-proxykube-proxy是K8s控制面组件之一，需要在每个节点部署。  kube-proxy根据Service定义和Endpoints、EndpointSlice资源对象中存储的内容，在宿主机上配置iptables、ipvs等规则，实现Service的负载均衡和服务发现功能  kube-proxy主要支持俩种模">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/k8sLogo.png">
+<meta property="article:published_time" content="2024-12-10T13:31:55.000Z">
+<meta property="article:modified_time" content="2026-02-28T13:29:12.667Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="k8s">
+<meta property="article:tag" content="cloud">
+<meta property="article:tag" content="K8s源码">
+<meta property="article:tag" content="kube-proxy">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/k8sLogo.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "K8s-kube-proxy（Overview）",
+  "url": "https://piwriw.github.io/2024/12/10/cloud/k8s/kube-proxy/K8s-kube-proxy(Overview)/",
+  "image": "https://piwriw.github.io/img/k8sLogo.png",
+  "datePublished": "2024-12-10T13:31:55.000Z",
+  "dateModified": "2026-02-28T13:29:12.667Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2024/12/10/cloud/k8s/kube-proxy/K8s-kube-proxy(Overview)/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'K8s-kube-proxy（Overview）',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/k8sLogo.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">K8s-kube-proxy（Overview）</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">K8s-kube-proxy（Overview）</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2024-12-10T13:31:55.000Z" title="发表于 2024-12-10 21:31:55">2024-12-10</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-02-28T13:29:12.667Z" title="更新于 2026-02-28 21:29:12">2026-02-28</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/">k8s</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/kube-proxy/">kube-proxy</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">518</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>1分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-02-28 21:29:12&quot;}" hidden></div><h1 id="K8s-kube-proxy（Overview）"><a href="#K8s-kube-proxy（Overview）" class="headerlink" title="K8s-kube-proxy（Overview）"></a>K8s-kube-proxy（Overview）</h1><blockquote>
+<p>基于1.25</p>
+</blockquote>
+<h2 id="什么是kube-proxy"><a href="#什么是kube-proxy" class="headerlink" title="什么是kube-proxy"></a>什么是kube-proxy</h2><p>kube-proxy是K8s控制面组件之一，需要在每个节点部署。</p>
+<ul>
+<li>kube-proxy根据Service定义和Endpoints、EndpointSlice资源对象中存储的内容，在宿主机上配置iptables、ipvs等规则，实现Service的负载均衡和服务发现功能</li>
+</ul>
+<p>kube-proxy主要支持俩种模式：iptables和ipvs</p>
+<ul>
+<li>ipatbles：通过配置iptables规则实现DNAT、SNAT、源IP地址检查等</li>
+<li>ipvs：通过配置ipvs实现DNAT，而SNAT、源IP地址检查等继续配置iptables实现，并且使用IP Set降低查找IP地址和端口的时间复杂度</li>
+</ul>
+<h2 id="Service资源"><a href="#Service资源" class="headerlink" title="Service资源"></a>Service资源</h2><p>K8s中的Service中，有ClusterIP、NodePort、LoadBalancer和ExternalName</p>
+<ul>
+<li>ClusterIP：最基本的Service 类型，在不考虑双栈的情况下，通常包含一个IP地址和若干个Port，并且通过标签选择器关联后端Pod。集群内应用可以通过”ClusterIP:Port”的形式访问Service的后端Pod</li>
+<li>NodePort：在ClusterIP类型基础上，NodePort类型会额外为每个Port的集群节点上分配一个端口号（NodePort）<ul>
+<li>除了以”ClusterIP：Port“访问Service，还可以让集群外的应用以”宿主机IP：NodePort“访问Service</li>
+</ul>
+</li>
+<li>LoadBalancer：该类型的Service和NodePort类型相同，也会在集群分配端口号<ul>
+<li>除了<code>ClusterIP:Port</code>和<code>宿主机节点IP:NodePort</code>形式访问Service，还可以用<code>LoadBalancerIP:Port</code>访问</li>
+</ul>
+</li>
+<li>ExternalName：与前面几种Service不同，ExternalName类型主要用于外部地址提供了一个可以内集群访问的别名<ul>
+<li>当访问一个ExternalName的Service的时候，集群DNS服务会返回该Service的CNAME记录</li>
+</ul>
+</li>
+</ul>
+<p>kube-proxy会给上述分配配置iptabels、ipvs规则</p>
+<ul>
+<li>如果Service没有配置ClusterIP，或者类型为ExternalName，客户端只能访问Service域名</li>
+<li>域名由集群DNS服务（如CoreDNS）负载，不在kube-proxy 的处理</li>
+</ul>
+<h2 id="架构"><a href="#架构" class="headerlink" title="架构"></a>架构</h2><p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image202411172208702.png"></p>
+<ul>
+<li>Kube-proxy使用Informer的Watch机制监听集群中的Service、Endpoints、EndpointSlice等资源变化</li>
+<li>kube-proxy默认监听EndpointSlice对象，因为使用EndpointSlice对象，Pod滚动更新从kube-apiserver向各个集群传输等数据量少</li>
+<li>监听资源时间，调用iptables、ipset等命令实现更新宿主机网络</li>
+</ul>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2024/12/10/cloud/k8s/kube-proxy/K8s-kube-proxy(Overview)/">https://piwriw.github.io/2024/12/10/cloud/k8s/kube-proxy/K8s-kube-proxy(Overview)/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a><a class="post-meta__tags" href="/tags/cloud/">cloud</a><a class="post-meta__tags" href="/tags/K8s%E6%BA%90%E7%A0%81/">K8s源码</a><a class="post-meta__tags" href="/tags/kube-proxy/">kube-proxy</a></div><div class="post-share"><div class="social-share" data-image="/img/k8sLogo.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2024/12/10/cloud/k8s/kube-proxy/K8s-kube-proxy(%E5%88%9D%E5%A7%8B%E5%8C%96%E8%BF%87%E7%A8%8B)/" title="K8s-kube-proxy(初始化过程)"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">K8s-kube-proxy(初始化过程)</div></div><div class="info-2"><div class="info-item-1">K8s-kube-proxy(初始化过程) 基于1.25  kube-proxy也使用Cobra解析用户输入参数，初始化Options对象、验证参数有效性，调用Run启动  Ref:https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/cmd/kube-proxy/app/server.go#L483 1234567891011121314151617181920212223242526272829303132333435363738394041424344454647484950515253545556575859606162// NewProxyCommand creates a *cobra.Command object with default parametersfunc NewProxyCommand() *cobra.Command &#123;	opts := NewOptions()	cmd := &amp;cobra.Command&#123...</div></div></div></a><a class="pagination-related" href="/2024/12/06/cloud/k8s/kube-manager-controller/Kube-controller-manager(NodeLifecycleController)/" title="Kube-controller-manager(NodeLifecycleController)"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">Kube-controller-manager(NodeLifecycleController)</div></div><div class="info-2"><div class="info-item-1">Kube-controller-manager(NodeLifecycleController) 基于1.25  K8s的Pod分配到某个Node中运行。当Node出现异常，集群需要把Node状态更新为异常，并且驱逐上面的Pod到其他Node上运行。  NodeLifecycle Controller负责监视Node状态，根据状态调整Node的Taint  NodeLifecycle Controller有一个--enable-taint-manager启动参数，默认为启用状态，在1.27中移除  如果为true：则NodeLifecycle Controller在node异常的时候，通过在node上添加NoExecute Taint来驱逐Node上的Pod 如果是false：则NodeLifecycle Controller，在node异常的时候，会直接驱逐Pod，不会添加Taint  控制器初始化 Ref:https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2024/12/11/cloud/k8s/kube-proxy/K8s-kube-proxy(ipvs%E4%BB%A3%E7%90%86%E6%A8%A1%E5%BC%8F)/" title="K8s-kube-proxy(ipvs代理模式)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-11</div><div class="info-item-2">K8s-kube-proxy(ipvs代理模式)</div></div><div class="info-2"><div class="info-item-1">K8s-kube-proxy(ipvs代理模式) 基于1.25  在ipvs代理模式，kube-proxy主要通过宿主节点上配置的iptables规则、ipvs规则、IPSet内容、Dummy网卡等信息实现Service的功能，这些配置syncProxyRules func  与ipatbles代理模式，ipvs模式对于新增一个Service，只会在IPSet、ipvs规定上有新增内容，而不产生新的iptables链和规则 ipvs代理模式使用IPSet和ipvs实现IP地址匹配和DNAT操作，因此比iptables线性执行效率更高，更适合较大规模集群的场景   统计Stale Service和Stale Endpoints在ipvs代理模式中，Stale Service和Stale Endpoints的判定逻辑与iptables代理模式相同 初始化iptables内容缓冲区kube-proxy也涉及到一些iptables链和规则的创建，因此使用iptables-restore字节流的形成缓存和刷新iptables规则 在kube-proxy同步开始阶段，会初始化四个内容缓冲区。...</div></div></div></a><a class="pagination-related" href="/2024/12/11/cloud/k8s/kube-proxy/K8s-kube-proxy(iptables%E4%BB%A3%E7%90%86%E6%A8%A1%E5%BC%8F%E6%89%A7%E8%A1%8C%E6%B5%81%E7%A8%8B)/" title="K8s-kube-proxy(iptables代理模式执行流程)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-11</div><div class="info-item-2">K8s-kube-proxy(iptables代理模式执行流程)</div></div><div class="info-2"><div class="info-item-1">K8s-kube-proxy(iptables代理模式执行流程) 基于1.25  kube-proxy 通过宿主节点上的配置iptables实现Service功能，都有syncProxyRule实现  统计State Service和Stale Endpointsiptables代理模式第一步是针对UDP协议，统计Stale Service和Stable Endpoints  Endpoints是所有Service的后端地址  为什么需要针对UDP协议进行统计Stale Service和Stale Endpoints的原因？  客户端访问Service负载均衡需要依赖NAT协议，而NAT机制又依赖conntrack模块 UDP协议不会TCP协议一样，存在断开链接，客户端和服务端之间的Conntrack记录不会马上被清除，客户端的发出的UDP数据以来按照原有的NAT发送给不存在的服务端，导致丢包，所以UDP Endpoints被销毁的时候，需要手动清除Conntrack记录 如果一个Service不存在任何后端Pod，则NAT机制由于没有服务端的存在，会丢弃UDP数据包。如果此时S...</div></div></div></a><a class="pagination-related" href="/2024/12/10/cloud/k8s/kube-proxy/K8s-kube-proxy(%E5%88%9D%E5%A7%8B%E5%8C%96%E8%BF%87%E7%A8%8B)/" title="K8s-kube-proxy(初始化过程)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-10</div><div class="info-item-2">K8s-kube-proxy(初始化过程)</div></div><div class="info-2"><div class="info-item-1">K8s-kube-proxy(初始化过程) 基于1.25  kube-proxy也使用Cobra解析用户输入参数，初始化Options对象、验证参数有效性，调用Run启动  Ref:https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/cmd/kube-proxy/app/server.go#L483 1234567891011121314151617181920212223242526272829303132333435363738394041424344454647484950515253545556575859606162// NewProxyCommand creates a *cobra.Command object with default parametersfunc NewProxyCommand() *cobra.Command &#123;	opts := NewOptions()	cmd := &amp;cobra.Command&#123...</div></div></div></a><a class="pagination-related" href="/2025/03/15/cloud/k8s/job/K8sController-Job(%E6%89%B9%E5%A4%84%E7%90%86%E4%BB%BB%E5%8A%A1)/" title="K8sController-Job(批处理任务)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-03-15</div><div class="info-item-2">K8sController-Job(批处理任务)</div></div><div class="info-2"><div class="info-item-1">K8sController-Job(批处理任务) 基于K8s 1.31  主要配置和工作机制123456789101112131415161718192021222324252627282930313233343536apiVersion: batch/v1kind: Jobmetadata:  name: hellospec:  # 可以并行任务数量，默认1  parallelism: 3  completions: 3  # Pod完成模式，NonIndexed（数量达到completions推出，默认），Indexed  # Indexed模式：会被设置为Pod服务名  # - 设置Pod名称：&lt;Job Name&gt;-&lt;索引序号&gt;-&lt;随机字符串&gt;  # - 设置Annotation &quot;batch.kubernetes.io/job-completion-index&quot;: &lt;索引序号&gt;  # - 设置Label &quot;batch.kubernetes.io/job-completion-index&quot...</div></div></div></a><a class="pagination-related" href="/2025/01/05/cloud/k8s/kube-proxy/kube-proxy%E8%BF%90%E8%A1%8C%E6%9C%BA%E5%88%B6%E8%A7%A3%E6%9E%90/" title="kube-proxy运行机制解析"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-01-05</div><div class="info-item-2">kube-proxy运行机制解析</div></div><div class="info-2"><div class="info-item-1">kube-proxy运行机制解析 基于1.29  第一代Proxy一开始是一个真实的TCP&#x2F;UDP代理，类似于HAProxy，负责转发从Service到Pod的访问流量，这被称为“userspace”模式 第二代Porxy从v1.2版本开始，K8s将iptables作为kube-proxy的默认模式，iptables模式组作为kube-proxy都默认模式  iptables模式，不再起到数据层面的Porxy作用，client向Service的请求流量通过iptables的NAT规则 直接发送到目标Pod，不再经过kube-proxy的转发，kube-proxy只承担控制层面的功能，即通过API Server的Watch接口实时跟踪Service与Endpoint的变更信息，并更新Node上相应的iptables规则   kube-proxy针对于Service和Pod创建一些主要的iptables规则如下：  KUBE-CLUSTER-IP：在masquerade-all&#x3D;true或ClusterCIDR被指定的情况下对Service Cluster IP地...</div></div></div></a><a class="pagination-related" href="/2024/12/16/cloud/k8s/kubelet/K8s-kubelet(HTTP%E6%9C%8D%E5%8A%A1%E6%8E%A5%E5%8F%A3)/" title="K8s-kubelet(HTTP服务接口)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-16</div><div class="info-item-2">K8s-kubelet(HTTP服务接口)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(HTTP服务接口) 基于1.25  kubelet通过HTTP Server对外暴露API，为了确保接口安全，kubelet按照安全等级从低到高顺序支持3种HTTP Server，分别是healthz server、readonly server和kubelet core server    一级类目 二级类目 Path路径 描述    Default Handlerers healthz &#x2F;healthz 检查kubelet是否健康，重点检查syncLoop是否持续在规定时间内完成。检查syncLoop四因为其他组件故障会间接导致syncLoop不能执行成功   Default Handlerers pods &#x2F;pods 读取当前节点运行的Pod列表（通过PodManager获取）   Default Handlerers stats &#x2F;stats&#x2F;summary 读取资源使用状态   Default Handlerers metrics &#x2F;metrics 读取kubelet监控指标数据   Defaul...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#K8s-kube-proxy%EF%BC%88Overview%EF%BC%89"><span class="toc-number">1.</span> <span class="toc-text">K8s-kube-proxy（Overview）</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%80%E4%B9%88%E6%98%AFkube-proxy"><span class="toc-number">1.1.</span> <span class="toc-text">什么是kube-proxy</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Service%E8%B5%84%E6%BA%90"><span class="toc-number">1.2.</span> <span class="toc-text">Service资源</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9E%B6%E6%9E%84"><span class="toc-number">1.3.</span> <span class="toc-text">架构</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-日志系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明">Gorm-日志系统模块原理说明</a><time datetime="2026-01-11T11:56:27.000Z" title="发表于 2026-01-11 19:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-迁移功能模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明">Gorm-迁移功能模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-插件系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明">Gorm-插件系统模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-事务处理模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明">Gorm-事务处理模块原理说明</a><time datetime="2026-01-11T09:56:27.000Z" title="发表于 2026-01-11 17:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-关联关系模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明">Gorm-关联关系模块原理说明</a><time datetime="2026-01-11T08:56:27.000Z" title="发表于 2026-01-11 16:56:27">2026-01-11</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

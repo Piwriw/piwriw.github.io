@@ -1,0 +1,313 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Kube-controller-manager(OverView) | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="Kube-controller-manager(OverView) 基于1.25  什么是kube-controller-managerK8s Controller Manager 主要由kube-controller-manager和cloud-controller-manager组件组成。它们通过监控集群中资源对象的变化，确保资源对象从当前状态到期望状态  控制器状态模型K8s使用资源清单（m">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Kube-controller-manager(OverView)">
+<meta property="og:url" content="https://piwriw.github.io/2024/12/02/cloud/k8s/kube-manager-controller/Kube-controller-manager(OverView)/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="Kube-controller-manager(OverView) 基于1.25  什么是kube-controller-managerK8s Controller Manager 主要由kube-controller-manager和cloud-controller-manager组件组成。它们通过监控集群中资源对象的变化，确保资源对象从当前状态到期望状态  控制器状态模型K8s使用资源清单（m">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/k8sLogo.png">
+<meta property="article:published_time" content="2024-12-02T12:08:55.000Z">
+<meta property="article:modified_time" content="2026-02-28T13:29:12.667Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="k8s">
+<meta property="article:tag" content="cloud">
+<meta property="article:tag" content="K8s源码">
+<meta property="article:tag" content=" Kube-controller-manager">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/k8sLogo.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Kube-controller-manager(OverView)",
+  "url": "https://piwriw.github.io/2024/12/02/cloud/k8s/kube-manager-controller/Kube-controller-manager(OverView)/",
+  "image": "https://piwriw.github.io/img/k8sLogo.png",
+  "datePublished": "2024-12-02T12:08:55.000Z",
+  "dateModified": "2026-02-28T13:29:12.667Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2024/12/02/cloud/k8s/kube-manager-controller/Kube-controller-manager(OverView)/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Kube-controller-manager(OverView)',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/k8sLogo.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">Kube-controller-manager(OverView)</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">Kube-controller-manager(OverView)</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2024-12-02T12:08:55.000Z" title="发表于 2024-12-02 20:08:55">2024-12-02</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-02-28T13:29:12.667Z" title="更新于 2026-02-28 21:29:12">2026-02-28</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/">k8s</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/Kube-controller-manager/">Kube-controller-manager</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">712</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>2分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-02-28 21:29:12&quot;}" hidden></div><h1 id="Kube-controller-manager-OverView"><a href="#Kube-controller-manager-OverView" class="headerlink" title="Kube-controller-manager(OverView)"></a>Kube-controller-manager(OverView)</h1><blockquote>
+<p>基于1.25</p>
+</blockquote>
+<h2 id="什么是kube-controller-manager"><a href="#什么是kube-controller-manager" class="headerlink" title="什么是kube-controller-manager"></a>什么是kube-controller-manager</h2><p>K8s Controller Manager 主要由kube-controller-manager和cloud-controller-manager组件组成。它们通过监控集群中资源对象的变化，确保资源对象从当前状态到期望状态</p>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image202412012326034.png"></p>
+<h2 id="控制器状态模型"><a href="#控制器状态模型" class="headerlink" title="控制器状态模型"></a>控制器状态模型</h2><p>K8s使用资源清单（mainfest），控制器通过Reconcile调谐机子把资源对象的实际状态更新为期望状态</p>
+<ul>
+<li>Spec：记录期望状态</li>
+<li>Status：实际状态</li>
+</ul>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image202412012342321.png"></p>
+<h2 id="控制器执行原理"><a href="#控制器执行原理" class="headerlink" title="控制器执行原理"></a>控制器执行原理</h2><p>kube-controller-manager运行了多个控制器。控制器通过Informer机制监听资源对象的Add、Update、Delete事件</p>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image202412012356249.png"></p>
+<ol>
+<li><p>Watch资源对象的Add、Update、Delete事件并且缓存资源对象</p>
+<p>控制器通过K8s的Informer、Watch机制，监听集群中资源对象的Add、Update、Delete事件，为不同的事件注册不同的回调函数，并且将监听的资源缓存对象在Informer中</p>
+</li>
+<li><p>将资源对象的Key加入到工作队列中</p>
+<p>Informer在监听到资源对象的Add、Update、Delete事件之后的调用注册的回调函数，而回调函数会将相关资源对象的Key加入到工作队列中。Key是一个字符串，通常格式为{namespace}&#x2F;{name}</p>
+</li>
+<li><p>Worker协程丛工作队列中取出Key</p>
+<p>每个控制器的Worker协程会就持续丛工作队列中取出Key。当工作队列中加入新的Key后，就会被Worker协程取出</p>
+</li>
+<li><p>Worker协程根据Key获取完整的资源对象</p>
+<p>Worker协程从工作队列中获取Key后，根据Key从Informer缓存中获取完整的资源对象。Informer一直在监听资源对象的变化，因此缓存的总是最新的资源对象版本。控制器将Key而非资源对象本身加入工作队列，可以使用Worker协程总是以最新的资源版本以准进调谐</p>
+</li>
+<li><p>Worker协程执行资源对象Reconcile调协</p>
+<p>Worker协程在获取完整的资源对象后，开始执行资源对象Reconcile调谐</p>
+</li>
+<li><p>更新资源对象的状态</p>
+<p>在Worker执行的最后，如果同步的资源对象已经达到期望状态，控制器会通知工作队列丢弃该资源对象的Key；</p>
+<p>如果没有到达到期望状态，或者同步出现问题，就会重新放回到工作队列中</p>
+</li>
+</ol>
+<ul>
+<li>kube-controller-manager有很多控制器，但是每个控制器有独立的启动参数、工作队列和Worker协程，但是共享一套Informer</li>
+<li>一些资源对象的Informer可能被多个控制器注册了回调函数，所以此刻，Informer只向kube-apiserver发起一个Wacth连接</li>
+<li>控制器会启动多个Worker协程，但是共享一个工作队列，工作队列含有去重，保证了同一个资源对象不会同时被多个Worker处理</li>
+</ul>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image202412022128408.png"></p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2024/12/02/cloud/k8s/kube-manager-controller/Kube-controller-manager(OverView)/">https://piwriw.github.io/2024/12/02/cloud/k8s/kube-manager-controller/Kube-controller-manager(OverView)/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a><a class="post-meta__tags" href="/tags/cloud/">cloud</a><a class="post-meta__tags" href="/tags/K8s%E6%BA%90%E7%A0%81/">K8s源码</a><a class="post-meta__tags" href="/tags/Kube-controller-manager/"> Kube-controller-manager</a></div><div class="post-share"><div class="social-share" data-image="/img/k8sLogo.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2024/12/02/cloud/k8s/kube-manager-controller/Kube-controller-manager(%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B)/" title="Kube-controller-manager(启动流程)"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">Kube-controller-manager(启动流程)</div></div><div class="info-2"><div class="info-item-1">Kube-controller-manager(启动流程) 基于1.25  kube-controller-manger的启动流程主要分：  Cobra命令行参数解析 运行EventBroadcaster事件处理器 运行HTTPS服务 执行Leader选举 启动控制器主循环   Cobra命令行参数解析 Ref:https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/cmd/kube-controller-manager/app/controllermanager.go#L100 1234567891011121314151617181920212223242526272829303132333435363738394041424344454647484950515253545556575859606162636465// NewControllerManagerCommand creates a *cobra.Command object with defaul...</div></div></div></a><a class="pagination-related" href="/2024/12/01/cloud/k8s/kube-schedule/Kube-scheduler(%E4%BC%98%E5%85%88%E7%BA%A7%E5%92%8C%E6%8A%A2%E5%8D%A0%E5%BC%8F%E8%B0%83%E5%BA%A6)/" title="Kube-scheduler(优先级和抢占式调度)"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">Kube-scheduler(优先级和抢占式调度)</div></div><div class="info-2"><div class="info-item-1">Kube-scheduler(优先级和抢占式调度) 基于1.25  K8s支持Pod优先级设置  抢占：把优先级低的Pod驱逐，高优先级的Pod先运行  Pod优先级pod优先级通过spec.priority字段定义，该字段为int32整数指针，数字越大，标识Pod优先级等级越大  通过PriorityClass可以为某个优先级定一个名称 通过spec.prioityClassName就可以自动载入优先级  K8s默认提供了俩种PriorityClass：  system-cluster-critial：优先级2000000000 system-node-critial：优先级2000001000  PriorityClass主要注意把某个globalDefault设置为true，那么没有指定的都会使用这个  一个集群只有一个globalDefault可以设置为true 允许被设置为PreemptLowerPrioity或者Never，设置为Never，该PrioityClass的Pod无法被调度，也不会被触发对低优先级低Pod驱逐  Pod驱逐抢占机制当调度器无法为高优先级的P...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2024/12/06/cloud/k8s/kube-manager-controller/Kube-controller-manager(NodeLifecycleController)/" title="Kube-controller-manager(NodeLifecycleController)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-06</div><div class="info-item-2">Kube-controller-manager(NodeLifecycleController)</div></div><div class="info-2"><div class="info-item-1">Kube-controller-manager(NodeLifecycleController) 基于1.25  K8s的Pod分配到某个Node中运行。当Node出现异常，集群需要把Node状态更新为异常，并且驱逐上面的Pod到其他Node上运行。  NodeLifecycle Controller负责监视Node状态，根据状态调整Node的Taint  NodeLifecycle Controller有一个--enable-taint-manager启动参数，默认为启用状态，在1.27中移除  如果为true：则NodeLifecycle Controller在node异常的时候，通过在node上添加NoExecute Taint来驱逐Node上的Pod 如果是false：则NodeLifecycle Controller，在node异常的时候，会直接驱逐Pod，不会添加Taint  控制器初始化 Ref:https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d...</div></div></div></a><a class="pagination-related" href="/2024/12/06/cloud/k8s/kube-manager-controller/Kube-controller-manager(GarbageController)/" title="Kube-controller-manager(GarbageController)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-06</div><div class="info-item-2">Kube-controller-manager(GarbageController)</div></div><div class="info-2"><div class="info-item-1">Kube-controller-manager(GarbageController) 基于1.25  GarbageController负责资源对象的级联删除（GC）  K8s中，主要通过OwnerReference来记录资源的级联关系  OwnerReference结构定义：  UID：资源对象父级资源的UID  BlockOwnerDeletion：true表示父级资源在以Foregroud删除策略执行删除（在删除这个资源之前，不可删除父资源）  GC Controller支持三种删除策略  Orphan（孤儿删除）：仅删除当前资源对象，不级联删除当前资源对象的子级资源对象 Foreground（前台删除）：先删除当前资源对象子对象，再删除这个对象 Backgroud（后台删除）：先删除当前资源对象，再级联删除这个资源的子级对象 使用Orphan和Foreground，资源对象会被加上Finalizer，并且在删除中由GC Controller负责移除   Ref：https://github.com/kubernetes/apimachinery/blob/fdcfc272...</div></div></div></a><a class="pagination-related" href="/2024/12/06/cloud/k8s/kube-manager-controller/Kube-controller-manager(EndpointSlice)/" title="Kube-controller-manager(EndpointSlice)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-06</div><div class="info-item-2">Kube-controller-manager(EndpointSlice)</div></div><div class="info-2"><div class="info-item-1">Kube-controller-manager(EndpointSlice) 基于1.25  EndpointSlice Controller可以把巨大的Endpoints资源对象拆分成多个EndpointSlice，为了解决Endpoints资源对象  一个Service资源对象关联的所有POd地址存储在一个或者多个EndpoineSlice中  控制器初始化 Service EndpointSlice Pod  主要执行逻辑  c.serviceLister.Services 获取Service资源对象  c.podLister.Pods 获取Service的关联Pod  c.endpintSliceLister.EndpointSlice 获取Service关联的EndpointSlice  dropEndpointSlicesPendingDeletion 过滤删除中的EndpointSlice  c.reconclier.reconclie 计算和更新各个EndppintSlice reconcile步骤如下：  geAddressTypesForService 获取S...</div></div></div></a><a class="pagination-related" href="/2024/12/05/cloud/k8s/kube-manager-controller/Kube-controller-manager(Endpoint)/" title="Kube-controller-manager(Endpoint)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-05</div><div class="info-item-2">Kube-controller-manager(Endpoint)</div></div><div class="info-2"><div class="info-item-1">Kube-controller-manager(Endpoint) 基于1.25  Endpoint Controller主要控制Endpoint资源  Endpoints资源对象主要包含Subsets属性，用于存储同命名空间内同名称的Service资源对象关联的Pod的IP地址和端口号 Endpoints Controller为每一个Service资源对象创建一个与命名空间相同的Endpoints对象，并且在Service和Pod变化的时候，重新统计对应Service关联的Pod的IP地址和端口号，更新到Endpoints的Subsets属性中 这些地址和端口被各个节点的kube-proxy用于更新本机的iptables或ipvs  控制器初始化 Service Endpoints Pod  主要执行逻辑  e.serviceLister.Sevice 获取Service  e.podLister.Pods 获取Service资源对象关联的POd  For _,pod:&#x3D;range pods 遍历Pod统计所有的IP地址和端口号 Endpoint Controller...</div></div></div></a><a class="pagination-related" href="/2024/12/05/cloud/k8s/kube-manager-controller/Kube-controller-manager(CronJob)/" title="Kube-controller-manager(CronJob)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-05</div><div class="info-item-2">Kube-controller-manager(CronJob)</div></div><div class="info-2"><div class="info-item-1">Kube-controller-manager(CronJob) 基于1.25  CronJob Controller 操作控制CronJob CronJob资源主要包含Job模版（Spec.JobTemplate)和计划表（Spec.Schedule)  CronJob 控制器通过资源对象的计划配置，到达预定时间后，创建新的Job对象，并且清理过去成功或者失败的Job资源对象 Spec.Schedule字段定义和Linux终端crontab一致  控制器初始化 Job资源对象 CronJob资源对象  主要执行逻辑  jm.cronJobLister.CronJobs     获取CronJob对象  getJobsToBeReconciled     获取关联的Job对象  syncCronJob     计算Job的启动时间并启动新的Job  获取当前的CronJob对象关联的Job资源对象，更新Status.Active字段，从中去掉已经执行结束的Job，加入正在执行的Job，确保Status.Active都是正在执行的Job 判断CronJob资源对象的状态。如果是删除...</div></div></div></a><a class="pagination-related" href="/2024/12/05/cloud/k8s/kube-manager-controller/Kube-controller-manager(Job)/" title="Kube-controller-manager(Job)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-05</div><div class="info-item-2">Kube-controller-manager(Job)</div></div><div class="info-2"><div class="info-item-1">Kube-controller-manager(Job) 基于1.25  Job Controller是job的控制器 Job Controller会根据Job的并发（Spec.Parallelism)和完成（Spec.Completions)字段，此间一个或者多个Pod。在指定数量（Spec.Completions)的Pod执行成功之后，宣告Job成功，Job默认采用Orphan删除策略，删除Job不会主动删除其关联的Pod 控制器初始化 Job资源 Pod资源  主要执行逻辑  jm.jobLister.Jobs 获取Job资源对象  IsJobFinished 判断Job是否已经执行完成。 Job Controller检查Job.Status.Conditions状态，如果存在Complete或Failed类型的状态且值为true，则Job已经执行完成  Ref:https://github.com/kubernetes/kubernetes/blob/1504f10e7946f95a8b1da35e28e4c7453ff62775/pkg/controller/job/u...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Kube-controller-manager-OverView"><span class="toc-number">1.</span> <span class="toc-text">Kube-controller-manager(OverView)</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%80%E4%B9%88%E6%98%AFkube-controller-manager"><span class="toc-number">1.1.</span> <span class="toc-text">什么是kube-controller-manager</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%8E%A7%E5%88%B6%E5%99%A8%E7%8A%B6%E6%80%81%E6%A8%A1%E5%9E%8B"><span class="toc-number">1.2.</span> <span class="toc-text">控制器状态模型</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%8E%A7%E5%88%B6%E5%99%A8%E6%89%A7%E8%A1%8C%E5%8E%9F%E7%90%86"><span class="toc-number">1.3.</span> <span class="toc-text">控制器执行原理</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-日志系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明">Gorm-日志系统模块原理说明</a><time datetime="2026-01-11T11:56:27.000Z" title="发表于 2026-01-11 19:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-迁移功能模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明">Gorm-迁移功能模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-插件系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明">Gorm-插件系统模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-事务处理模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明">Gorm-事务处理模块原理说明</a><time datetime="2026-01-11T09:56:27.000Z" title="发表于 2026-01-11 17:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-关联关系模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明">Gorm-关联关系模块原理说明</a><time datetime="2026-01-11T08:56:27.000Z" title="发表于 2026-01-11 16:56:27">2026-01-11</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

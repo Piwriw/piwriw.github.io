@@ -1,0 +1,341 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>K8s工作负载-StatefulSet | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="K8s工作负载-StatefulSet 基于1.25  什么是StatefulSetStatefulSet负责管理有状态应用，缩写sts  要求管理的Pod具有稳定的网络标识符和存储卷，实现又状态应用的数据持久化和数据访问 管理Pod，会对Pod有一个按照顺序增大的ID  使用场景 具有稳定、唯一的网络标识符（DNS Name） 每个Pod是中对应各自的存储路径（PersistVolumeClai">
+<meta property="og:type" content="article">
+<meta property="og:title" content="K8s工作负载-StatefulSet">
+<meta property="og:url" content="https://piwriw.github.io/2024/11/01/cloud/k8s/K8s%E5%B7%A5%E4%BD%9C%E8%B4%9F%E8%BD%BD-StaetfulSet/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="K8s工作负载-StatefulSet 基于1.25  什么是StatefulSetStatefulSet负责管理有状态应用，缩写sts  要求管理的Pod具有稳定的网络标识符和存储卷，实现又状态应用的数据持久化和数据访问 管理Pod，会对Pod有一个按照顺序增大的ID  使用场景 具有稳定、唯一的网络标识符（DNS Name） 每个Pod是中对应各自的存储路径（PersistVolumeClai">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/k8sLogo.png">
+<meta property="article:published_time" content="2024-11-01T14:08:55.000Z">
+<meta property="article:modified_time" content="2026-02-28T13:29:12.661Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="k8s">
+<meta property="article:tag" content="cloud">
+<meta property="article:tag" content="K8s源码">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/k8sLogo.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "K8s工作负载-StatefulSet",
+  "url": "https://piwriw.github.io/2024/11/01/cloud/k8s/K8s%E5%B7%A5%E4%BD%9C%E8%B4%9F%E8%BD%BD-StaetfulSet/",
+  "image": "https://piwriw.github.io/img/k8sLogo.png",
+  "datePublished": "2024-11-01T14:08:55.000Z",
+  "dateModified": "2026-02-28T13:29:12.661Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2024/11/01/cloud/k8s/K8s%E5%B7%A5%E4%BD%9C%E8%B4%9F%E8%BD%BD-StaetfulSet/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'K8s工作负载-StatefulSet',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/k8sLogo.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">K8s工作负载-StatefulSet</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">K8s工作负载-StatefulSet</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2024-11-01T14:08:55.000Z" title="发表于 2024-11-01 22:08:55">2024-11-01</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-02-28T13:29:12.661Z" title="更新于 2026-02-28 21:29:12">2026-02-28</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/">k8s</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">1.8k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>8分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-02-28 21:29:12&quot;}" hidden></div><h1 id="K8s工作负载-StatefulSet"><a href="#K8s工作负载-StatefulSet" class="headerlink" title="K8s工作负载-StatefulSet"></a>K8s工作负载-StatefulSet</h1><blockquote>
+<p>基于1.25</p>
+</blockquote>
+<h2 id="什么是StatefulSet"><a href="#什么是StatefulSet" class="headerlink" title="什么是StatefulSet"></a>什么是StatefulSet</h2><p>StatefulSet负责管理有状态应用，缩写sts</p>
+<ul>
+<li>要求管理的Pod具有稳定的网络标识符和存储卷，实现又状态应用的数据持久化和数据访问</li>
+<li>管理Pod，会对Pod有一个按照顺序增大的ID</li>
+</ul>
+<h2 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h2><ul>
+<li>具有稳定、唯一的网络标识符（DNS Name）</li>
+<li>每个Pod是中对应各自的存储路径（PersistVolumeClaimTempleate）</li>
+<li>按照顺序增加副本、减少副本，并且在减少副本的时执行清理</li>
+<li>按照顺序执行滚动更新</li>
+</ul>
+<h3 id="限制"><a href="#限制" class="headerlink" title="限制"></a>限制</h3><ul>
+<li>Pod存储的要么由Storage Class的PVC提供，要么事先创建</li>
+<li>删除或缩容一个StatefulSet不会删除对应的数据卷，确保数据安全</li>
+<li>在删除StatefulSet，无法确保Pod的终止的正常的<ul>
+<li>如果需要，需要使用优雅的终止，需要先Scale Down到0</li>
+</ul>
+</li>
+<li>在使用默认的Pod Management Policy（OraderReady）进行滚动更新，可能会进入到错误状态，需要人工介入</li>
+</ul>
+<blockquote>
+<p>⚠️：不要时强制删除StatefulSet管理的Pod，本身机制，只会最多提供一个对外访问。</p>
+<p>强制删除，可能出现超过一个Pod对外提供</p>
+</blockquote>
+<h3 id="StatefulSetSpec"><a href="#StatefulSetSpec" class="headerlink" title="StatefulSetSpec"></a>StatefulSetSpec</h3><ul>
+<li>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/api/blob/6e61ea04c537767720172fb5a770236e6531ae53/apps/v1/types.go#L184">https://github.com/kubernetes/api/blob/6e61ea04c537767720172fb5a770236e6531ae53/apps/v1/types.go#L184</a></li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// A StatefulSetSpec is the specification of a StatefulSet.</span></span><br><span class="line"><span class="keyword">type</span> StatefulSetSpec <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// replicas is the desired number of replicas of the given Template.</span></span><br><span class="line">	<span class="comment">// These are replicas in the sense that they are instantiations of the</span></span><br><span class="line">	<span class="comment">// same Template, but individual replicas also have a consistent identity.</span></span><br><span class="line">	<span class="comment">// If unspecified, defaults to 1.</span></span><br><span class="line">	<span class="comment">// <span class="doctag">TODO:</span> Consider a rename of this field.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 期望的Pod数量，默认1</span></span><br><span class="line">	Replicas *<span class="type">int32</span> <span class="string">`json:&quot;replicas,omitempty&quot; protobuf:&quot;varint,1,opt,name=replicas&quot;`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// selector is a label query over pods that should match the replica count.</span></span><br><span class="line">	<span class="comment">// It must match the pod template&#x27;s labels.</span></span><br><span class="line">	<span class="comment">// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors</span></span><br><span class="line">  <span class="comment">// 标签选择器，必须和PodTemplate匹配</span></span><br><span class="line">	Selector *metav1.LabelSelector <span class="string">`json:&quot;selector&quot; protobuf:&quot;bytes,2,opt,name=selector&quot;`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// template is the object that describes the pod that will be created if</span></span><br><span class="line">	<span class="comment">// insufficient replicas are detected. Each pod stamped out by the StatefulSet</span></span><br><span class="line">	<span class="comment">// will fulfill this Template, but have a unique identity from the rest</span></span><br><span class="line">	<span class="comment">// of the StatefulSet. Each pod will be named with the format</span></span><br><span class="line">	<span class="comment">// &lt;statefulsetname&gt;-&lt;podindex&gt;. For example, a pod in a StatefulSet named</span></span><br><span class="line">	<span class="comment">// &quot;web&quot; with index number &quot;3&quot; would be named &quot;web-3&quot;.</span></span><br><span class="line">	<span class="comment">// The only allowed template.spec.restartPolicy value is &quot;Always&quot;.</span></span><br><span class="line">  <span class="comment">// 描述Pod 的Template</span></span><br><span class="line">	Template v1.PodTemplateSpec <span class="string">`json:&quot;template&quot; protobuf:&quot;bytes,3,opt,name=template&quot;`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// volumeClaimTemplates is a list of claims that pods are allowed to reference.</span></span><br><span class="line">	<span class="comment">// The StatefulSet controller is responsible for mapping network identities to</span></span><br><span class="line">	<span class="comment">// claims in a way that maintains the identity of a pod. Every claim in</span></span><br><span class="line">	<span class="comment">// this list must have at least one matching (by name) volumeMount in one</span></span><br><span class="line">	<span class="comment">// container in the template. A claim in this list takes precedence over</span></span><br><span class="line">	<span class="comment">// any volumes in the template, with the same name.</span></span><br><span class="line">	<span class="comment">// <span class="doctag">TODO:</span> Define the behavior if a claim already exists with the same name.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">	<span class="comment">// +listType=atomic</span></span><br><span class="line">  <span class="comment">// 允许Pod引用的PVC列表</span></span><br><span class="line">	VolumeClaimTemplates []v1.PersistentVolumeClaim <span class="string">`json:&quot;volumeClaimTemplates,omitempty&quot; protobuf:&quot;bytes,4,rep,name=volumeClaimTemplates&quot;`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// serviceName is the name of the service that governs this StatefulSet.</span></span><br><span class="line">	<span class="comment">// This service must exist before the StatefulSet, and is responsible for</span></span><br><span class="line">	<span class="comment">// the network identity of the set. Pods get DNS/hostnames that follow the</span></span><br><span class="line">	<span class="comment">// pattern: pod-specific-string.serviceName.default.svc.cluster.local</span></span><br><span class="line">	<span class="comment">// where &quot;pod-specific-string&quot; is managed by the StatefulSet controller.</span></span><br><span class="line">  <span class="comment">// 管理此StatefulSet的Service Name</span></span><br><span class="line">	ServiceName <span class="type">string</span> <span class="string">`json:&quot;serviceName&quot; protobuf:&quot;bytes,5,opt,name=serviceName&quot;`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// podManagementPolicy controls how pods are created during initial scale up,</span></span><br><span class="line">	<span class="comment">// when replacing pods on nodes, or when scaling down. The default policy is</span></span><br><span class="line">	<span class="comment">// `OrderedReady`, where pods are created in increasing order (pod-0, then</span></span><br><span class="line">	<span class="comment">// pod-1, etc) and the controller will wait until each pod is ready before</span></span><br><span class="line">	<span class="comment">// continuing. When scaling down, the pods are removed in the opposite order.</span></span><br><span class="line">	<span class="comment">// The alternative policy is `Parallel` which will create pods in parallel</span></span><br><span class="line">	<span class="comment">// to match the desired scale without waiting, and on scale down will delete</span></span><br><span class="line">	<span class="comment">// all pods at once.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// StatefulSet的管理模式，可选为OrderedReady和Parallel ，默认OrderedReady</span></span><br><span class="line">	PodManagementPolicy PodManagementPolicyType <span class="string">`json:&quot;podManagementPolicy,omitempty&quot; protobuf:&quot;bytes,6,opt,name=podManagementPolicy,casttype=PodManagementPolicyType&quot;`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// updateStrategy indicates the StatefulSetUpdateStrategy that will be</span></span><br><span class="line">	<span class="comment">// employed to update Pods in the StatefulSet when a revision is made to</span></span><br><span class="line">	<span class="comment">// Template.</span></span><br><span class="line">  <span class="comment">// 对于Template进行修改时 更新StatefulSet中Pod的策略</span></span><br><span class="line">	UpdateStrategy StatefulSetUpdateStrategy <span class="string">`json:&quot;updateStrategy,omitempty&quot; protobuf:&quot;bytes,7,opt,name=updateStrategy&quot;`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// revisionHistoryLimit is the maximum number of revisions that will</span></span><br><span class="line">	<span class="comment">// be maintained in the StatefulSet&#x27;s revision history. The revision history</span></span><br><span class="line">	<span class="comment">// consists of all revisions not represented by a currently applied</span></span><br><span class="line">	<span class="comment">// StatefulSetSpec version. The default value is 10.</span></span><br><span class="line">  <span class="comment">// 限制StaetfulSet修订历史的数量</span></span><br><span class="line">	RevisionHistoryLimit *<span class="type">int32</span> <span class="string">`json:&quot;revisionHistoryLimit,omitempty&quot; protobuf:&quot;varint,8,opt,name=revisionHistoryLimit&quot;`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// Minimum number of seconds for which a newly created pod should be ready</span></span><br><span class="line">	<span class="comment">// without any of its container crashing for it to be considered available.</span></span><br><span class="line">	<span class="comment">// Defaults to 0 (pod will be considered available as soon as it is ready)</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 最小就绪准备时间</span></span><br><span class="line">	MinReadySeconds <span class="type">int32</span> <span class="string">`json:&quot;minReadySeconds,omitempty&quot; protobuf:&quot;varint,9,opt,name=minReadySeconds&quot;`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// persistentVolumeClaimRetentionPolicy describes the lifecycle of persistent</span></span><br><span class="line">	<span class="comment">// volume claims created from volumeClaimTemplates. By default, all persistent</span></span><br><span class="line">	<span class="comment">// volume claims are created as needed and retained until manually deleted. This</span></span><br><span class="line">	<span class="comment">// policy allows the lifecycle to be altered, for example by deleting persistent</span></span><br><span class="line">	<span class="comment">// volume claims when their stateful set is deleted, or when their pod is scaled</span></span><br><span class="line">	<span class="comment">// down. This requires the StatefulSetAutoDeletePVC feature gate to be enabled,</span></span><br><span class="line">	<span class="comment">// which is beta.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 创建VolumeClaimTemplates 的持久卷生命周期</span></span><br><span class="line">  <span class="comment">// 默认情况下持久卷生命都保留，此选项，可以设置删除声明</span></span><br><span class="line">  <span class="comment">// 处于alpha 需要启用StatefulSetAutoDeletePVC门控</span></span><br><span class="line">	PersistentVolumeClaimRetentionPolicy *StatefulSetPersistentVolumeClaimRetentionPolicy <span class="string">`json:&quot;persistentVolumeClaimRetentionPolicy,omitempty&quot; protobuf:&quot;bytes,10,opt,name=persistentVolumeClaimRetentionPolicy&quot;`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// ordinals controls the numbering of replica indices in a StatefulSet. The</span></span><br><span class="line">	<span class="comment">// default ordinals behavior assigns a &quot;0&quot; index to the first replica and</span></span><br><span class="line">	<span class="comment">// increments the index by one for each additional replica requested.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">	Ordinals *StatefulSetOrdinals <span class="string">`json:&quot;ordinals,omitempty&quot; protobuf:&quot;bytes,11,opt,name=ordinals&quot;`</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="Pod管理策略"><a href="#Pod管理策略" class="headerlink" title="Pod管理策略"></a>Pod管理策略</h2><ul>
+<li>OrderedReady：默认值<ul>
+<li>创建副本数为N的StatefulSet，Pod按照（0，1…N-1)顺序依次创建</li>
+<li>删除副本数为N的StatefulSet，Pod按照（N-1…0）顺序依次删除</li>
+<li>在对StatefulSet进行扩容操作，新增Pod所有前序Pod必须是Running或者Ready状态</li>
+<li>终止或者删除Pod，后序所有Pod必须终止</li>
+</ul>
+</li>
+<li>Paralled：创建或者终止所有Pod</li>
+</ul>
+<h2 id="Pod更新策略"><a href="#Pod更新策略" class="headerlink" title="Pod更新策略"></a>Pod更新策略</h2><p>提供了俩种更新策略</p>
+<ul>
+<li>OnDelete：更新，不会销毁任何Pod，只有手动删除一个Pod或者STS对象的时候，才会按照新的定义创建Pod<ul>
+<li>会更新所有的Pod</li>
+<li>网络标识符不会变</li>
+</ul>
+</li>
+<li>RollingUpdate：逐步更新Pod，默认更新策略（更新速度慢一点）<ul>
+<li>从次序大Pod，逐个更新Pod，至到最小的Pod被更新</li>
+<li>正在更新的Pod进入Running或者Ready，才继续更新前面一个Pod</li>
+<li>每一个Pod网络标识符可能会变化</li>
+</ul>
+</li>
+</ul>
+<blockquote>
+<p>⚠️使用默认管理策略OrderedReady，可能进入卡住</p>
+<ul>
+<li>更新Pod的Template，导致某一个Pod一致无法启动</li>
+<li>STS停止滚动更新</li>
+<li>需要删除所有的使用有问题的tamplate的Pod</li>
+</ul>
+</blockquote>
+<h2 id="RollingUpdate参数"><a href="#RollingUpdate参数" class="headerlink" title="RollingUpdate参数"></a>RollingUpdate参数</h2><ul>
+<li>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/api/blob/6e61ea04c537767720172fb5a770236e6531ae53/apps/v1/types.go#L116">https://github.com/kubernetes/api/blob/6e61ea04c537767720172fb5a770236e6531ae53/apps/v1/types.go#L116</a></li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// RollingUpdateStatefulSetStrategy is used to communicate parameter for RollingUpdateStatefulSetStrategyType.</span></span><br><span class="line"><span class="keyword">type</span> RollingUpdateStatefulSetStrategy <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// Partition indicates the ordinal at which the StatefulSet should be partitioned</span></span><br><span class="line">	<span class="comment">// for updates. During a rolling update, all pods from ordinal Replicas-1 to</span></span><br><span class="line">	<span class="comment">// Partition are updated. All pods from ordinal Partition-1 to 0 remain untouched.</span></span><br><span class="line">	<span class="comment">// This is helpful in being able to do a canary based deployment. The default value is 0.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 指示StatefulSet应该被分区进行更新的序号</span></span><br><span class="line">	Partition *<span class="type">int32</span> <span class="string">`json:&quot;partition,omitempty&quot; protobuf:&quot;varint,1,opt,name=partition&quot;`</span></span><br><span class="line">	<span class="comment">// The maximum number of pods that can be unavailable during the update.</span></span><br><span class="line">	<span class="comment">// Value can be an absolute number (ex: 5) or a percentage of desired pods (ex: 10%).</span></span><br><span class="line">	<span class="comment">// Absolute number is calculated from percentage by rounding up. This can not be 0.</span></span><br><span class="line">	<span class="comment">// Defaults to 1. This field is alpha-level and is only honored by servers that enable the</span></span><br><span class="line">	<span class="comment">// MaxUnavailableStatefulSet feature. The field applies to all pods in the range 0 to</span></span><br><span class="line">	<span class="comment">// Replicas-1. That means if there is any unavailable pod in the range 0 to Replicas-1, it</span></span><br><span class="line">	<span class="comment">// will be counted towards MaxUnavailable.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 更新期间最大不可用Pod数量  默认1</span></span><br><span class="line">  <span class="comment">// 属于alpha级别，需要启用MaxUnavaileableStatefulSet</span></span><br><span class="line">	MaxUnavailable *intstr.IntOrString <span class="string">`json:&quot;maxUnavailable,omitempty&quot; protobuf:&quot;varint,2,opt,name=maxUnavailable&quot;`</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2024/11/01/cloud/k8s/K8s%E5%B7%A5%E4%BD%9C%E8%B4%9F%E8%BD%BD-StaetfulSet/">https://piwriw.github.io/2024/11/01/cloud/k8s/K8s工作负载-StaetfulSet/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a><a class="post-meta__tags" href="/tags/cloud/">cloud</a><a class="post-meta__tags" href="/tags/K8s%E6%BA%90%E7%A0%81/">K8s源码</a></div><div class="post-share"><div class="social-share" data-image="/img/k8sLogo.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2024/11/02/cloud/k8s/daemonset/K8s%E5%B7%A5%E4%BD%9C%E8%B4%9F%E8%BD%BD-DaemonSet/" title="K8s工作负载-DaemonSet"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">K8s工作负载-DaemonSet</div></div><div class="info-2"><div class="info-item-1">K8s工作负载-DaemonSet 基于1.25  什么是DaemonSetDaemonSet 控制器确保所有（或一部分）的节点都运行了一个指定的 Pod 副本，缩写DS 使用场景 在每个节点上运行集群的存储守护进程，例如 glusterd、ceph 在每个节点上运行日志收集守护进程，例如 fluentd、logstash 在每个节点上运行监控守护进程，例如 Prometheus Node Exporter (opens new window)、Sysdig Agent (opens new window)、collectd、Dynatrace OneAgent (opens new window)、APPDynamics Agent (opens new window)、Datadog agent (opens new window)、New Relic agent (opens new window)、Ganglia gmond、Instana Agent (opens new window)等  DaemonSetSpec Ref:https://github.com/ku...</div></div></div></a><a class="pagination-related" href="/2024/10/31/cloud/k8s/K8s%E5%B7%A5%E4%BD%9C%E8%B4%9F%E8%BD%BD-ReplicaSet/" title="K8s工作负载-ReplicaSet"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">K8s工作负载-ReplicaSet</div></div><div class="info-2"><div class="info-item-1">K8s工作负载-ReplicaSet 基于1.25  什么是ReplicaSetReplicaSet的为指定Pod维护一个副本数量的集合，缩写RS  一般新版本，用户不直接操作RS 通过Deployment的生命周期，来管理RS  ReplicaSetSpec Ref：https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/apis/apps/types.go#L818  1234567891011121314151617181920212223242526272829// ReplicaSetSpec is the specification of a ReplicaSet.// As the internal representation of a ReplicaSet, it must have// a Template set.type ReplicaSetSpec struct &#123;	// Replicas is the number o...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2025/03/15/cloud/k8s/job/K8sController-Job(%E6%89%B9%E5%A4%84%E7%90%86%E4%BB%BB%E5%8A%A1)/" title="K8sController-Job(批处理任务)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-03-15</div><div class="info-item-2">K8sController-Job(批处理任务)</div></div><div class="info-2"><div class="info-item-1">K8sController-Job(批处理任务) 基于K8s 1.31  主要配置和工作机制123456789101112131415161718192021222324252627282930313233343536apiVersion: batch/v1kind: Jobmetadata:  name: hellospec:  # 可以并行任务数量，默认1  parallelism: 3  completions: 3  # Pod完成模式，NonIndexed（数量达到completions推出，默认），Indexed  # Indexed模式：会被设置为Pod服务名  # - 设置Pod名称：&lt;Job Name&gt;-&lt;索引序号&gt;-&lt;随机字符串&gt;  # - 设置Annotation &quot;batch.kubernetes.io/job-completion-index&quot;: &lt;索引序号&gt;  # - 设置Label &quot;batch.kubernetes.io/job-completion-index&quot...</div></div></div></a><a class="pagination-related" href="/2024/12/16/cloud/k8s/kubelet/K8s-kubelet(HTTP%E6%9C%8D%E5%8A%A1%E6%8E%A5%E5%8F%A3)/" title="K8s-kubelet(HTTP服务接口)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-16</div><div class="info-item-2">K8s-kubelet(HTTP服务接口)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(HTTP服务接口) 基于1.25  kubelet通过HTTP Server对外暴露API，为了确保接口安全，kubelet按照安全等级从低到高顺序支持3种HTTP Server，分别是healthz server、readonly server和kubelet core server    一级类目 二级类目 Path路径 描述    Default Handlerers healthz &#x2F;healthz 检查kubelet是否健康，重点检查syncLoop是否持续在规定时间内完成。检查syncLoop四因为其他组件故障会间接导致syncLoop不能执行成功   Default Handlerers pods &#x2F;pods 读取当前节点运行的Pod列表（通过PodManager获取）   Default Handlerers stats &#x2F;stats&#x2F;summary 读取资源使用状态   Default Handlerers metrics &#x2F;metrics 读取kubelet监控指标数据   Defaul...</div></div></div></a><a class="pagination-related" href="/2024/12/15/cloud/k8s/kubelet/K8s-kubelet(PLEG%E6%A0%B8%E5%BF%83%E5%8E%9F%E7%90%86)/" title="K8s-kubelet(PLEG核心原理)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-15</div><div class="info-item-2">K8s-kubelet(PLEG核心原理)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(PLEG核心原理) 基于1.25  PLEG是kubelet的一个重要组件，负责监控kubelet管理的节点运行的Pod的生命周期，并生成于生命周期相关的事件 PLEG产生原因在K8s中，kubelet负责维护和管理每个节点上的Pod，不断的调谐Pod的状态以使得符合Spec。  为了实现这个目标，kubelet同时需要支持对Pod Spec和Container Status 的事件监听。对于前者kubelet通过watch不同源的对PodSpec事件实现，对于后者，PLEG之前，不断需要Pod处理协程不断的周期性拉取最新状态，尝试了大量轮询压力。 在kubeletv1.2.0版本引入了PLEG，目标是改善kubelet的可拓展性 减少不必要的处理操作（当状态为发生变化时，不执行无效的调谐操作） 减少对底层容器运行的并发请求，以减轻容器运行时的压力    PLEG架构设计PLEG主要包含俩个核心工作，一是感受容器变化，生成Pod事件，俩是维持一份最新的Pod Status Cache数据供其他组件读取。   kubelet同时接收俩个方向的事件，Pod S...</div></div></div></a><a class="pagination-related" href="/2024/12/14/cloud/k8s/kubelet/K8s-kubelet(Cgroup%E8%B5%84%E6%BA%90%E9%9A%94%E7%A6%BB%E4%BB%A5%E5%8F%8A%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E5%8E%9F%E7%90%86)/" title="K8s-kubelet(Cgroup资源隔离以及垃圾回收原理)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-14</div><div class="info-item-2">K8s-kubelet(Cgroup资源隔离以及垃圾回收原理)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(Cgroup资源隔离以及垃圾回收原理) 基于1.25  什么是Cgroup资源隔离kubelet基于cgroup限制Pod资源使用。cgroup是Linux内核的一个重要功能，用来限制、控制和分离一个进程组的资源（CPU、内存、磁盘I&#x2F;O） kubelet在创建Pod时，会将其配置的cgroups parent目录传递给容器运行时，使容器运行时创建的进程都会限制到kubelet配置父级cgroup之下。  kubelet负责维护Pod、QoS、Node级别的cgroup配置 Container级别的cgroup直接交给容器运行时实现  cgroup的层级结构 kubelet采用了四级cgroups层级架构存储  Node Level cgroup 为了保证系统运行的稳定性，kubelet支持为系统守护进程预留资源，避免Pod占用整个系统资源，造成系统卡死或者崩溃。  默认情况下，kube-reserved和system-reserved不会启用。 但是启用之后，需要注意守护进程添加了cgroup之后，可能导致配置的上限太小，导致守护进程资源不足退...</div></div></div></a><a class="pagination-related" href="/2024/12/13/cloud/k8s/kubelet/K8s-kubelet(Pod%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F%E7%AE%A1%E7%90%86)/" title="K8s-kubelet(Pod生命周期管理)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-13</div><div class="info-item-2">K8s-kubelet(Pod生命周期管理)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(Pod生命周期管理) 基于1.25  kubelet以Pod为基本处理单元，负责Pod从创建到消亡的整个生命周期   在1.21中Unknown状态已经被标记为弃用。  CRIkubelet通过CRI RPC管理容器的生命周期，执行容器的lifecycle hook和 startup&#x2F;liveness&#x2F;readiness的健康检查，同时根据Pod的重启策略在容器失败退出后自动重启容器，CRI是kubelet管理Pod和容器的基础   Ref:https://github.com/kubernetes/cri-api/blob/2c8d015e0d408208ca8843c1d6e2e2fce1e5dd94/pkg/apis/runtime/v1/api.proto#L34 12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849505152535455565758596061626364656667686970717...</div></div></div></a><a class="pagination-related" href="/2024/12/13/cloud/k8s/kubelet/K8s-kubelet(%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B)/" title="K8s-kubelet(Overview)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-13</div><div class="info-item-2">K8s-kubelet(Overview)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(Overview) 基于1.25  kubelete的启动流程主要分为5个步骤：  Cobra命令参数解析 运行环境检测和设置 Kubelet对象实例化 启动kubelet主服务 启动HTTP Server服务和gRPC Server   Cobra命令行参数解析 Ref:https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/cmd/kubelet/app/server.go#L123 12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849505152535455565758596061626364656667686970717273747576777879808182838485868788899091929394959697989910010110210310410510610710810911011111211...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#K8s%E5%B7%A5%E4%BD%9C%E8%B4%9F%E8%BD%BD-StatefulSet"><span class="toc-number">1.</span> <span class="toc-text">K8s工作负载-StatefulSet</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%80%E4%B9%88%E6%98%AFStatefulSet"><span class="toc-number">1.1.</span> <span class="toc-text">什么是StatefulSet</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8%E5%9C%BA%E6%99%AF"><span class="toc-number">1.2.</span> <span class="toc-text">使用场景</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%99%90%E5%88%B6"><span class="toc-number">1.2.1.</span> <span class="toc-text">限制</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#StatefulSetSpec"><span class="toc-number">1.2.2.</span> <span class="toc-text">StatefulSetSpec</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Pod%E7%AE%A1%E7%90%86%E7%AD%96%E7%95%A5"><span class="toc-number">1.3.</span> <span class="toc-text">Pod管理策略</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Pod%E6%9B%B4%E6%96%B0%E7%AD%96%E7%95%A5"><span class="toc-number">1.4.</span> <span class="toc-text">Pod更新策略</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#RollingUpdate%E5%8F%82%E6%95%B0"><span class="toc-number">1.5.</span> <span class="toc-text">RollingUpdate参数</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-日志系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明">Gorm-日志系统模块原理说明</a><time datetime="2026-01-11T11:56:27.000Z" title="发表于 2026-01-11 19:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-迁移功能模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明">Gorm-迁移功能模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-插件系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明">Gorm-插件系统模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-事务处理模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明">Gorm-事务处理模块原理说明</a><time datetime="2026-01-11T09:56:27.000Z" title="发表于 2026-01-11 17:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-关联关系模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明">Gorm-关联关系模块原理说明</a><time datetime="2026-01-11T08:56:27.000Z" title="发表于 2026-01-11 16:56:27">2026-01-11</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

@@ -1,0 +1,373 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>K8s发现和负载均衡-Ingress | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="K8s发现和负载均衡-Ingress 基于1.25  什么是Ingress对集群中服务的外部访问进行管理的API对象，典型的访问时间是HTTP  Ingress：提供了负载均衡、SSL终结和基于名称的虚拟托管 Ingress公开集群外部到集群内部的HTTP服务和HTTPS路由 Inress不会随意公开端口和协议   仅仅创建Ingress不会有效果，需要Ingress控制器  IngressSpe">
+<meta property="og:type" content="article">
+<meta property="og:title" content="K8s发现和负载均衡-Ingress">
+<meta property="og:url" content="https://piwriw.github.io/2024/11/03/cloud/k8s/K8s%E5%8F%91%E7%8E%B0%E5%92%8C%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1-Ingress/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="K8s发现和负载均衡-Ingress 基于1.25  什么是Ingress对集群中服务的外部访问进行管理的API对象，典型的访问时间是HTTP  Ingress：提供了负载均衡、SSL终结和基于名称的虚拟托管 Ingress公开集群外部到集群内部的HTTP服务和HTTPS路由 Inress不会随意公开端口和协议   仅仅创建Ingress不会有效果，需要Ingress控制器  IngressSpe">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/k8sLogo.png">
+<meta property="article:published_time" content="2024-11-03T06:57:55.000Z">
+<meta property="article:modified_time" content="2026-02-28T13:29:12.661Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="k8s">
+<meta property="article:tag" content="cloud">
+<meta property="article:tag" content="K8s源码">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/k8sLogo.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "K8s发现和负载均衡-Ingress",
+  "url": "https://piwriw.github.io/2024/11/03/cloud/k8s/K8s%E5%8F%91%E7%8E%B0%E5%92%8C%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1-Ingress/",
+  "image": "https://piwriw.github.io/img/k8sLogo.png",
+  "datePublished": "2024-11-03T06:57:55.000Z",
+  "dateModified": "2026-02-28T13:29:12.661Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2024/11/03/cloud/k8s/K8s%E5%8F%91%E7%8E%B0%E5%92%8C%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1-Ingress/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'K8s发现和负载均衡-Ingress',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/k8sLogo.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">K8s发现和负载均衡-Ingress</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">K8s发现和负载均衡-Ingress</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2024-11-03T06:57:55.000Z" title="发表于 2024-11-03 14:57:55">2024-11-03</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-02-28T13:29:12.661Z" title="更新于 2026-02-28 21:29:12">2026-02-28</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/">k8s</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">1.5k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>5分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-02-28 21:29:12&quot;}" hidden></div><h1 id="K8s发现和负载均衡-Ingress"><a href="#K8s发现和负载均衡-Ingress" class="headerlink" title="K8s发现和负载均衡-Ingress"></a>K8s发现和负载均衡-Ingress</h1><blockquote>
+<p>基于1.25</p>
+</blockquote>
+<h2 id="什么是Ingress"><a href="#什么是Ingress" class="headerlink" title="什么是Ingress"></a>什么是Ingress</h2><p>对集群中服务的外部访问进行管理的API对象，典型的访问时间是HTTP</p>
+<ul>
+<li>Ingress：提供了负载均衡、SSL终结和基于名称的虚拟托管</li>
+<li>Ingress公开集群外部到集群内部的HTTP服务和HTTPS路由</li>
+<li>Inress不会随意公开端口和协议</li>
+</ul>
+<blockquote>
+<p>仅仅创建Ingress不会有效果，需要Ingress控制器</p>
+</blockquote>
+<h2 id="IngressSpec"><a href="#IngressSpec" class="headerlink" title="IngressSpec"></a>IngressSpec</h2><ul>
+<li>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/api/blob/f7b7ea4f0fcc6cb8c8dd42eb46a94c7e163d1b9d/networking/v1/types.go#L302">https://github.com/kubernetes/api/blob/f7b7ea4f0fcc6cb8c8dd42eb46a94c7e163d1b9d/networking/v1/types.go#L302</a></li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// IngressSpec describes the Ingress the user wishes to exist.</span></span><br><span class="line"><span class="keyword">type</span> IngressSpec <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// IngressClassName is the name of an IngressClass cluster resource. Ingress</span></span><br><span class="line">	<span class="comment">// controller implementations use this field to know whether they should be</span></span><br><span class="line">	<span class="comment">// serving this Ingress resource, by a transitive connection</span></span><br><span class="line">	<span class="comment">// (controller -&gt; IngressClass -&gt; Ingress resource). Although the</span></span><br><span class="line">	<span class="comment">// `kubernetes.io/ingress.class` annotation (simple constant name) was never</span></span><br><span class="line">	<span class="comment">// formally defined, it was widely supported by Ingress controllers to create</span></span><br><span class="line">	<span class="comment">// a direct binding between Ingress controller and Ingress resources. Newly</span></span><br><span class="line">	<span class="comment">// created Ingress resources should prefer using the field. However, even</span></span><br><span class="line">	<span class="comment">// though the annotation is officially deprecated, for backwards compatibility</span></span><br><span class="line">	<span class="comment">// reasons, ingress controllers should still honor that annotation if present.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 集群支持部署多个Ingress控制器，声明使用哪个控制器（替代了最早的kubernetes.io/ingress.class注解功能）</span></span><br><span class="line">	IngressClassName *<span class="type">string</span> <span class="string">`json:&quot;ingressClassName,omitempty&quot; protobuf:&quot;bytes,4,opt,name=ingressClassName&quot;`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// DefaultBackend is the backend that should handle requests that don&#x27;t</span></span><br><span class="line">	<span class="comment">// match any rule. If Rules are not specified, DefaultBackend must be specified.</span></span><br><span class="line">	<span class="comment">// If DefaultBackend is not set, the handling of requests that do not match any</span></span><br><span class="line">	<span class="comment">// of the rules will be up to the Ingress controller.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 处理不匹配任何规则的请求后端</span></span><br><span class="line">	DefaultBackend *IngressBackend <span class="string">`json:&quot;defaultBackend,omitempty&quot; protobuf:&quot;bytes,1,opt,name=defaultBackend&quot;`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// TLS configuration. Currently the Ingress only supports a single TLS</span></span><br><span class="line">	<span class="comment">// port, 443. If multiple members of this list specify different hosts, they</span></span><br><span class="line">	<span class="comment">// will be multiplexed on the same port according to the hostname specified</span></span><br><span class="line">	<span class="comment">// through the SNI TLS extension, if the ingress controller fulfilling the</span></span><br><span class="line">	<span class="comment">// ingress supports SNI.</span></span><br><span class="line">	<span class="comment">// +listType=atomic</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// TLS配置，目前Ingress只支持一个TLS443</span></span><br><span class="line">  <span class="comment">// 如果这个列表的多个成员，指定的主机不同，实现的入口的控制器支持SNI</span></span><br><span class="line">	TLS []IngressTLS <span class="string">`json:&quot;tls,omitempty&quot; protobuf:&quot;bytes,2,rep,name=tls&quot;`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// A list of host rules used to configure the Ingress. If unspecified, or</span></span><br><span class="line">	<span class="comment">// no rule matches, all traffic is sent to the default backend.</span></span><br><span class="line">	<span class="comment">// +listType=atomic</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 配置Ingress的主机规则列表</span></span><br><span class="line">  <span class="comment">// 每日匹配和指定，流量都转发到默认后端</span></span><br><span class="line">	Rules []IngressRule <span class="string">`json:&quot;rules,omitempty&quot; protobuf:&quot;bytes,3,rep,name=rules&quot;`</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="Ingress控制器"><a href="#Ingress控制器" class="headerlink" title="Ingress控制器"></a>Ingress控制器</h2><p>Ingress控制器不随着K8s启动安装</p>
+<p>K8s官网支持维护的Ingress控制器</p>
+<ul>
+<li>Kubernetes 作为一个项目，目前支持和维护 <a target="_blank" rel="noopener" href="https://github.com/kubernetes-sigs/aws-load-balancer-controller#readme">AWS</a>、 <a target="_blank" rel="noopener" href="https://git.k8s.io/ingress-gce/README.md#readme">GCE</a> 和 <a target="_blank" rel="noopener" href="https://git.k8s.io/ingress-nginx/README.md#readme">Nginx</a> Ingress 控制器</li>
+</ul>
+<p>第三方Ingress：</p>
+<ul>
+<li><p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/azure/application-gateway/tutorial-ingress-controller-add-on-existing?toc=https://docs.microsoft.com/en-us/azure/aks/toc.json&bc=https://docs.microsoft.com/en-us/azure/bread/toc.json">AKS 应用程序网关 Ingress 控制器</a> 是一个配置 <a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/azure/application-gateway/overview">Azure 应用程序网关</a> 的 Ingress 控制器。</p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://www.alibabacloud.com/help/zh/mse/user-guide/overview-of-mse-ingress-gateways">阿里云 MSE Ingress</a> 是一个 Ingress 控制器，它负责配置<a target="_blank" rel="noopener" href="https://www.alibabacloud.com/help/en/mse/product-overview/cloud-native-gateway-overview?spm=a2c63.p38356.0.0.20563003HJK9is">阿里云原生网关</a>， 也是 <a target="_blank" rel="noopener" href="https://github.com/alibaba/higress">Higress</a> 的商业版本。</p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://github.com/apache/apisix-ingress-controller">Apache APISIX Ingress 控制器</a> 是一个基于 <a target="_blank" rel="noopener" href="https://github.com/apache/apisix">Apache APISIX 网关</a> 的 Ingress 控制器。</p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://github.com/vmware/load-balancer-and-ingress-services-for-kubernetes">Avi Kubernetes Operator</a> 使用 <a target="_blank" rel="noopener" href="https://avinetworks.com/">VMware NSX Advanced Load Balancer</a> 提供第 4 到第 7 层的负载均衡。</p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://github.com/bfenetworks/ingress-bfe">BFE Ingress 控制器</a>是一个基于 <a target="_blank" rel="noopener" href="https://www.bfe-networks.net/">BFE</a> 的 Ingress 控制器。</p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://docs.cilium.io/en/stable/network/servicemesh/ingress/">Cilium Ingress 控制器</a>是一个由 <a target="_blank" rel="noopener" href="https://cilium.io/">Cilium</a> 出品支持的 Ingress 控制器。</p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://github.com/citrix/citrix-k8s-ingress-controller#readme">Citrix Ingress 控制器</a> 可以用来与 Citrix Application Delivery Controller 一起使用。</p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://projectcontour.io/">Contour</a> 是一个基于 <a target="_blank" rel="noopener" href="https://www.envoyproxy.io/">Envoy</a> 的 Ingress 控制器。</p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://www.getambassador.io/products/api-gateway">Emissary-Ingress</a> API 网关是一个基于 <a target="_blank" rel="noopener" href="https://www.envoyproxy.io/">Envoy</a> 的入口控制器。</p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://getenroute.io/">EnRoute</a> 是一个基于 <a target="_blank" rel="noopener" href="https://www.envoyproxy.io/">Envoy</a> 的 API 网关，可以用作 Ingress 控制器。</p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://megaease.com/docs/easegress/04.cloud-native/4.1.kubernetes-ingress-controller/">Easegress IngressController</a> 是一个基于 <a target="_blank" rel="noopener" href="https://megaease.com/easegress/">Easegress</a> 的 API 网关，可以用作 Ingress 控制器。</p>
+</li>
+<li><p>F5 BIG-IP 的 <a target="_blank" rel="noopener" href="https://clouddocs.f5.com/products/connectors/k8s-bigip-ctlr/latest">用于 Kubernetes 的容器 Ingress 服务</a> 让你能够使用 Ingress 来配置 F5 BIG-IP 虚拟服务器。</p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://docs.fortinet.com/document/fortiadc/7.0.0/fortiadc-ingress-controller/742835/fortiadc-ingress-controller-overview">FortiADC Ingress 控制器</a> 支持 Kubernetes Ingress 资源，并允许你从 Kubernetes 管理 FortiADC 对象。</p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://gloo.solo.io/">Gloo</a> 是一个开源的、基于 <a target="_blank" rel="noopener" href="https://www.envoyproxy.io/">Envoy</a> 的 Ingress 控制器，能够提供 API 网关功能。</p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://haproxy-ingress.github.io/">HAProxy Ingress</a> 是一个针对 <a target="_blank" rel="noopener" href="https://www.haproxy.org/#desc">HAProxy</a> 的 Ingress 控制器。</p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://github.com/alibaba/higress">Higress</a> 是一个基于 <a target="_blank" rel="noopener" href="https://www.envoyproxy.io/">Envoy</a> 的 API 网关， 可以作为一个 Ingress 控制器运行。</p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://github.com/haproxytech/kubernetes-ingress#readme">用于 Kubernetes 的 HAProxy Ingress 控制器</a> 也是一个针对 <a target="_blank" rel="noopener" href="https://www.haproxy.org/#desc">HAProxy</a> 的 Ingress 控制器。</p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://istio.io/latest/zh/docs/tasks/traffic-management/ingress/kubernetes-ingress/">Istio Ingress</a> 是一个基于 <a target="_blank" rel="noopener" href="https://istio.io/zh/">Istio</a> 的 Ingress 控制器。</p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://github.com/Kong/kubernetes-ingress-controller#readme">用于 Kubernetes 的 Kong Ingress 控制器</a> 是一个用来驱动 <a target="_blank" rel="noopener" href="https://konghq.com/kong/">Kong Gateway</a> 的 Ingress 控制器。</p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://kusk.kubeshop.io/">Kusk Gateway</a> 是一个基于 <a target="_blank" rel="noopener" href="https://www.envoyproxy.io/">Envoy</a> 的、 OpenAPI 驱动的 Ingress 控制器。</p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://www.nginx.com/products/nginx-ingress-controller/">用于 Kubernetes 的 NGINX Ingress 控制器</a> 能够与 <a target="_blank" rel="noopener" href="https://www.nginx.com/resources/glossary/nginx/">NGINX</a> 网页服务器（作为代理）一起使用。</p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://github.com/ngrok/kubernetes-ingress-controller">ngrok Kubernetes Ingress 控制器</a> 是一个开源控制器，通过使用 <a target="_blank" rel="noopener" href="https://ngrok.com/">ngrok 平台</a>为你的 K8s 服务添加安全的公开访问权限。</p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://github.com/oracle/oci-native-ingress-controller#readme">OCI Native Ingress Controller</a> 是一个适用于 Oracle Cloud Infrastructure 的 Ingress 控制器，可帮助你管理 <a target="_blank" rel="noopener" href="https://docs.oracle.com/en-us/iaas/Content/Balance/home.htm">OCI 负载均衡</a>。</p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://gitee.com/njet-rd/open-njet-kic">OpenNJet Ingress Controller</a> 是一个基于 <a target="_blank" rel="noopener" href="https://njet.org.cn/">OpenNJet</a> 的 Ingress 控制器。</p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://www.pomerium.com/docs/k8s/ingress.html">Pomerium Ingress 控制器</a> 基于 <a target="_blank" rel="noopener" href="https://pomerium.com/">Pomerium</a>，能提供上下文感知的准入策略。</p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://opensource.zalando.com/skipper/kubernetes/ingress-controller/">Skipper</a> HTTP 路由器和反向代理可用于服务组装，支持包括 Kubernetes Ingress 这类使用场景，是一个用以构造你自己的定制代理的库。</p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://doc.traefik.io/traefik/providers/kubernetes-ingress/">Traefik Kubernetes Ingress 提供程序</a> 是一个用于 <a target="_blank" rel="noopener" href="https://traefik.io/traefik/">Traefik</a> 代理的 Ingress 控制器。</p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://github.com/TykTechnologies/tyk-operator">Tyk Operator</a> 使用自定义资源扩展 Ingress，为之带来 API 管理能力。Tyk Operator 使用开源的 Tyk Gateway &amp; Tyk Cloud 控制面。</p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://voyagermesh.com/">Voyager</a> 是一个针对 <a target="_blank" rel="noopener" href="https://www.haproxy.org/#desc">HAProxy</a> 的 Ingress 控制器。</p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://www.wallarm.com/solutions/waf-for-kubernetes">Wallarm Ingress Controller</a> 是提供 WAAP（WAF） 和 API 安全功能的 Ingress Controller。</p>
+</li>
+</ul>
+<h2 id="Ingress-Nginx"><a href="#Ingress-Nginx" class="headerlink" title="Ingress-Nginx"></a>Ingress-Nginx</h2><p>根据配置的Ingress资源，生成nginx.config文件</p>
+<ul>
+<li>防止错误，通过<code>nginx -t</code> 校验通过之后才能实现添加到etcd中</li>
+<li>Ingress-Nginx:使用<code>lua-nginx-module</code>模块实现PodIP地址频繁变化但是不需要频繁添加加载到Nginx<ul>
+<li>在每个端点更改的时候，Ingress-nginx先获取端点生成配置文件</li>
+<li>再把对象发送到Lua程序</li>
+<li>Lua程序通过<code>balancer_by_lua</code>检测每个请求从哪些个端点选择上游对等点</li>
+<li>这样会只影响了 nginx的upstream，节省了nginx加载时间</li>
+</ul>
+</li>
+<li>由于使用了动态的upstream能力，查看nginx.config无法看到PodIP信息<ul>
+<li>可以通过<code>curl -s https://127.0.0.1:10246/configuration/backends</code>查看当前动态生成完整的PodIP信息</li>
+</ul>
+</li>
+</ul>
+<p>​	</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2024/11/03/cloud/k8s/K8s%E5%8F%91%E7%8E%B0%E5%92%8C%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1-Ingress/">https://piwriw.github.io/2024/11/03/cloud/k8s/K8s发现和负载均衡-Ingress/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a><a class="post-meta__tags" href="/tags/cloud/">cloud</a><a class="post-meta__tags" href="/tags/K8s%E6%BA%90%E7%A0%81/">K8s源码</a></div><div class="post-share"><div class="social-share" data-image="/img/k8sLogo.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2024/11/03/cloud/k8s/K8s%E5%8F%91%E7%8E%B0%E5%92%8C%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1-Endoints%E5%92%8CEndpointSlice/" title="K8s发现和负载均衡-Endpoints和EndpointSlice"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">K8s发现和负载均衡-Endpoints和EndpointSlice</div></div><div class="info-2"><div class="info-item-1">K8s发现和负载均衡-Endpoints和EndpointSlice 基于1.25  什么是EndPointsEndPoints定义了网络端点的列表  K8s限制单个EndPoints对象容纳的端点数量  Endpoints字段 Ref:https://github.com/kubernetes/api/blob/f7b7ea4f0fcc6cb8c8dd42eb46a94c7e163d1b9d/core/v1/types.go#L4768  123456789101112131415161718192021222324252627282930313233343536373839404142434445464748495051525354555657585960// Endpoints is a collection of endpoints that implement the actual service. Example:////	 Name: &quot;mysvc&quot;,//	 Subsets: [//	   &#123;//	     Addresses: [&#...</div></div></div></a><a class="pagination-related" href="/2024/11/03/cloud/k8s/K8s%E5%8F%91%E7%8E%B0%E5%92%8C%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1-Service/" title="K8s发现和负载均衡-Service"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">K8s发现和负载均衡-Service</div></div><div class="info-2"><div class="info-item-1">K8s发现和负载均衡-Service 基于1.25  什么是ServiceK8s中，Pod随时消亡，控制器Pod集合不断变化，每个服务调用者不知道发送到哪个IP，Service就是为了解决这个问题，提供了以下的能力：  Pod有自己的IP Service被赋予唯一的DNS Name Service通过标签选择器选择一组Pod Service实现负载均衡，可以将请求均衡放到一组Pod  ServiceSpec Ref：https://github.com/kubernetes/api/blob/f7b7ea4f0fcc6cb8c8dd42eb46a94c7e163d1b9d/core/v1/types.go#L4359  123456789101112131415161718192021222324252627282930313233343536373839404142434445464748495051525354555657585960616263646566676869707172737475767778798081828384858687888990919293949596...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2025/03/15/cloud/k8s/job/K8sController-Job(%E6%89%B9%E5%A4%84%E7%90%86%E4%BB%BB%E5%8A%A1)/" title="K8sController-Job(批处理任务)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-03-15</div><div class="info-item-2">K8sController-Job(批处理任务)</div></div><div class="info-2"><div class="info-item-1">K8sController-Job(批处理任务) 基于K8s 1.31  主要配置和工作机制123456789101112131415161718192021222324252627282930313233343536apiVersion: batch/v1kind: Jobmetadata:  name: hellospec:  # 可以并行任务数量，默认1  parallelism: 3  completions: 3  # Pod完成模式，NonIndexed（数量达到completions推出，默认），Indexed  # Indexed模式：会被设置为Pod服务名  # - 设置Pod名称：&lt;Job Name&gt;-&lt;索引序号&gt;-&lt;随机字符串&gt;  # - 设置Annotation &quot;batch.kubernetes.io/job-completion-index&quot;: &lt;索引序号&gt;  # - 设置Label &quot;batch.kubernetes.io/job-completion-index&quot...</div></div></div></a><a class="pagination-related" href="/2024/12/16/cloud/k8s/kubelet/K8s-kubelet(HTTP%E6%9C%8D%E5%8A%A1%E6%8E%A5%E5%8F%A3)/" title="K8s-kubelet(HTTP服务接口)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-16</div><div class="info-item-2">K8s-kubelet(HTTP服务接口)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(HTTP服务接口) 基于1.25  kubelet通过HTTP Server对外暴露API，为了确保接口安全，kubelet按照安全等级从低到高顺序支持3种HTTP Server，分别是healthz server、readonly server和kubelet core server    一级类目 二级类目 Path路径 描述    Default Handlerers healthz &#x2F;healthz 检查kubelet是否健康，重点检查syncLoop是否持续在规定时间内完成。检查syncLoop四因为其他组件故障会间接导致syncLoop不能执行成功   Default Handlerers pods &#x2F;pods 读取当前节点运行的Pod列表（通过PodManager获取）   Default Handlerers stats &#x2F;stats&#x2F;summary 读取资源使用状态   Default Handlerers metrics &#x2F;metrics 读取kubelet监控指标数据   Defaul...</div></div></div></a><a class="pagination-related" href="/2024/12/15/cloud/k8s/kubelet/K8s-kubelet(PLEG%E6%A0%B8%E5%BF%83%E5%8E%9F%E7%90%86)/" title="K8s-kubelet(PLEG核心原理)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-15</div><div class="info-item-2">K8s-kubelet(PLEG核心原理)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(PLEG核心原理) 基于1.25  PLEG是kubelet的一个重要组件，负责监控kubelet管理的节点运行的Pod的生命周期，并生成于生命周期相关的事件 PLEG产生原因在K8s中，kubelet负责维护和管理每个节点上的Pod，不断的调谐Pod的状态以使得符合Spec。  为了实现这个目标，kubelet同时需要支持对Pod Spec和Container Status 的事件监听。对于前者kubelet通过watch不同源的对PodSpec事件实现，对于后者，PLEG之前，不断需要Pod处理协程不断的周期性拉取最新状态，尝试了大量轮询压力。 在kubeletv1.2.0版本引入了PLEG，目标是改善kubelet的可拓展性 减少不必要的处理操作（当状态为发生变化时，不执行无效的调谐操作） 减少对底层容器运行的并发请求，以减轻容器运行时的压力    PLEG架构设计PLEG主要包含俩个核心工作，一是感受容器变化，生成Pod事件，俩是维持一份最新的Pod Status Cache数据供其他组件读取。   kubelet同时接收俩个方向的事件，Pod S...</div></div></div></a><a class="pagination-related" href="/2024/12/14/cloud/k8s/kubelet/K8s-kubelet(Cgroup%E8%B5%84%E6%BA%90%E9%9A%94%E7%A6%BB%E4%BB%A5%E5%8F%8A%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E5%8E%9F%E7%90%86)/" title="K8s-kubelet(Cgroup资源隔离以及垃圾回收原理)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-14</div><div class="info-item-2">K8s-kubelet(Cgroup资源隔离以及垃圾回收原理)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(Cgroup资源隔离以及垃圾回收原理) 基于1.25  什么是Cgroup资源隔离kubelet基于cgroup限制Pod资源使用。cgroup是Linux内核的一个重要功能，用来限制、控制和分离一个进程组的资源（CPU、内存、磁盘I&#x2F;O） kubelet在创建Pod时，会将其配置的cgroups parent目录传递给容器运行时，使容器运行时创建的进程都会限制到kubelet配置父级cgroup之下。  kubelet负责维护Pod、QoS、Node级别的cgroup配置 Container级别的cgroup直接交给容器运行时实现  cgroup的层级结构 kubelet采用了四级cgroups层级架构存储  Node Level cgroup 为了保证系统运行的稳定性，kubelet支持为系统守护进程预留资源，避免Pod占用整个系统资源，造成系统卡死或者崩溃。  默认情况下，kube-reserved和system-reserved不会启用。 但是启用之后，需要注意守护进程添加了cgroup之后，可能导致配置的上限太小，导致守护进程资源不足退...</div></div></div></a><a class="pagination-related" href="/2024/12/13/cloud/k8s/kubelet/K8s-kubelet(Pod%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F%E7%AE%A1%E7%90%86)/" title="K8s-kubelet(Pod生命周期管理)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-13</div><div class="info-item-2">K8s-kubelet(Pod生命周期管理)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(Pod生命周期管理) 基于1.25  kubelet以Pod为基本处理单元，负责Pod从创建到消亡的整个生命周期   在1.21中Unknown状态已经被标记为弃用。  CRIkubelet通过CRI RPC管理容器的生命周期，执行容器的lifecycle hook和 startup&#x2F;liveness&#x2F;readiness的健康检查，同时根据Pod的重启策略在容器失败退出后自动重启容器，CRI是kubelet管理Pod和容器的基础   Ref:https://github.com/kubernetes/cri-api/blob/2c8d015e0d408208ca8843c1d6e2e2fce1e5dd94/pkg/apis/runtime/v1/api.proto#L34 12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849505152535455565758596061626364656667686970717...</div></div></div></a><a class="pagination-related" href="/2024/12/13/cloud/k8s/kubelet/K8s-kubelet(%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B)/" title="K8s-kubelet(Overview)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-13</div><div class="info-item-2">K8s-kubelet(Overview)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(Overview) 基于1.25  kubelete的启动流程主要分为5个步骤：  Cobra命令参数解析 运行环境检测和设置 Kubelet对象实例化 启动kubelet主服务 启动HTTP Server服务和gRPC Server   Cobra命令行参数解析 Ref:https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/cmd/kubelet/app/server.go#L123 12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849505152535455565758596061626364656667686970717273747576777879808182838485868788899091929394959697989910010110210310410510610710810911011111211...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#K8s%E5%8F%91%E7%8E%B0%E5%92%8C%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1-Ingress"><span class="toc-number">1.</span> <span class="toc-text">K8s发现和负载均衡-Ingress</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%80%E4%B9%88%E6%98%AFIngress"><span class="toc-number">1.1.</span> <span class="toc-text">什么是Ingress</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#IngressSpec"><span class="toc-number">1.2.</span> <span class="toc-text">IngressSpec</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Ingress%E6%8E%A7%E5%88%B6%E5%99%A8"><span class="toc-number">1.3.</span> <span class="toc-text">Ingress控制器</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Ingress-Nginx"><span class="toc-number">1.4.</span> <span class="toc-text">Ingress-Nginx</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-日志系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明">Gorm-日志系统模块原理说明</a><time datetime="2026-01-11T11:56:27.000Z" title="发表于 2026-01-11 19:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-迁移功能模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明">Gorm-迁移功能模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-插件系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明">Gorm-插件系统模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-事务处理模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明">Gorm-事务处理模块原理说明</a><time datetime="2026-01-11T09:56:27.000Z" title="发表于 2026-01-11 17:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-关联关系模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明">Gorm-关联关系模块原理说明</a><time datetime="2026-01-11T08:56:27.000Z" title="发表于 2026-01-11 16:56:27">2026-01-11</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

@@ -1,0 +1,333 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="该知道的都知道，不知道的慢慢了解">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Joohwan">
+<meta property="og:url" content="https://piwriw.github.io/page/17/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="该知道的都知道，不知道的慢慢了解">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/avatar.jpg">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="Joohwan">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/avatar.jpg"><script type="application/ld+json"></script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/page/17/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Joohwan',
+  isHighlightShrink: false,
+  isToc: false,
+  pageType: 'home'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="page" id="body-wrap"><header class="full_page" id="page-header" style="background-image: url(/img/background.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="site-info"><h1 id="site-title">Joohwan</h1><div id="site-subtitle"><span id="subtitle"></span></div><div id="site_social_icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div id="scroll-down"><i class="fas fa-angle-down scroll-down-effects"></i></div></header><main class="layout" id="content-inner"><div class="recent-posts nc" id="recent-posts"><div class="recent-post-items"><div class="recent-post-item"><div class="post_cover left"><a href="/2024/03/30/web/distributed/%E5%88%86%E5%B8%83%E5%BC%8F%20id%20%E7%94%9F%E6%88%90%E5%99%A8/" title="分布式 id 生成器（snowflake，雪花算法）"><img class="post-bg" src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="分布式 id 生成器（snowflake，雪花算法）"></a></div><div class="recent-post-info"><a class="article-title" href="/2024/03/30/web/distributed/%E5%88%86%E5%B8%83%E5%BC%8F%20id%20%E7%94%9F%E6%88%90%E5%99%A8/" title="分布式 id 生成器（snowflake，雪花算法）">分布式 id 生成器（snowflake，雪花算法）</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2024-03-30T04:56:27.000Z" title="发表于 2024-03-30 12:56:27">2024-03-30</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/web/">web</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/web/%E5%88%86%E5%B8%83%E5%BC%8F/">分布式</a></span></div><div class="content">分布式 id 生成器（snowflake，雪花算法）背景在某些场景下，需要生成增长ID并且不能重复 snowflakeSnowflake 雪花算法，由Twitter提出并开源，可在分布式环境下用于生成唯一ID的算法。该算法生成的是一个64位的ID，故在Java下正好可以通过8字节的long类型存放。所生成的ID结构如下所示  1 bit：首位无效因为二进制里第一个 bit 为如果是 1，那么都是负数，但是我们生成的 id 都是正数，所以第一个 bit 统一都是 0。 41 bit：表示的是时间戳，单位是毫秒41 bit 可以表示的数字多达 2^41 - 1，也就是可以标识 2 ^ 41 - 1 个毫秒值，换算成年就是表示 69 年的时间。 10 bit：记录工作机器 id，代表的是这个服务最多可以部署在 2^10 台机器上，也就是 1024 台机器10 bit 里 5 个 bit 代表机房 id，5 个 bit 代表机器 id。意思就是最多代表 2 ^ 5 个机房（32 个机房），每个机房里可以代表 2 ^ 5 个机器（32 台机器），也可以根据自己公司的实际情况确定。 12 b...</div></div></div><div class="recent-post-item"><div class="post_cover right"><a href="/2024/03/30/web/distributed/ACID%E7%90%86%E8%AE%BA/" title="ACID理论"><img class="post-bg" src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="ACID理论"></a></div><div class="recent-post-info"><a class="article-title" href="/2024/03/30/web/distributed/ACID%E7%90%86%E8%AE%BA/" title="ACID理论">ACID理论</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2024-03-30T02:56:27.000Z" title="发表于 2024-03-30 10:56:27">2024-03-30</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/web/">web</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/web/%E5%88%86%E5%B8%83%E5%BC%8F/">分布式</a></span></div><div class="content">ACID理论背景ACID主要是事务中的概念，分别是 A（Atomicit）：原子性 C（Consistency）：一致性 I（Isolation）：隔离性 D（Durability）：持久性 A原子性主要是在一个事务中，“要么全部完成、要么全部不完成” 经典的银行转账案例： A：从A账户去一百 B：从存入100 AB是在一个事务里面，不能只有A|B其中一个成功，不然银行账户对不上金额 C一致性一致性代表：事务开始前和事务结束之后，数据库的一致性没有改变，事务中的数据一致性  I隔离性隔离性代表：多个并发事务同时拥有对数据进行读书和修改的能力，如果⼀个事务要访问的数据正在被另外⼀个事务修改，只要另外⼀个事务未提交，则它所访问的数据就不受未提交事务的影响 D持久性持久性代表：事务处理结束后，对数据的修改是永久的，即便系统故障也不会丢失 优点1、数据一致性：ACID 确保数据在任何事务执行后保持一致和准确。 2、数据完整性：ACID 通过确保对数据库的任何更改都是永久性的，并且不会丢失，从而维护了数据的完整性。 3、并发控制：ACID 通过防止事务之间的干扰来帮助管理并发创建的多个事务...</div></div></div><div class="recent-post-item"><div class="post_cover left"><a href="/2024/03/28/web/rpc/%E5%88%9D%E8%AF%86RPC/" title="初识RPC"><img class="post-bg" src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="初识RPC"></a></div><div class="recent-post-info"><a class="article-title" href="/2024/03/28/web/rpc/%E5%88%9D%E8%AF%86RPC/" title="初识RPC">初识RPC</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2024-03-28T04:56:27.000Z" title="发表于 2024-03-28 12:56:27">2024-03-28</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/web/">web</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/web/rpc/">rpc</a></span></div><div class="content">初识RPC介绍RPC 是远程过程调用的简称，是分布式系统中不同节点间流行的通信方式。在互联网时代，RPC 已经和 IPC 一样成为一个不可或缺的基础构件。因此 Go 语言的标准库也提供了一个简单的 RPC 实现，我们将以此为入口学习 RPC 的各种用法。 hello RPC server端代码  12345678910111213141516171819202122232425262728293031package mainimport (	&quot;log&quot;	&quot;net&quot;	&quot;net/rpc&quot;)type HelloService struct&#123;&#125;func (p *HelloService) Hello(request string, reply *string) error &#123;	*reply = &quot;hello:&quot; + request	return nil&#125;func main() &#123;	rpc.RegisterName(&quot;HelloService&quot...</div></div></div><div class="recent-post-item"><div class="post_cover right"><a href="/2024/03/14/basic/go/Gocv%E5%AE%89%E8%A3%85(Windows)/" title="Gocv安装(Windows)"><img class="post-bg" src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gocv安装(Windows)"></a></div><div class="recent-post-info"><a class="article-title" href="/2024/03/14/basic/go/Gocv%E5%AE%89%E8%A3%85(Windows)/" title="Gocv安装(Windows)">Gocv安装(Windows)</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2024-03-14T04:08:55.000Z" title="发表于 2024-03-14 12:08:55">2024-03-14</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/basic/">basic</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/basic/go/">go</a></span></div><div class="content">Gocv安装(Windows)什么是GoCVgocv 是 OpenCV 4.x 计算机视觉库的包装器。 它为最新版本的 OpenCV 提供了 Go 语言接口 官网链接：https://gocv.io/ 安装1.安装Go（PASS）2.安装GoCV12go get -u -d gocv.io/x/gocv# 执行完这条命令后，%GOPATH%\pkg\mod下会出现一个文件夹&quot;[http://gocv.io](https://link.zhihu.com/?target=http%3A//gocv.io)&quot;  3.安装MinGW-W64注意安装版本：8.1.0 MinGW-W64版本   添加环境变量到系统环境变量  4.安装Cmake安装链接  5 安装opencv（谨记，要手动添加环境变量，不要忘了！）12chdir %GOPATH%\src\gocv.io\x\gocvwin_build_opencv.cmd  主要是win_build_opencv.cmd文件： 可以把文件opencv-4.6.0.zip和opencv_contrib-4.6.0.zip...</div></div></div><div class="recent-post-item"><div class="post_cover left"><a href="/2024/03/08/cloud/k8s/K8s-%E6%96%87%E4%BB%B6%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9Fnfs/" title="K8s-文件管理系统nfs（centos）"><img class="post-bg" src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s-文件管理系统nfs（centos）"></a></div><div class="recent-post-info"><a class="article-title" href="/2024/03/08/cloud/k8s/K8s-%E6%96%87%E4%BB%B6%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9Fnfs/" title="K8s-文件管理系统nfs（centos）">K8s-文件管理系统nfs（centos）</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2024-03-08T06:08:55.000Z" title="发表于 2024-03-08 14:08:55">2024-03-08</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/k8s/">k8s</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/k8s/storage/">storage</a></span></div><div class="content">K8s-文件管理系统nfs（centos）什么是nfsNFS在文件传送或信息传输过程中依赖于RPC协议，RPC协议可以在不同的系统之间使用。使用NFS用户端时只需要把远程文件系统挂载到自己的文件系统下即可访问，NFS有客户端和服务端 Deploynfs部署 centos部署nfs 12yum install -y nfs-utils rpcbind  执行命令 vim /etc/exports，创建 exports 文件，文件内容如下 1/data/nfs_root/ *(insecure,rw,sync,no_root_squash)	  启动nfs 12345678mkdir -p /data/nfs_rootsystemctl enable rpcbindsystemctl enable nfs-serversystemctl start rpcbindsystemctl start nfs-serverexportfs -r  nfs-provisoner部署12345678910111213141516171819202122# 获取helm chartshelm re...</div></div></div><div class="recent-post-item"><div class="post_cover right"><a href="/2024/03/02/poem/%E4%B8%89%E3%80%81%E7%A1%AC%E5%B8%81%E6%8A%9B%E5%90%91%E7%A9%BA%E4%B8%AD%E5%B0%B1%E6%98%AF%E7%AD%94%E6%A1%88/" title="三、硬币抛向空中就是答案"><img class="post-bg" src="/img/poem.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="三、硬币抛向空中就是答案"></a></div><div class="recent-post-info"><a class="article-title" href="/2024/03/02/poem/%E4%B8%89%E3%80%81%E7%A1%AC%E5%B8%81%E6%8A%9B%E5%90%91%E7%A9%BA%E4%B8%AD%E5%B0%B1%E6%98%AF%E7%AD%94%E6%A1%88/" title="三、硬币抛向空中就是答案">三、硬币抛向空中就是答案</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2024-03-02T14:35:55.000Z" title="发表于 2024-03-02 22:35:55">2024-03-02</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/poem/">poem</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/poem/%E4%BA%8C%E5%8D%81%E4%B8%89%E5%B2%81%E7%9A%84%E6%95%A3%E6%96%87%E8%AF%97/">二十三岁的散文诗</a></span></div></div></div><div class="recent-post-item"><div class="post_cover left"><a href="/2024/03/01/cloud/docker/Docker-%E9%95%9C%E5%83%8F%E4%BC%98%E5%8C%96/" title="Docker-镜像优化"><img class="post-bg" src="/img/docker.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Docker-镜像优化"></a></div><div class="recent-post-info"><a class="article-title" href="/2024/03/01/cloud/docker/Docker-%E9%95%9C%E5%83%8F%E4%BC%98%E5%8C%96/" title="Docker-镜像优化">Docker-镜像优化</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2024-03-01T05:08:55.000Z" title="发表于 2024-03-01 13:08:55">2024-03-01</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/docker/">docker</a></span></div><div class="content">Docker-镜像优化BackGroundDocker如果最后的镜像很大，所以是需要优化的。  安装不必要的软件包会增加攻击面，从而增加安全风险。 镜像传输需要更多时间。 部署大镜像需要更多时间。  优化方法优化一：合并RUN 原始Docker  1234567891011121314FROM hub.c.163.com/netease_comb/centos:7                                                                                                                                       MAINTAINER netease                                                                                                                                                                 ...</div></div></div><div class="recent-post-item"><div class="post_cover right"><a href="/2024/02/29/cloud/devops/DevOps-Argo%E5%AE%89%E8%A3%85/" title="DevOps-Argo安装"><img class="post-bg" src="/img/argo.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="DevOps-Argo安装"></a></div><div class="recent-post-info"><a class="article-title" href="/2024/02/29/cloud/devops/DevOps-Argo%E5%AE%89%E8%A3%85/" title="DevOps-Argo安装">DevOps-Argo安装</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2024-02-29T12:38:55.000Z" title="发表于 2024-02-29 20:38:55">2024-02-29</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/devops/">devops</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/devops/argo/">argo</a></span></div><div class="content">DevOps-Argo安装What is argoArgo Workflows 是一个开源的云原生工作流引擎，用于在 Kubernetes 上编排并行作业。Argo 工作流作为Kubernetes CRD 实现。  定义工作流，其中工作流中的每个步骤都是一个容器。 将多步骤工作流建模为一系列任务，或使用 DAG 来捕获任务之间的依赖关系图。 使用 Argo 可以在很短的时间内在 Kubernetes 上轻松运行机器学习或数据处理的计算密集型作业  一句话描述：ArgoWorkflow 是一个用于在 Kubernetes 上编排并行作业的开源云原生工作流引擎 commpoentsArgoWorkflow 组件比较少，整体架构比较简单。 核心组件：  argo-server：为工作流提供 API 和 UI 界面。 workflow-controller：真正干活的组件，解析用户创建的 CR 对象并启动 Pod 来真正运行流水线  Deploy Helm安装  12345678910# 添加参考并更新helm repo add argo https://argoproj.github....</div></div></div><div class="recent-post-item"><div class="post_cover left"><a href="/2024/02/28/poem/%E4%BA%8C%E3%80%81%E5%A4%B1%E8%B4%A5%E6%89%8D%E6%98%AF%E4%BA%BA%E7%94%9F%E7%9A%84%E4%B8%BB%E6%97%8B%E5%BE%8B/" title="二、失败才是人生的主旋律"><img class="post-bg" src="/img/poem.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="二、失败才是人生的主旋律"></a></div><div class="recent-post-info"><a class="article-title" href="/2024/02/28/poem/%E4%BA%8C%E3%80%81%E5%A4%B1%E8%B4%A5%E6%89%8D%E6%98%AF%E4%BA%BA%E7%94%9F%E7%9A%84%E4%B8%BB%E6%97%8B%E5%BE%8B/" title="二、失败才是人生的主旋律">二、失败才是人生的主旋律</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2024-02-28T14:08:55.000Z" title="发表于 2024-02-28 22:08:55">2024-02-28</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/poem/">poem</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/poem/%E4%BA%8C%E5%8D%81%E4%B8%89%E5%B2%81%E7%9A%84%E6%95%A3%E6%96%87%E8%AF%97/">二十三岁的散文诗</a></span></div></div></div><div class="recent-post-item"><div class="post_cover right"><a href="/2024/02/27/poem/%E4%B8%80%E3%80%81%E7%90%86%E6%83%B3/" title="一、迷茫：理想"><img class="post-bg" src="/img/poem.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="一、迷茫：理想"></a></div><div class="recent-post-info"><a class="article-title" href="/2024/02/27/poem/%E4%B8%80%E3%80%81%E7%90%86%E6%83%B3/" title="一、迷茫：理想">一、迷茫：理想</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2024-02-27T14:38:55.000Z" title="发表于 2024-02-27 22:38:55">2024-02-27</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/poem/">poem</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/poem/%E4%BA%8C%E5%8D%81%E4%B8%89%E5%B2%81%E7%9A%84%E6%95%A3%E6%96%87%E8%AF%97/">二十三岁的散文诗</a></span></div></div></div></div><nav id="pagination"><div class="pagination"><a class="extend prev" rel="prev" href="/page/16/#content-inner"><i class="fas fa-chevron-left fa-fw"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/16/#content-inner">16</a><span class="page-number current">17</span><a class="page-number" href="/page/18/#content-inner">18</a><span class="space">&hellip;</span><a class="page-number" href="/page/26/#content-inner">26</a><a class="extend next" rel="next" href="/page/18/#content-inner"><i class="fas fa-chevron-right fa-fw"></i></a></div></nav></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-日志系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明">Gorm-日志系统模块原理说明</a><time datetime="2026-01-11T11:56:27.000Z" title="发表于 2026-01-11 19:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-迁移功能模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明">Gorm-迁移功能模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-插件系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明">Gorm-插件系统模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-事务处理模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明">Gorm-事务处理模块原理说明</a><time datetime="2026-01-11T09:56:27.000Z" title="发表于 2026-01-11 17:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-关联关系模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明">Gorm-关联关系模块原理说明</a><time datetime="2026-01-11T08:56:27.000Z" title="发表于 2026-01-11 16:56:27">2026-01-11</time></div></div></div></div><div class="card-widget card-categories"><div class="item-headline">
+            <i class="fas fa-folder-open"></i>
+            <span>分类</span>
+            <a class="card-more-btn" href="/categories/" title="查看更多">
+      <i class="fas fa-angle-right"></i></a>
+          </div>
+          <ul class="card-category-list" id="aside-cat-list">
+            <li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/"><span class="card-category-list-name">basic</span><span class="card-category-list-count">36</span></a><ul class="card-category-list child"><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/go/"><span class="card-category-list-name">go</span><span class="card-category-list-count">14</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/"><span class="card-category-list-name">设计模式</span><span class="card-category-list-count">13</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/%E9%9D%A2%E8%AF%95/"><span class="card-category-list-name">面试</span><span class="card-category-list-count">9</span></a></li></ul></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/braveheart/"><span class="card-category-list-name">braveheart</span><span class="card-category-list-count">1</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/cloud/"><span class="card-category-list-name">cloud</span><span class="card-category-list-count">166</span></a><ul class="card-category-list child"><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/cloud/Harbor/"><span class="card-category-list-name">Harbor</span><span class="card-category-list-count">1</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/cloud/Istio/"><span class="card-category-list-name">Istio</span><span class="card-category-list-count">1</span></a></li></ul></li>
+          </ul></div><div class="card-widget card-tags"><div class="item-headline"><i class="fas fa-tags"></i><span>标签</span></div><div class="card-tag-cloud"><a href="/tags/k8s/" style="font-size: 1.5em; color: #99a9bf">k8s</a> <a href="/tags/CKAD/" style="font-size: 1.13em; color: #999a9c">CKAD</a> <a href="/tags/kubeedge/" style="font-size: 1.3em; color: #99a1ac">kubeedge</a> <a href="/tags/kube-apiserver/" style="font-size: 1.37em; color: #99a4b2">kube-apiserver</a> <a href="/tags/%E9%9D%A2%E8%AF%95/" style="font-size: 1.37em; color: #99a4b2">面试</a> <a href="/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/" style="font-size: 1.27em; color: #99a0a9">微服务</a> <a href="/tags/prometheus%E6%BA%90%E7%A0%81/" style="font-size: 1.33em; color: #99a2af">prometheus源码</a> <a href="/tags/kubelet/" style="font-size: 1.1em; color: #999">kubelet'</a> <a href="/tags/crd/" style="font-size: 1.13em; color: #999a9c">crd</a> <a href="/tags/kubeadm/" style="font-size: 1.17em; color: #999c9f">kubeadm</a> <a href="/tags/kubelet/" style="font-size: 1.27em; color: #99a0a9">kubelet</a> <a href="/tags/zap/" style="font-size: 1.13em; color: #999a9c">zap</a> <a href="/tags/cookies/" style="font-size: 1.1em; color: #999">cookies</a> <a href="/tags/alertmanager/" style="font-size: 1.27em; color: #99a0a9">alertmanager</a> <a href="/tags/validation/" style="font-size: 1.1em; color: #999">validation</a> <a href="/tags/deployment/" style="font-size: 1.13em; color: #999a9c">deployment</a> <a href="/tags/crio/" style="font-size: 1.1em; color: #999">crio</a> <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" style="font-size: 1.4em; color: #99a5b6">分布式</a> <a href="/tags/kustomize/" style="font-size: 1.1em; color: #999">kustomize</a> <a href="/tags/grafana/" style="font-size: 1.13em; color: #999a9c">grafana</a> <a href="/tags/Harbor/" style="font-size: 1.1em; color: #999">Harbor</a> <a href="/tags/dasemonset/" style="font-size: 1.17em; color: #999c9f">dasemonset</a> <a href="/tags/%E6%BA%90%E7%A0%81/" style="font-size: 1.4em; color: #99a5b6">源码</a> <a href="/tags/mysql/" style="font-size: 1.13em; color: #999a9c">mysql</a> <a href="/tags/kubectl/" style="font-size: 1.2em; color: #999da3">kubectl</a> <a href="/tags/private/" style="font-size: 1.2em; color: #999da3">private</a> <a href="/tags/gc/" style="font-size: 1.1em; color: #999">gc</a> <a href="/tags/tools/" style="font-size: 1.33em; color: #99a2af">tools</a> <a href="/tags/Istio/" style="font-size: 1.1em; color: #999">Istio</a> <a href="/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/" style="font-size: 1.27em; color: #99a0a9">计算机网络</a> <a href="/tags/web/" style="font-size: 1.43em; color: #99a6b9">web</a> <a href="/tags/cloud/" style="font-size: 1.47em; color: #99a8bc">cloud</a> <a href="/tags/containerd/" style="font-size: 1.23em; color: #999ea6">containerd</a> <a href="/tags/etcd/" style="font-size: 1.1em; color: #999">etcd</a> <a href="/tags/braveheart/" style="font-size: 1.1em; color: #999">braveheart</a> <a href="/tags/kubemark/" style="font-size: 1.1em; color: #999">kubemark</a> <a href="/tags/%E9%99%90%E6%B5%81%E7%AD%96%E7%95%A5/" style="font-size: 1.1em; color: #999">限流策略</a> <a href="/tags/job/" style="font-size: 1.2em; color: #999da3">job</a> <a href="/tags/devops/" style="font-size: 1.1em; color: #999">devops</a> <a href="/tags/Gin/" style="font-size: 1.17em; color: #999c9f">Gin</a></div></div><div class="card-widget card-archives">
+    <div class="item-headline">
+      <i class="fas fa-archive"></i>
+      <span>归档</span>
+      <a class="card-more-btn" href="/archives/"
+            title="查看更多">
+            <i class="fas fa-angle-right"></i>
+          </a>
+    </div>
+  
+    <ul class="card-archive-list">
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2026/01/">
+            <span class="card-archive-list-date">
+              一月 2026
+            </span>
+            <span class="card-archive-list-count">10</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/09/">
+            <span class="card-archive-list-date">
+              九月 2025
+            </span>
+            <span class="card-archive-list-count">1</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/08/">
+            <span class="card-archive-list-date">
+              八月 2025
+            </span>
+            <span class="card-archive-list-count">6</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/07/">
+            <span class="card-archive-list-date">
+              七月 2025
+            </span>
+            <span class="card-archive-list-count">11</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/06/">
+            <span class="card-archive-list-date">
+              六月 2025
+            </span>
+            <span class="card-archive-list-count">1</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/05/">
+            <span class="card-archive-list-date">
+              五月 2025
+            </span>
+            <span class="card-archive-list-count">1</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/03/">
+            <span class="card-archive-list-date">
+              三月 2025
+            </span>
+            <span class="card-archive-list-count">11</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/02/">
+            <span class="card-archive-list-date">
+              二月 2025
+            </span>
+            <span class="card-archive-list-count">1</span>
+          </a>
+        </li>
+      
+    </ul>
+  </div><div class="card-widget card-webinfo"><div class="item-headline"><i class="fas fa-chart-line"></i><span>网站信息</span></div><div class="webinfo"><div class="webinfo-item"><div class="item-name">文章数目 :</div><div class="item-count">259</div></div><div class="webinfo-item"><div class="item-name">本站总字数 :</div><div class="item-count">519.1k</div></div><div class="webinfo-item"><div class="item-name">本站访客数 :</div><div class="item-count" id="busuanzi_value_site_uv"><i class="fa-solid fa-spinner fa-spin"></i></div></div><div class="webinfo-item"><div class="item-name">本站总浏览量 :</div><div class="item-count" id="busuanzi_value_site_pv"><i class="fa-solid fa-spinner fa-spin"></i></div></div><div class="webinfo-item"><div class="item-name">最后更新时间 :</div><div class="item-count" id="last-push-date" data-lastPushDate="2026-02-28T13:30:23.474Z"><i class="fa-solid fa-spinner fa-spin"></i></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>window.typedJSFn = {
+  init: str => {
+    window.typed = new Typed('#subtitle', Object.assign({
+      strings: str,
+      startDelay: 300,
+      typeSpeed: 150,
+      loop: true,
+      backSpeed: 50,
+    }, null))
+  },
+  run: subtitleType => {
+    if (true) {
+      if (typeof Typed === 'function') {
+        subtitleType()
+      } else {
+        btf.getScript('https://cdn.jsdelivr.net/npm/typed.js/dist/typed.umd.min.js').then(subtitleType)
+      }
+    } else {
+      subtitleType()
+    }
+  },
+  processSubtitle: (content, extraContents = []) => {
+    if (true) {
+      const sub = ["我们登上并非我们所选择的舞台，演出并非我们所选择的剧本","该知道的都知道，不知道的慢慢了解","偶尔怀念一下就好了，脚下的路更重要"].slice()
+
+      if (extraContents.length > 0) {
+        sub.unshift(...extraContents)
+      }
+
+      if (typeof content === 'string') {
+        sub.unshift(content)
+      } else if (Array.isArray(content)) {
+        sub.unshift(...content)
+      }
+
+      sub.length > 0 && typedJSFn.init(sub)
+    } else {
+      document.getElementById('subtitle').textContent = typeof content === 'string' ? content :
+        (Array.isArray(content) && content.length > 0 ? content[0] : '')
+    }
+  }
+}
+btf.addGlobalFn('pjaxSendOnce', () => { typed.destroy() }, 'typedDestroy')
+</script><script>function subtitleType () {
+  typedJSFn.processSubtitle(["我们登上并非我们所选择的舞台，演出并非我们所选择的剧本","该知道的都知道，不知道的慢慢了解","偶尔怀念一下就好了，脚下的路更重要"])
+}
+typedJSFn.run(subtitleType)</script><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script></div><script src="/js/categories.js" defer></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

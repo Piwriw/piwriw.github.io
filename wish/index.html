@@ -1,0 +1,973 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Keep Doing | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="&#x2F;* 隐藏Hexo&#x2F;Butterfly默认渲染的标题 *&#x2F;   #site-title,   #page-site-info h1,   .page-title,   .post-title,   #main-content &gt; .title,   #main-content &gt; h1.title,   .article-container &gt; .article-title,   #po">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Keep Doing">
+<meta property="og:url" content="https://piwriw.github.io/wish/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="&#x2F;* 隐藏Hexo&#x2F;Butterfly默认渲染的标题 *&#x2F;   #site-title,   #page-site-info h1,   .page-title,   .post-title,   #main-content &gt; .title,   #main-content &gt; h1.title,   .article-container &gt; .article-title,   #po">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/avatar.jpg">
+<meta property="article:published_time" content="2024-01-25T10:51:11.000Z">
+<meta property="article:modified_time" content="2026-02-28T13:29:12.750Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="Joohwan">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/avatar.jpg"><script type="application/ld+json"></script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/wish/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Keep Doing',
+  isHighlightShrink: false,
+  isToc: false,
+  pageType: 'page'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="page" id="body-wrap"><header class="not-home-page" id="page-header" style="background-image: url(/img/wish.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="page-site-info"><h1 id="site-title">Keep Doing</h1></div></header><main class="layout hide-aside" id="content-inner"><div id="page"><div class="container" id="article-container"><link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  /* 隐藏Hexo/Butterfly默认渲染的标题 */
+  #site-title,
+  #page-site-info h1,
+  .page-title,
+  .post-title,
+  #main-content > .title,
+  #main-content > h1.title,
+  .article-container > .article-title,
+  #post-container > .post-title {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* 隐藏页面头部标题区域 */
+  #page-site-info {
+    display: none !important;
+  }
+
+  #page-header {
+    min-height: auto !important;
+    height: 60px !important;
+    background-position: center !important;
+  }
+
+  #page-header.not-home-page {
+    background-image: none !important;
+    background: transparent !important;
+    min-height: auto !important;
+  }
+
+  #page-site-info {
+    display: none !important;
+  }
+
+  :root {
+    --glass-bg: rgba(255, 255, 255, 0.18);
+    --glass-bg-hover: rgba(255, 255, 255, 0.28);
+    --glass-border: rgba(255, 255, 255, 0.3);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    --glass-blur: 20px;
+
+    --color-primary: #E11D48;
+    --color-secondary: #F97316;
+    --color-accent: #FB7185;
+    --color-success: #10B981;
+    --color-text: #1F2937;
+    --color-text-light: #6B7280;
+    --color-white: #FFFFFF;
+
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-body: 'Outfit', sans-serif;
+
+    --transition-fast: 150ms;
+    --transition-normal: 300ms;
+    --transition-slow: 500ms;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --glass-bg: rgba(255, 255, 255, 0.08);
+      --glass-bg-hover: rgba(255, 255, 255, 0.15);
+      --glass-border: rgba(255, 255, 255, 0.15);
+      --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      --color-text: #F9FAFB;
+      --color-text-light: #9CA3AF;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  .wish-container {
+    position: relative;
+    min-height: 100vh;
+    font-family: var(--font-body);
+    color: var(--color-text);
+    overflow-x: hidden;
+    padding: 40px 20px;
+  }
+
+  /* Aurora Background */
+  .aurora-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    background: linear-gradient(135deg, #FFF1F2 0%, #FEF3C7 25%, #F0F9FF 50%, #FAF5FF 75%, #FFF1F2 100%);
+    background-size: 400% 400%;
+    animation: auroraFlow 15s ease infinite;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .aurora-bg {
+      background: linear-gradient(135deg, #1F1B3D 0%, #2D1B3D 25%, #1B2D3D 50%, #2D1B2E 75%, #1F1B3D 100%);
+      background-size: 400% 400%;
+    }
+  }
+
+  .aurora-blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.6;
+    animation: blobFloat 20s ease-in-out infinite;
+  }
+
+  .aurora-blob-1 {
+    top: -10%;
+    right: -5%;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(225, 29, 72, 0.4) 0%, transparent 70%);
+    animation-delay: 0s;
+  }
+
+  .aurora-blob-2 {
+    bottom: -10%;
+    left: -5%;
+    width: 450px;
+    height: 450px;
+    background: radial-gradient(circle, rgba(249, 115, 22, 0.4) 0%, transparent 70%);
+    animation-delay: -5s;
+  }
+
+  .aurora-blob-3 {
+    top: 40%;
+    left: 30%;
+    width: 350px;
+    height: 350px;
+    background: radial-gradient(circle, rgba(251, 113, 133, 0.35) 0%, transparent 70%);
+    animation-delay: -10s;
+  }
+
+  .aurora-blob-4 {
+    top: 20%;
+    left: 50%;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(14, 165, 233, 0.3) 0%, transparent 70%);
+    animation-delay: -15s;
+  }
+
+  @keyframes auroraFlow {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  @keyframes blobFloat {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    25% { transform: translate(30px, -30px) scale(1.05); }
+    50% { transform: translate(-20px, 20px) scale(0.95); }
+    75% { transform: translate(20px, 30px) scale(1.02); }
+  }
+
+  /* Main Content */
+  .wish-main {
+    position: relative;
+    max-width: 900px;
+    margin: 0 auto;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+  }
+
+  /* Glass Card Base */
+  .glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    box-shadow: var(--glass-shadow);
+    transition: all var(--transition-normal) ease;
+  }
+
+  .glass-card:hover {
+    background: var(--glass-bg-hover);
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15);
+    transform: translateY(-4px);
+  }
+
+  /* Hero Section */
+  .wish-hero {
+    padding: 60px 50px;
+    text-align: center;
+    animation: fadeInUp var(--transition-slow) ease-out;
+  }
+
+  .wish-year {
+    font-family: var(--font-display);
+    font-size: clamp(64px, 15vw, 120px);
+    font-weight: 800;
+    margin: 0;
+    letter-spacing: -0.04em;
+    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary), var(--color-accent));
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gradientShift 8s ease infinite, fadeInUp 0.8s ease-out;
+    line-height: 1;
+  }
+
+  @keyframes gradientShift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  .wish-tagline {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--color-primary);
+    margin-top: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 28px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border-radius: 100px;
+    border: 1px solid var(--glass-border);
+    animation: fadeInUp 0.8s ease-out 0.2s backwards;
+  }
+
+  .wish-tagline::before,
+  .wish-tagline::after {
+    content: '';
+    width: 8px;
+    height: 8px;
+    background: var(--color-primary);
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  .wish-tagline::after {
+    animation-delay: 1s;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.2); }
+  }
+
+  /* Section Headers */
+  .wish-section {
+    padding: 40px;
+    animation: fadeInUp var(--transition-slow) ease-out backwards;
+  }
+
+  .wish-section-completed {
+    animation-delay: 0.1s;
+  }
+
+  .wish-section-pending {
+    animation-delay: 0.2s;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .section-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    flex-shrink: 0;
+  }
+
+  .section-icon-completed {
+    background: linear-gradient(135deg, var(--color-success), #34D399);
+    box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);
+  }
+
+  .section-icon-pending {
+    background: linear-gradient(135deg, var(--color-secondary), var(--color-accent));
+    box-shadow: 0 8px 24px rgba(249, 115, 22, 0.3);
+  }
+
+  .section-icon svg {
+    width: 24px;
+    height: 24px;
+    color: var(--color-white);
+  }
+
+  .section-title {
+    font-family: var(--font-display);
+    font-size: clamp(28px, 5vw, 36px);
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.02em;
+  }
+
+  .section-title-completed {
+    color: var(--color-success);
+  }
+
+  .section-title-pending {
+    color: var(--color-secondary);
+  }
+
+  /* Wish Items */
+  .wish-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .wish-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 24px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    transition: all var(--transition-normal) cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: default;
+  }
+
+  .wish-item:hover {
+    background: var(--glass-bg-hover);
+    transform: translateX(8px);
+  }
+
+  .wish-item.completed {
+    border-left: 4px solid var(--color-success);
+  }
+
+  .wish-item.pending {
+    border-left: 4px solid var(--color-secondary);
+  }
+
+  /* Checkbox */
+  .wish-checkbox {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all var(--transition-normal) cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .wish-checkbox-completed {
+    background: linear-gradient(135deg, var(--color-success), #34D399);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  }
+
+  .wish-checkbox-pending {
+    background: var(--glass-bg);
+    border: 2px solid var(--glass-border);
+  }
+
+  .wish-checkbox-pending::after {
+    content: '';
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--color-secondary);
+    opacity: 0.6;
+    animation: breathe 2s ease-in-out infinite;
+  }
+
+  @keyframes breathe {
+    0%, 100% { opacity: 0.4; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.2); }
+  }
+
+  .wish-checkbox svg {
+    width: 16px;
+    height: 16px;
+    color: var(--color-white);
+    opacity: 0;
+    transform: scale(0);
+    transition: all var(--transition-normal) cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .wish-item.completed .wish-checkbox svg {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  /* Wish Text */
+  .wish-text {
+    flex: 1;
+    font-size: 17px;
+    font-weight: 500;
+    color: var(--color-text);
+    line-height: 1.5;
+  }
+
+  .wish-item.completed .wish-text {
+    text-decoration: line-through;
+    opacity: 0.7;
+  }
+
+  .wish-item.pending .wish-text {
+    position: relative;
+  }
+
+  /* Sparkle effect for pending items */
+  .wish-item.pending .wish-text::after {
+    content: '✨';
+    position: absolute;
+    right: -30px;
+    opacity: 0;
+    animation: sparkle 3s ease-in-out infinite;
+    animation-delay: calc(var(--index, 0) * 0.5s);
+  }
+
+  @keyframes sparkle {
+    0%, 100% { opacity: 0; transform: scale(0.5) rotate(0deg); }
+    50% { opacity: 1; transform: scale(1.2) rotate(180deg); }
+  }
+
+  /* Wish Date Badge */
+  .wish-date {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 20px;
+    flex-shrink: 0;
+  }
+
+  .wish-date-completed {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--color-success);
+  }
+
+  .wish-date-pending {
+    background: rgba(249, 115, 22, 0.15);
+    color: var(--color-secondary);
+  }
+
+  /* Stats Section */
+  .wish-stats {
+    padding: 40px;
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    animation: fadeInUp var(--transition-slow) ease-out 0.3s backwards;
+  }
+
+  .stat-item {
+    text-align: center;
+  }
+
+  .stat-number {
+    font-family: var(--font-display);
+    font-size: clamp(36px, 8vw, 56px);
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .stat-number-completed {
+    color: var(--color-success);
+  }
+
+  .stat-number-pending {
+    color: var(--color-secondary);
+  }
+
+  .stat-label {
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--color-text-light);
+    margin-top: 8px;
+  }
+
+  .stat-divider {
+    width: 1px;
+    height: 60px;
+    background: var(--glass-border);
+    align-self: center;
+  }
+
+  /* Footer Message */
+  .wish-footer {
+    padding: 40px;
+    text-align: center;
+    animation: fadeInUp var(--transition-slow) ease-out 0.4s backwards;
+  }
+
+  .footer-quote {
+    font-family: var(--font-display);
+    font-size: clamp(20px, 4vw, 28px);
+    font-weight: 600;
+    color: var(--color-primary);
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  .footer-sub {
+    font-size: 14px;
+    color: var(--color-text-light);
+    margin-top: 16px;
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .wish-container {
+      padding: 24px 16px;
+    }
+
+    .wish-hero {
+      padding: 40px 24px;
+    }
+
+    .wish-section {
+      padding: 28px 20px;
+    }
+
+    .wish-item {
+      padding: 16px 18px;
+      flex-wrap: wrap;
+    }
+
+    .wish-text {
+      font-size: 15px;
+      order: 2;
+      width: 100%;
+      margin-top: 8px;
+    }
+
+    .wish-checkbox {
+      order: 1;
+    }
+
+    .wish-date {
+      order: 3;
+    }
+
+    .wish-item.pending .wish-text::after {
+      display: none;
+    }
+
+    .wish-stats {
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .stat-divider {
+      width: 60px;
+      height: 1px;
+    }
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-primary);
+    outline-offset: 3px;
+    border-radius: 8px;
+  }
+</style>
+
+<div id="wish-root"><style>#wish-root{visibility:hidden}#wish-root.loaded{visibility:visible}</style></div>
+<script>document.addEventListener('DOMContentLoaded',function(){var h=document.getElementById('page-header');if(h){h.style.backgroundImage='none';h.style.background='transparent';}var t=document.getElementById('page-site-info');if(t){t.style.display='none';}});</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Wish data
+  const wishes = {
+    year: '2024',
+    completed: [
+      { text: '2024.1 Joohwan 个人网站添加更多功能上线', date: '2024.01' }
+    ],
+    pending: [
+      { text: '优秀毕业论文', date: '2024' },
+      { text: '毕业旅行', date: '2024' },
+      { text: '滑雪🎿', date: '2024' },
+      { text: '爬山', date: '2024' },
+      { text: '属于自己全新的学习桌', date: '2024' },
+      { text: '📹摄影相机', date: '2024' }
+    ]
+  };
+
+  const completedCount = wishes.completed.length;
+  const pendingCount = wishes.pending.length;
+  const totalCount = completedCount + pendingCount;
+  const progressPercent = Math.round((completedCount / totalCount) * 100);
+
+  const html = `
+    <div class="wish-container">
+      <div class="aurora-bg">
+        <div class="aurora-blob aurora-blob-1"></div>
+        <div class="aurora-blob aurora-blob-2"></div>
+        <div class="aurora-blob aurora-blob-3"></div>
+        <div class="aurora-blob aurora-blob-4"></div>
+      </div>
+
+      <div class="wish-main">
+        <!-- Hero Section -->
+        <div class="glass-card wish-hero">
+          <h1 class="wish-year">${wishes.year}</h1>
+          <div class="wish-tagline">Keep Doing · 继续前行</div>
+        </div>
+
+        <!-- Progress Stats -->
+        <div class="glass-card wish-stats">
+          <div class="stat-item">
+            <div class="stat-number stat-number-completed">${completedCount}</div>
+            <div class="stat-label">已完成</div>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-item">
+            <div class="stat-number stat-number-pending">${pendingCount}</div>
+            <div class="stat-label">待完成</div>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-item">
+            <div class="stat-number" style="color: var(--color-primary)">${progressPercent}%</div>
+            <div class="stat-label">进度</div>
+          </div>
+        </div>
+
+        <!-- Completed Wishes -->
+        ${wishes.completed.length > 0 ? `
+        <div class="glass-card wish-section wish-section-completed">
+          <div class="section-header">
+            <div class="section-icon section-icon-completed">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h2 class="section-title section-title-completed">已完成 · Completed</h2>
+          </div>
+          <div class="wish-list">
+            ${wishes.completed.map((wish, index) => `
+              <div class="wish-item completed" style="--index: ${index}">
+                <div class="wish-checkbox wish-checkbox-completed">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                  </svg>
+                </div>
+                <span class="wish-text">${wish.text}</span>
+                <span class="wish-date wish-date-completed">${wish.date}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        ` : ''}
+
+        <!-- Pending Wishes -->
+        ${wishes.pending.length > 0 ? `
+        <div class="glass-card wish-section wish-section-pending">
+          <div class="section-header">
+            <div class="section-icon section-icon-pending">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0012 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.988 5.988 0 01-2.031.352 5.988 5.988 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L18.75 4.97zm-16.5.52c.99-.203 1.99-.377 3-.52m0 0l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.989 5.989 0 01-2.031.352 5.989 5.989 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L5.25 4.97z" />
+              </svg>
+            </div>
+            <h2 class="section-title section-title-pending">期待中 · Pending</h2>
+          </div>
+          <div class="wish-list">
+            ${wishes.pending.map((wish, index) => `
+              <div class="wish-item pending" style="--index: ${index}">
+                <div class="wish-checkbox wish-checkbox-pending"></div>
+                <span class="wish-text">${wish.text}</span>
+                <span class="wish-date wish-date-pending">${wish.date}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        ` : ''}
+
+        <!-- Footer Quote -->
+        <div class="glass-card wish-footer">
+          <p class="footer-quote">"愿每一份期待都不被辜负"</p>
+          <p class="footer-sub">May every expectation be fulfilled</p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('wish-root').innerHTML = html;
+  document.getElementById('wish-root').classList.add('loaded');
+});
+</script>
+</div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

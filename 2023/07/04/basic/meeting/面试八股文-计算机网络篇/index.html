@@ -1,0 +1,703 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>面试八股文-计算机网络篇 | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="面试八股文-计算机网络篇OSI七层模型和TCP&#x2F;IP四层协议概述OSI七层模型协议 帧结构 各层级之间的作用网络层： 关键协议：IP协议、ICMP协议  主机之间的通信，目的是向上提供简单灵活、无连接的、最大努力的交付的数据报服务，网络层不提供服务质量的承诺 不需要建立连接 每个数据报单独路由 每个数据报有完整的目标地址 不提供可靠的连接 到达终点可能无序 每终点进行差错控制  传输层：">
+<meta property="og:type" content="article">
+<meta property="og:title" content="面试八股文-计算机网络篇">
+<meta property="og:url" content="https://piwriw.github.io/2023/07/04/basic/meeting/%E9%9D%A2%E8%AF%95%E5%85%AB%E8%82%A1%E6%96%87-%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E7%AF%87/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="面试八股文-计算机网络篇OSI七层模型和TCP&#x2F;IP四层协议概述OSI七层模型协议 帧结构 各层级之间的作用网络层： 关键协议：IP协议、ICMP协议  主机之间的通信，目的是向上提供简单灵活、无连接的、最大努力的交付的数据报服务，网络层不提供服务质量的承诺 不需要建立连接 每个数据报单独路由 每个数据报有完整的目标地址 不提供可靠的连接 到达终点可能无序 每终点进行差错控制  传输层：">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/basic.jpg">
+<meta property="article:published_time" content="2023-07-03T16:10:55.000Z">
+<meta property="article:modified_time" content="2026-02-28T13:29:12.659Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="面试">
+<meta property="article:tag" content="计算机网络">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/basic.jpg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "面试八股文-计算机网络篇",
+  "url": "https://piwriw.github.io/2023/07/04/basic/meeting/%E9%9D%A2%E8%AF%95%E5%85%AB%E8%82%A1%E6%96%87-%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E7%AF%87/",
+  "image": "https://piwriw.github.io/img/basic.jpg",
+  "datePublished": "2023-07-03T16:10:55.000Z",
+  "dateModified": "2026-02-28T13:29:12.659Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2023/07/04/basic/meeting/%E9%9D%A2%E8%AF%95%E5%85%AB%E8%82%A1%E6%96%87-%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E7%AF%87/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '面试八股文-计算机网络篇',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/basic.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">面试八股文-计算机网络篇</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">面试八股文-计算机网络篇</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2023-07-03T16:10:55.000Z" title="发表于 2023-07-04 00:10:55">2023-07-04</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-02-28T13:29:12.659Z" title="更新于 2026-02-28 21:29:12">2026-02-28</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/basic/">basic</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/basic/%E9%9D%A2%E8%AF%95/">面试</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">3.3k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>10分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-02-28 21:29:12&quot;}" hidden></div><h1 id="面试八股文-计算机网络篇"><a href="#面试八股文-计算机网络篇" class="headerlink" title="面试八股文-计算机网络篇"></a>面试八股文-计算机网络篇</h1><h2 id="OSI七层模型和TCP-IP四层协议概述"><a href="#OSI七层模型和TCP-IP四层协议概述" class="headerlink" title="OSI七层模型和TCP&#x2F;IP四层协议概述"></a>OSI七层模型和TCP&#x2F;IP四层协议概述</h2><h3 id="OSI七层模型协议"><a href="#OSI七层模型协议" class="headerlink" title="OSI七层模型协议"></a>OSI七层模型协议</h3><p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20230703141100.png" alt="20230703141100"></p>
+<h4 id="帧结构"><a href="#帧结构" class="headerlink" title="帧结构"></a>帧结构</h4><p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20230703141556.png" alt="20230703141556"></p>
+<h4 id="各层级之间的作用"><a href="#各层级之间的作用" class="headerlink" title="各层级之间的作用"></a>各层级之间的作用</h4><p>网络层：</p>
+<p>关键协议：IP协议、ICMP协议</p>
+<ul>
+<li>主机之间的通信，目的是向上提供简单灵活、无连接的、最大努力的交付的数据报服务，网络层<strong>不提供服务质量的承诺</strong></li>
+<li>不需要建立连接</li>
+<li>每个数据报单独路由</li>
+<li>每个数据报有完整的目标地址</li>
+<li>不提供可靠的连接</li>
+<li>到达终点可能无序</li>
+<li>每终点进行差错控制</li>
+</ul>
+<p>传输层：</p>
+<p>关键协议：TCP协议、UDP协议</p>
+<ul>
+<li>主机间<strong>进程之间的通信</strong>，向应用层提供通信服务，屏蔽下面的核心网的网络细节，使得面向传输层编程就像二个主机之间有一条端到端的逻辑通信信道一样</li>
+<li>传输层使用TCP协议的时候，这个逻辑通信信道是<strong>可靠的</strong>，尽管下面的网络是不可靠的</li>
+</ul>
+<p>应用层：</p>
+<p>关键协议：HTTP协议、FTP协议、SMTP协议、DNS</p>
+<ul>
+<li>定义了运行不同端系统上的应用程序如何互相传递报文</li>
+<li>提供了<strong>不同应用之间的通信</strong></li>
+</ul>
+<h3 id="TCP-IP四层协议"><a href="#TCP-IP四层协议" class="headerlink" title="TCP&#x2F;IP四层协议"></a>TCP&#x2F;IP四层协议</h3><p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20230703141236.png" alt="20230703141236"></p>
+<h2 id="HTTP版本的演进"><a href="#HTTP版本的演进" class="headerlink" title="HTTP版本的演进"></a>HTTP版本的演进</h2><pre><code class="highlight mermaid">graph LR
+    A(HTTP0.9/1991)
+    B(HTTP1.0/1996)
+    C(HTTP1.1/1997)
+    D(HTTP2.0/2015)
+    A--&gt;B
+    B--&gt;C
+    C--&gt;D</code></pre>
+
+<table>
+<thead>
+<tr>
+<th>HTTP&#x2F;0.9</th>
+<th>HTTP&#x2F;1.0</th>
+<th>HTTP&#x2F;1.1</th>
+<th>HTTP&#x2F;2.0</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>HTTP协议原型</td>
+<td>广泛使用</td>
+<td><strong>长连接</strong></td>
+<td>性能进一步提升</td>
+</tr>
+<tr>
+<td>设计缺陷</td>
+<td>增加多种方法</td>
+<td>管道化</td>
+<td>二进制分帧</td>
+</tr>
+<tr>
+<td>只支持Get</td>
+<td><strong>支持多种多媒体对象</strong></td>
+<td>缓存处理</td>
+<td><strong>多路复用</strong></td>
+</tr>
+<tr>
+<td><strong>不支持多媒体</strong></td>
+<td>无连接、无状态</td>
+<td>断点传输</td>
+<td>首部压缩</td>
+</tr>
+<tr>
+<td>只有HTML对象</td>
+<td></td>
+<td></td>
+<td><strong>服务端推送</strong></td>
+</tr>
+</tbody></table>
+<h3 id="keep-alive长连接"><a href="#keep-alive长连接" class="headerlink" title="keep-alive长连接"></a>keep-alive长连接</h3><p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20230703162008.png" alt="20230703162008"></p>
+<h3 id="2-0多路复用"><a href="#2-0多路复用" class="headerlink" title="2.0多路复用"></a>2.0多路复用</h3><p>一个信道上传输多路信号或者数据流的过程和技术，采用多路复用技术，通信运营商考研避免维护多条线路，有效节约运营成本。</p>
+<ul>
+<li><p>二进制分帧是基础，通信单位为帧</p>
+</li>
+<li><p>多请求并行，不依赖多TCP连接</p>
+</li>
+<li><p>并行在一个TCP连接，交互多种类型信息</p>
+</li>
+</ul>
+<h3 id="2-0头部压缩"><a href="#2-0头部压缩" class="headerlink" title="2.0头部压缩"></a>2.0头部压缩</h3><p>HTTP&#x2F;2 协议由两个 RFC 组成：一个是 <a href="https://link.juejin.cn/?target=https://httpwg.github.io/specs/rfc7540.html">RFC 7540</a>，描述了 HTTP&#x2F;2 协议本身；一个是 <a href="https://link.juejin.cn/?target=https://httpwg.github.io/specs/rfc7541.html">RFC 7541</a></p>
+<p>哈夫曼编码压缩</p>
+<h3 id="2-0服务推送"><a href="#2-0服务推送" class="headerlink" title="2.0服务推送"></a>2.0服务推送</h3><p>服务器可以对一个客户端请求发送多个响应，服务器向客户端推送资源无需客户端明确地请求。并且，服务端推送能把客户端所需要的资源伴随着index.html一起发送到客户端，省去了客户端重复请求的步骤</p>
+<h2 id="常见的HTTP状态码、报文结构、请求方法"><a href="#常见的HTTP状态码、报文结构、请求方法" class="headerlink" title="常见的HTTP状态码、报文结构、请求方法"></a>常见的HTTP状态码、报文结构、请求方法</h2><h3 id="报文结构"><a href="#报文结构" class="headerlink" title="报文结构"></a>报文结构</h3><p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20230703153437.png" alt="20230703153437"></p>
+<h3 id="请求方法"><a href="#请求方法" class="headerlink" title="请求方法"></a>请求方法</h3><ul>
+<li><p>GET：最常用方法，请求服务器资源</p>
+</li>
+<li><p>HEAD：与Get类似，但是响应只返回首部</p>
+</li>
+<li><p>POST：向服务器写入数据</p>
+</li>
+<li><p>TRACE：观察请求报问到达服务器的最终样子</p>
+</li>
+<li><p>PUT：写入（更新）服务器资源</p>
+</li>
+<li><p>DELETE：删除URL所指定的资源</p>
+</li>
+<li><p>OPTIONS：…资源支持操作的方法</p>
+</li>
+<li><p>幂等操作：幂等操作只其任意多次执行所产生与一次执行的影响相同</p>
+</li>
+<li><p>幂等函数：使用相同参数重复执行，并能获得相同结果的函数</p>
+</li>
+</ul>
+<h3 id="HTTP状态码"><a href="#HTTP状态码" class="headerlink" title="HTTP状态码"></a>HTTP状态码</h3><table>
+<thead>
+<tr>
+<th>状态码</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>200~299</td>
+<td>成功状态码</td>
+</tr>
+<tr>
+<td>300~399</td>
+<td>重定向状态码</td>
+</tr>
+<tr>
+<td>400~499</td>
+<td>客户端错误状态码</td>
+</tr>
+<tr>
+<td>500~599</td>
+<td>服务器错误状态码</td>
+</tr>
+</tbody></table>
+<p>常见：</p>
+<table>
+<thead>
+<tr>
+<th>状态码</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>204</td>
+<td>OK, 请求没问题，实体主体有所请求的资源</td>
+</tr>
+<tr>
+<td>204</td>
+<td>No content，响应报问有首部和状态行，没有实体的主体</td>
+</tr>
+<tr>
+<td>304</td>
+<td>Not Modified 请求资源未修改，服务器返回此状态码，不会返回任何资源</td>
+</tr>
+<tr>
+<td>400</td>
+<td>Bad Request 客户端请求错误，服务器无法理解</td>
+</tr>
+<tr>
+<td>401</td>
+<td>Unauthorized 请求客户端获得资源的访问之前，需要认证</td>
+</tr>
+<tr>
+<td>403</td>
+<td>Forbidden 请求被服务器拒绝</td>
+</tr>
+<tr>
+<td>404</td>
+<td>Not Found 服务器找不到所请求的URL</td>
+</tr>
+<tr>
+<td>500</td>
+<td>Internal Server Error 服务器内部错误</td>
+</tr>
+<tr>
+<td>502</td>
+<td>Bad Gateway 网关或者代理服务，从远程服务器收到一个无效的响应</td>
+</tr>
+<tr>
+<td>503</td>
+<td>Server Unavailable 服务器无法提供服务（服务器宕机）</td>
+</tr>
+<tr>
+<td>504</td>
+<td>Gateway Timeout  网关服务器，未即使从远端服务器获取请求</td>
+</tr>
+</tbody></table>
+<h2 id="安全传输"><a href="#安全传输" class="headerlink" title="安全传输"></a>安全传输</h2><h3 id="对称加密"><a href="#对称加密" class="headerlink" title="对称加密"></a>对称加密</h3><p>也称为对称密码,是指在加密和解密时使用同一密钥得加密方式</p>
+<p>DES、AES、3DES</p>
+<h4 id="非对称加密"><a href="#非对称加密" class="headerlink" title="非对称加密"></a>非对称加密</h4><p> 非对称加密算法需要两个密钥：公开密钥（publickey:简称公钥）和私有密钥（privatekey:简称私钥）。 公钥与私钥是一对，如果用公钥对数据进行加密，只有用对应的私钥才能解密。</p>
+<p>RSA、ECC、DH</p>
+<h3 id="散列算法"><a href="#散列算法" class="headerlink" title="散列算法"></a>散列算法</h3><p>又称散列算法、哈希函数，是从任何一种数据创建小的数字“指纹”。散列函数把消息压缩成摘要，使得数据量变小，讲数据的格式固定下来</p>
+<p>哈希算法是<strong>不允许逆向</strong></p>
+<h3 id="HTTPS协议基础-TLS技术"><a href="#HTTPS协议基础-TLS技术" class="headerlink" title="HTTPS协议基础-TLS技术"></a>HTTPS协议基础-TLS技术</h3><p>TLS:传输层安全协议（Transport Layer Security），综合了对称加密、非对称加密技术设计的安全协议</p>
+<h4 id="数字证书"><a href="#数字证书" class="headerlink" title="数字证书"></a>数字证书</h4><ul>
+<li><p>互联网中标识各方身份信息的一个数字认证，人们可以网上来识别对方身份</p>
+</li>
+<li><p><strong>可信任组织</strong>颁发给<strong>特定对象</strong>的认证</p>
+</li>
+<li><p>格式：证书序列号、签名算法、有效期、对象名称、对象公开密钥…</p>
+</li>
+</ul>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20230703161240.png" alt="20230703161240"></p>
+<h4 id="流程"><a href="#流程" class="headerlink" title="流程"></a>流程</h4><p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20230703161455.png" alt="20230703161455"></p>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20230703161539.png" alt="20230703161539"></p>
+<h2 id="DNS域名系统工作流程"><a href="#DNS域名系统工作流程" class="headerlink" title="DNS域名系统工作流程"></a>DNS域名系统工作流程</h2><p>DNS系统（Domain Name system）：存储域名和IP互相映射，是一个分布式数据库，提供更好的访问互联网</p>
+<ul>
+<li>DNS以点、字母和数字组成</li>
+<li>点组成不同域</li>
+<li>有顶级域名、二级域名、三级域名</li>
+</ul>
+<p>DNS工作原理：</p>
+<pre><code class="highlight mermaid">graph LR
+    A(本地DNS)
+    B(根域名服务器)
+    C(顶级域名服务器)
+    D(权威域名服务器)
+    A--&gt;B
+    B--&gt;C
+    C--&gt;D</code></pre>
+
+
+
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20230703162719.png" alt="20230703162719"></p>
+<h2 id="DNS安全"><a href="#DNS安全" class="headerlink" title="DNS安全"></a>DNS安全</h2><h3 id="DNS劫持"><a href="#DNS劫持" class="headerlink" title="DNS劫持"></a>DNS劫持</h3><p>预防：不使用DNS自动获取，使用固定权威DNS服务器</p>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20230703191844.png" alt="20230703191844"></p>
+<h3 id="DNS欺骗"><a href="#DNS欺骗" class="headerlink" title="DNS欺骗"></a>DNS欺骗</h3><p>伪造了权威服务器</p>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20230703191917.png" alt="20230703191917"></p>
+<h3 id="DDoS攻击"><a href="#DDoS攻击" class="headerlink" title="DDoS攻击"></a>DDoS攻击</h3><ul>
+<li>DNS本质是一种程序</li>
+<li>物理设备容量有承载极限</li>
+<li>超过容量导致宕机</li>
+<li>出现拒绝服务工具（denial-of-service attack），消耗目标主机的资源，让用户无法正常访问</li>
+</ul>
+<h2 id="TCP、UDP协议"><a href="#TCP、UDP协议" class="headerlink" title="TCP、UDP协议"></a>TCP、UDP协议</h2><h3 id="UDP协议"><a href="#UDP协议" class="headerlink" title="UDP协议"></a>UDP协议</h3><p>16位源端口号、16位目的端口号</p>
+<h3 id="TCP协议"><a href="#TCP协议" class="headerlink" title="TCP协议"></a>TCP协议</h3><p>序号：</p>
+<ul>
+<li>4个字节</li>
+<li>TCP数据流是字节流–每个字节都有唯一的序号</li>
+<li>起始序号在建立TCP连接的时候设置</li>
+<li>序号表示本报文段的第一个字节的序号</li>
+</ul>
+<p>确认号：</p>
+<ul>
+<li>和序号一致–四个字节</li>
+<li>期待收到对方下一个报文的第一个数据字节序号</li>
+<li>若确认号&#x3D;N，则序号N-1为止的所有数据都已经正确收到</li>
+</ul>
+<p>控制位：</p>
+<table>
+<thead>
+<tr>
+<th>控制位</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>URG</td>
+<td>Urgent；紧急位，URG&#x3D;1，表示紧急数据</td>
+</tr>
+<tr>
+<td>ACK</td>
+<td>Acknowledgement；确认位，ACK&#x3D;1,确认号才生效</td>
+</tr>
+<tr>
+<td>PSH</td>
+<td>Push；推送位，PSH&#x3D;1,尽快地把数据交付给应用层</td>
+</tr>
+<tr>
+<td>RST</td>
+<td>Reset；重置位，RST&#x3D;1，重新建立连接</td>
+</tr>
+<tr>
+<td>SYN</td>
+<td>Synchroniation；同步位，SYN&#x3D;1,连接请求报文</td>
+</tr>
+<tr>
+<td>FIN</td>
+<td>Finish；终止位，FIN&#x3D;1,释放连接</td>
+</tr>
+</tbody></table>
+<p>窗口：</p>
+<ul>
+<li>2字节</li>
+<li>窗口指明允许对方发送的数据量</li>
+<li>数据缓存空间有限，不能无限缓存数据</li>
+</ul>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20230703194446.png" alt="20230703194446"></p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>UDP</th>
+<th>TCP</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>性能</td>
+<td>负载低</td>
+<td>负载高</td>
+</tr>
+<tr>
+<td>速度</td>
+<td>快</td>
+<td>慢</td>
+</tr>
+<tr>
+<td>实现难度</td>
+<td>简单</td>
+<td>复杂</td>
+</tr>
+<tr>
+<td>应用场景</td>
+<td>简单</td>
+<td>复杂</td>
+</tr>
+<tr>
+<td>面向连接</td>
+<td>无连接</td>
+<td>有连接</td>
+</tr>
+<tr>
+<td>可靠性</td>
+<td>不可靠</td>
+<td>可靠</td>
+</tr>
+</tbody></table>
+<p>应用场景：</p>
+<table>
+<thead>
+<tr>
+<th>应用</th>
+<th>应用层协议</th>
+<th>传输层协议</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>名字转换</td>
+<td>DNS</td>
+<td>UDP</td>
+</tr>
+<tr>
+<td>文件传送</td>
+<td>TFTP(简单文件传输协议)</td>
+<td>UDP</td>
+</tr>
+<tr>
+<td>流式多媒体通信</td>
+<td>-</td>
+<td>UDP</td>
+</tr>
+<tr>
+<td>IP地址配置</td>
+<td>DHCP</td>
+<td>UDP</td>
+</tr>
+<tr>
+<td>电子邮件</td>
+<td>SMTP（简单邮件传送协议</td>
+<td>TCP</td>
+</tr>
+<tr>
+<td>文件传送</td>
+<td>FTP</td>
+<td>TCP</td>
+</tr>
+<tr>
+<td>远端终端接入</td>
+<td>TELNET</td>
+<td>TCP</td>
+</tr>
+<tr>
+<td>WWW</td>
+<td>HTTP</td>
+<td>TCP</td>
+</tr>
+</tbody></table>
+<h2 id="TCP连接的过程（三次握手）"><a href="#TCP连接的过程（三次握手）" class="headerlink" title="TCP连接的过程（三次握手）"></a>TCP连接的过程（三次握手）</h2><ul>
+<li>第一次，SYN&#x3D;1,请求同步并告诉对方自己的数据序列号</li>
+<li>第二次，SYN&#x3D;1,ACK&#x3D;1，确认对方的数据并且告诉自己的数据序列号</li>
+<li>第三次，ACK&#x3D;1，确认对方的数据并开始传输数据</li>
+</ul>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20230703204315.png" alt="20230703204315"></p>
+<h4 id="TCP释放连接（四次挥手）"><a href="#TCP释放连接（四次挥手）" class="headerlink" title="TCP释放连接（四次挥手）"></a>TCP释放连接（四次挥手）</h4><ul>
+<li>第一次，FIN&#x3D;1,主动请求中断</li>
+<li>第二次，ACK&#x3D;1、ack&#x3D;u+1，表示确认收到中断报文</li>
+<li>第三次，FIN&#x3D;1、ACK&#x3D;1、seq&#x3D;w，ack&#x3D;u+1，请求中断连接</li>
+<li>第四次，ACK&#x3D;1、seq&#x3D;u+1，ack&#x3D;w+1，确认中断连接</li>
+<li>TIME-WAIT状态，这个时候，主动方尚未完全关闭TCP连接，端口不可复用</li>
+<li>MSL(Max Segment Lifetime)：最长报文段寿命RFC 793标准时间设置位2min</li>
+</ul>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20230703225005.png" alt="20230703225005"></p>
+<h4 id="为什么TIME-WAIT状态需要等待2MSL？"><a href="#为什么TIME-WAIT状态需要等待2MSL？" class="headerlink" title="为什么TIME-WAIT状态需要等待2MSL？"></a>为什么TIME-WAIT状态需要等待2MSL？</h4><ol>
+<li>最后一个报文没有确定</li>
+<li>确认没有一个ACK报文一定能达到对方</li>
+<li>2MSL时间内，如果没有达到对方，那么对方会重新进行三次挥手，确保连接正常释放</li>
+<li>确保当前所有连接的报文都已经过期</li>
+</ol>
+<h2 id="滑动窗口的工作过程"><a href="#滑动窗口的工作过程" class="headerlink" title="滑动窗口的工作过程"></a>滑动窗口的工作过程</h2><h3 id="停止-等待协议"><a href="#停止-等待协议" class="headerlink" title="停止-等待协议"></a>停止-等待协议</h3><ul>
+<li>最简单的可靠传输协议</li>
+<li>对信道的利用效率不高</li>
+</ul>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20230703230353.png" alt="20230703230353"></p>
+<h3 id="连续ARQ-Automatic-Repeat-reQuest-协议"><a href="#连续ARQ-Automatic-Repeat-reQuest-协议" class="headerlink" title="连续ARQ(Automatic Repeat reQuest)协议"></a>连续ARQ(Automatic Repeat reQuest)协议</h3><h3 id="滑动窗口"><a href="#滑动窗口" class="headerlink" title="滑动窗口"></a>滑动窗口</h3><p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20230703231224.png" alt="20230703231224"></p>
+<h2 id="拥塞避免算法"><a href="#拥塞避免算法" class="headerlink" title="拥塞避免算法"></a>拥塞避免算法</h2><h3 id="什么是网络拥塞"><a href="#什么是网络拥塞" class="headerlink" title="什么是网络拥塞"></a>什么是网络拥塞</h3><p>在某一段时间内，若对网络中的某一资源（带宽、缓存、处理机等）的需求超过了该资源所能提供的可用部分，网络性能就会变坏，这种情况称为网络拥塞。</p>
+<h3 id="满开始与拥塞避免"><a href="#满开始与拥塞避免" class="headerlink" title="满开始与拥塞避免"></a>满开始与拥塞避免</h3><p><strong>拥塞窗口（cwnd）</strong>：拥塞窗口是TCP协议基于窗口的拥塞控制需要的一个变量配置。发送方在发送数据的时候维护一个拥塞窗口的状态变量，并且可以动态改变，在TCP报文头部，发送方让自己的发送窗口等于拥塞窗口</p>
+<p><strong>门限值（ssthewah）</strong>：拥塞避免算法启动阈值，当拥塞窗口cwnd超过门限ssthres时，启动慢启动算法</p>
+<p><strong>传输轮次（Route-Trip）</strong>：一次报文发送和确认的时间称为一次传输轮次，RTT(Route-Trip-Time)定义一次传输轮次的往返时间</p>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20230703232138.png" alt="20230703232138"></p>
+<h3 id="快重传与快恢复"><a href="#快重传与快恢复" class="headerlink" title="快重传与快恢复"></a>快重传与快恢复</h3><p>快重传：让发送方尽早知道个别报文文段的丢失，并立即重传，以避免发送方认为网络发生了拥塞，从而拥塞避免算法降低发送数据</p>
+<ul>
+<li><p>不是捎带确认，而是立即确认</p>
+</li>
+<li><p>对丢失报文多次重复确认</p>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20230703232433.png" alt="20230703232433"></p>
+<p>快恢复：</p>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20230703232542.png" alt="20230703232542"></p>
+</li>
+</ul>
+<h2 id="TCP粘包"><a href="#TCP粘包" class="headerlink" title="TCP粘包"></a>TCP粘包</h2><h3 id="什么是粘包"><a href="#什么是粘包" class="headerlink" title="什么是粘包"></a>什么是粘包</h3><p>指TCP协议中，发送方发送的若干包数据到接收方接收时粘成一包，从接收缓冲区看，后一包数据的头紧接着前一包数据的尾。</p>
+<h3 id="Nagle算法"><a href="#Nagle算法" class="headerlink" title="Nagle算法"></a>Nagle算法</h3><p>使用通过减少数据包的方式提高TCP传输性能的算法</p>
+<h3 id="粘包拆包发生场景"><a href="#粘包拆包发生场景" class="headerlink" title="粘包拆包发生场景"></a>粘包拆包发生场景</h3><p>因为TCP是面向流，没有边界，而操作系统在发送TCP数据时，会通过缓冲区来进行优化，例如缓冲区为1024个字节大小。</p>
+<p>如果一次请求发送的数据量比较小，没达到缓冲区大小，TCP则会将多个请求合并为同一个请求进行发送，这就形成了粘包问题。</p>
+<p>如果一次请求发送的数据量比较大，超过了缓冲区大小，TCP就会将其拆分为多次发送，这就是拆包。</p>
+<p>TCP协议粘包拆包问题是因为TCP协议数据传输是基于字节流的，它不包含消息、数据包等概念，需要应用层协议自己设计消息的边界，即消息帧（Message Framing）。如果应用层协议没有使用基于长度或者基于终结符息边界等方式进行处理，则会导致多个消息的粘包和拆包。</p>
+<h2 id="SYN-flood攻击"><a href="#SYN-flood攻击" class="headerlink" title="SYN flood攻击"></a>SYN flood攻击</h2><h3 id="攻击原理"><a href="#攻击原理" class="headerlink" title="攻击原理"></a>攻击原理</h3><ul>
+<li>利用三次握手的过程漏洞</li>
+<li>大量发送第一次握手（假IP）的报文</li>
+<li>攻击方忽略第二次握手的报文</li>
+<li>被攻击方多个TCP连接处于（SYNC-RCVD）阶段，耗费大量资源</li>
+<li>最终因为资源耗尽，拒绝服务（DoS）</li>
+</ul>
+<h2 id="VPN（虚拟专用网）"><a href="#VPN（虚拟专用网）" class="headerlink" title="VPN（虚拟专用网）"></a>VPN（虚拟专用网）</h2><p>VPN的隧道协议主要有三种，PPTP、L2TP和IPSec，其中PPTP和L2TP协议工作在OSI模型的第二层，又称为二层隧道协议；IPSec是第三层隧道协议。<br>按VPN的应用分类：<br>（1）Access VPN（远程接入VPN）：客户端到网关，使用公网作为骨干网在设备之间传输VPN数据流量；<br>（2）Intranet VPN（内联网VPN）：网关到网关，通过公司的网络架构连接来自同公司的资源；<br>（3）Extranet VPN（外联网VPN）：与合作伙伴企业网构成Extranet，将一个公司与另一个公司的资源进行连接。</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2023/07/04/basic/meeting/%E9%9D%A2%E8%AF%95%E5%85%AB%E8%82%A1%E6%96%87-%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E7%AF%87/">https://piwriw.github.io/2023/07/04/basic/meeting/面试八股文-计算机网络篇/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E9%9D%A2%E8%AF%95/">面试</a><a class="post-meta__tags" href="/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/">计算机网络</a></div><div class="post-share"><div class="social-share" data-image="/img/basic.jpg" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2023/07/18/web/go/%E5%B8%B8%E8%A7%81%E7%9A%84%E5%88%86%E5%B8%83%E5%BC%8F%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0%E5%92%8C%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C%E6%96%B9%E6%A1%88/" title="常见的分布式服务发现和服务注册方案"><img class="cover" src="/img/go_2.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">常见的分布式服务发现和服务注册方案</div></div><div class="info-2"><div class="info-item-1">常见的分布式服务发现和服务注册方案   Feature Consul Zookeeper Etcd Eureka    服务健康检查 服务状态，内存，硬盘等 (弱)长连接，keepalive 连接心跳 可配支持   多数据中心 支持 — — —   kv存储服务 支持 支持 支持 —   一致性 raft paxos raft —   CAP定理 CA CP CP AP   使用接口(多语言能力) 支持http和dns 客户端 http&#x2F;grpc http（sidecar）   watch支持 全量&#x2F;支持long polling 支持 支持 long polling 支持 long polling&#x2F;大部分增量   自身监控 metrics — metrics metrics   安全 acl &#x2F;https acl https支持（弱） —   Spring Cloud集成 已支持 已支持 已支持 已支持   consulConsul有多个组件，但总体而言，它是基础架构中的一款服务发现和配置的工具。 它提供了几个关键功能：  服务发现：Con...</div></div></div></a><a class="pagination-related" href="/2023/07/01/basic/go/Go%E5%86%85%E5%AD%98%E5%AF%B9%E9%BD%90/" title="Go-内存对齐"><img class="cover" src="/img/go.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">Go-内存对齐</div></div><div class="info-2"><div class="info-item-1">内存对齐什么是内存对齐 CPU 访问内存时，并不是逐个字节访问，而是以字长（word size）为单位访问，通过内存对齐，减少CPU访问次数,加大CPU访问内存的吞吐量 内存对齐:两个结构体包含的字段类型一致，但是顺序不一致，最终输出的大小也不一样  内存对齐规则成员对齐规则 针对一个基础类型变量，如果 unsafe.AlignOf() 返回的值是 m，那么该变量的地址需要 被m整除 （如果当前地址不能整除，填充空白字节，直至可以整除  整体对齐规则 针对一个结构体，如果 unsafe.AlignOf() 返回值是 m，需要保证该结构体整体内存占用是 m的整数倍，如果当前不是整数倍，需要在后面填充空白字节。  通过内存对齐后，就可以在保证在访问一个变量地址时：  如果该变量占用内存小于字长：保证一次访问就能得到数据； 如果该变量占用内存大于字长：保证第一次内存访问的首地址，是该变量的首地址    空结构体的对齐规则 如果空结构体作为结构体的内置字段：当变量位于结构体的前面和中间时，不会占用内存；当该变量位于结构体的末尾位置时，需要进行内存对齐，内存占用大小和前一个变量的大小保持一...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2024/04/21/basic/meeting/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C-%E8%99%9A%E6%8B%9F%E4%B8%93%E7%94%A8%E7%BD%91%E5%92%8C%E7%BD%91%E7%BB%9C%E5%9C%B0%E5%9D%80%E8%BD%AC%E6%8D%A2/" title="计算机网络-虚拟专用网和网络地址转换"><img class="cover" src="/img/basic.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-04-21</div><div class="info-item-2">计算机网络-虚拟专用网和网络地址转换</div></div><div class="info-2"><div class="info-item-1">计算机网络-虚拟专用网和网络地址转换虚拟专用网（VPC）  因为这看起来像是点对点的通信，所以也称之为IP隧道技术。 网络地址转换（NAT）在NAT路由器上将其内部专用地址，转化为IP 基本的NAT方法 这种模式下，弊端是需要主机轮番使用转换器上的 全球地址 网络地址与端口号转换这种模式，全程为网络地址与端口号转换（Network Address and Port Translation&#x2F;NAPT)  </div></div></div></a><a class="pagination-related" href="/2024/04/20/basic/meeting/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C-IP%E5%A4%9A%E6%92%AD/" title="计算机网络-IP多播"><img class="cover" src="/img/basic.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-04-20</div><div class="info-item-2">计算机网络-IP多播</div></div><div class="info-2"><div class="info-item-1">计算机网络-IP多播多播（Muliticast），也称为组播，是实现了“一对多”通信技术。 IP多播地址和多播组IP多播地址依赖于IP多播地址，D类地址，一般称呼为多播地址。 前面固定为：1110 范围是：224.0.0.0-239.255.255.255  局域网的硬件多播局域网支持硬件多播： 实现：IPV4地址映射为硬件多播地址 但是多播MAC是25bit相同，而IPV4只有23bit，所以可能出现相同的  因特网上IP多播IP多播在因特网上实现， 就需要经过多个路由器的转发。多播路由器必须按照IP多播地址转发到多播组的局域网下。 所以出现了IGMP来实现IP的路由多播 网际组管理协议IGMPIGMP有三种报文类型：  成员报告报文 成员查询报文 离开组报文   工作原理1.加入多播组 IGMP成员报告报文中包含加入多播组的地址 IP多播数据报的目的地址也是加入IP多播组的地址  在这个过程中，多播路由器通过维护多播组列表，记录该路由器已知道的直连的各个网络中多播组成员的多播组地址，多播路由器只关心自己网络的多播地址 2.监视多播组的成员变化多播路由器默认125s发送查询IG...</div></div></div></a><a class="pagination-related" href="/2024/04/19/basic/meeting/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C-%E7%BD%91%E9%99%85%E6%8E%A7%E5%88%B6%E6%8A%A5%E6%96%87%E5%8D%8F%E8%AE%AE/" title="计算机网络-网际控制报文协议"><img class="cover" src="/img/basic.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-04-19</div><div class="info-item-2">计算机网络-网际控制报文协议</div></div><div class="info-2"><div class="info-item-1">计算机网络-网际控制报文协议主要是为了有效的转发IP数据报已经提高IP数据报交付成功 ICMP差错报文的种类 终点不可达 源点抑制 时间超时 参数问题 重定向  ICMP的应用1.分组网间探测（PING）使用ping来测试主机或者路由器的连通性 2.跟踪路由traceroute和tracert：探测IP数据报从源主机到目的主机需要经过哪些路由器  UNIX版中，具体使用traceroute，其在运输层使用UDP协议，在网际层使用ICMP。报文类型只有差错报告报文 Windows版中，具体使用tracert,其在应用层直接使用网际层ICMP，使用了回答请求和回答报文和差错报告报文   </div></div></div></a><a class="pagination-related" href="/2024/04/18/basic/meeting/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C-%E8%B7%AF%E7%94%B1%E9%80%89%E6%8B%A9%E5%8D%8F%E8%AE%AE/" title="计算机网络-路由选择协议"><img class="cover" src="/img/basic.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-04-18</div><div class="info-item-2">计算机网络-路由选择协议</div></div><div class="info-2"><div class="info-item-1">计算机网络-路由选择协议路由选择协议主要分为俩类：  静态路由选择：采用人工配置的方式给路由器添加网络路由、默认路由和特定路由等路由条目 动态路由选择：路由器通过路由协议子哦对那个获取路由信息  路由信息协议（RIP）RIP（路由信息协议）：RIP使用跳数（Hop Count）作为度量来衡量到底目的网络的距离  RIP将路由器到直连网络的距离定义为1  RIP将路由器到非直连网络的的距离定义所经给的路由器+1  RIP允许一条路由器最多包含15个路由器，距离&#x3D;16，RIP不可达  RIP会优先选择距离小的链路  RIP在网络拥有多条相等距离的情况下，会进行负载均衡   三个重要特点：  RIP仅和相邻路由器交换信息 RIP交换的是路由器的路由表 RIP通过周期性交换，更新路由表  开放最短路径优先协议（OSPF）开放最短路径优先（OSPF）是一种在自治系统内部使用的链路状态路由协议。OSPF是互联网工程任务组（IETF）为互联网开发的，用于替代RIP（路由信息协议）。它的工作原理基于Dijkstra算法，也被称为最短路径优先（SPF）算法 边界网关协议（BGP）属于外部...</div></div></div></a><a class="pagination-related" href="/2024/04/17/basic/meeting/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C-IPV4/" title="计算机网络-IPV4"><img class="cover" src="/img/basic.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-04-17</div><div class="info-item-2">计算机网络-IPV4</div></div><div class="info-2"><div class="info-item-1">计算机网络-IPV4分类编址的IPV4主要方法： 通过划分32Bit的IPV4地址，分为网络号和主机号  网络号：标记主机（或路由器的）的接口所连接到的网络  主机号:  标记主机（或路由器）   主要有五类地址：  A类地址：网络号8bit，主机号24bit，网络号的第一位固定为0 B类地址：网络号16bit，主机号16bit，网络号前俩位为10 C类地址：网络号24bt，主机号8bit，网络号前三位110 D类地址，多播地址，前面四位1110 E类地址：保留地址，前面四位1111  特点：  A、B、C类地址才分配给主机（路由器） 主机号全0是网络地址，不能分配给主机（路由器） 主机号全1是广播地址，不能分配给主机（路由器）  A类地址 最小网络号：1.0.0.0 最大网络号：126.0.0.1   全0保留地址，所以00000001（1.0.0.0)是最小网络号  01111111（127.0.0.1），是本地回环地址，不能指派  本地最小回环测试地址：127.0.0.1  本地最大回环测试地址：127.255.255.254    01111110（126.0.0.0），...</div></div></div></a><a class="pagination-related" href="/2024/04/20/basic/meeting/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-%E9%98%9F%E5%88%97/" title="数据结构-队列"><img class="cover" src="/img/basic.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-04-20</div><div class="info-item-2">数据结构-队列</div></div><div class="info-2"><div class="info-item-1">数据结构-队列队列（queue）是一种遵循先入先出规则的线性数据结构。顾名思义，队列模拟了排队现象，即新来的人不断加入队列尾部，而位于队列头部的人逐个离开 基于链表的队列1234567891011121314151617181920212223242526272829303132333435363738package queueimport &quot;container/list&quot;type linkedQueue struct &#123;	data *list.List&#125;func NewLinkedQueue() *linkedQueue &#123;	return &amp;linkedQueue&#123;		data: list.New(),	&#125;&#125;func (q linkedQueue) push(value int) &#123;	q.data.PushBack(value)&#125;func (q linkedQueue) pop(value int) any &#123;	if q.isEmpty() &#123;		re...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E9%9D%A2%E8%AF%95%E5%85%AB%E8%82%A1%E6%96%87-%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E7%AF%87"><span class="toc-number">1.</span> <span class="toc-text">面试八股文-计算机网络篇</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#OSI%E4%B8%83%E5%B1%82%E6%A8%A1%E5%9E%8B%E5%92%8CTCP-IP%E5%9B%9B%E5%B1%82%E5%8D%8F%E8%AE%AE%E6%A6%82%E8%BF%B0"><span class="toc-number">1.1.</span> <span class="toc-text">OSI七层模型和TCP&#x2F;IP四层协议概述</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#OSI%E4%B8%83%E5%B1%82%E6%A8%A1%E5%9E%8B%E5%8D%8F%E8%AE%AE"><span class="toc-number">1.1.1.</span> <span class="toc-text">OSI七层模型协议</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%B8%A7%E7%BB%93%E6%9E%84"><span class="toc-number">1.1.1.1.</span> <span class="toc-text">帧结构</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%90%84%E5%B1%82%E7%BA%A7%E4%B9%8B%E9%97%B4%E7%9A%84%E4%BD%9C%E7%94%A8"><span class="toc-number">1.1.1.2.</span> <span class="toc-text">各层级之间的作用</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#TCP-IP%E5%9B%9B%E5%B1%82%E5%8D%8F%E8%AE%AE"><span class="toc-number">1.1.2.</span> <span class="toc-text">TCP&#x2F;IP四层协议</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#HTTP%E7%89%88%E6%9C%AC%E7%9A%84%E6%BC%94%E8%BF%9B"><span class="toc-number">1.2.</span> <span class="toc-text">HTTP版本的演进</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#keep-alive%E9%95%BF%E8%BF%9E%E6%8E%A5"><span class="toc-number">1.2.1.</span> <span class="toc-text">keep-alive长连接</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-0%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8"><span class="toc-number">1.2.2.</span> <span class="toc-text">2.0多路复用</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-0%E5%A4%B4%E9%83%A8%E5%8E%8B%E7%BC%A9"><span class="toc-number">1.2.3.</span> <span class="toc-text">2.0头部压缩</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-0%E6%9C%8D%E5%8A%A1%E6%8E%A8%E9%80%81"><span class="toc-number">1.2.4.</span> <span class="toc-text">2.0服务推送</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B8%B8%E8%A7%81%E7%9A%84HTTP%E7%8A%B6%E6%80%81%E7%A0%81%E3%80%81%E6%8A%A5%E6%96%87%E7%BB%93%E6%9E%84%E3%80%81%E8%AF%B7%E6%B1%82%E6%96%B9%E6%B3%95"><span class="toc-number">1.3.</span> <span class="toc-text">常见的HTTP状态码、报文结构、请求方法</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8A%A5%E6%96%87%E7%BB%93%E6%9E%84"><span class="toc-number">1.3.1.</span> <span class="toc-text">报文结构</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%AF%B7%E6%B1%82%E6%96%B9%E6%B3%95"><span class="toc-number">1.3.2.</span> <span class="toc-text">请求方法</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#HTTP%E7%8A%B6%E6%80%81%E7%A0%81"><span class="toc-number">1.3.3.</span> <span class="toc-text">HTTP状态码</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%89%E5%85%A8%E4%BC%A0%E8%BE%93"><span class="toc-number">1.4.</span> <span class="toc-text">安全传输</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AF%B9%E7%A7%B0%E5%8A%A0%E5%AF%86"><span class="toc-number">1.4.1.</span> <span class="toc-text">对称加密</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%9D%9E%E5%AF%B9%E7%A7%B0%E5%8A%A0%E5%AF%86"><span class="toc-number">1.4.1.1.</span> <span class="toc-text">非对称加密</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%95%A3%E5%88%97%E7%AE%97%E6%B3%95"><span class="toc-number">1.4.2.</span> <span class="toc-text">散列算法</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#HTTPS%E5%8D%8F%E8%AE%AE%E5%9F%BA%E7%A1%80-TLS%E6%8A%80%E6%9C%AF"><span class="toc-number">1.4.3.</span> <span class="toc-text">HTTPS协议基础-TLS技术</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%95%B0%E5%AD%97%E8%AF%81%E4%B9%A6"><span class="toc-number">1.4.3.1.</span> <span class="toc-text">数字证书</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%B5%81%E7%A8%8B"><span class="toc-number">1.4.3.2.</span> <span class="toc-text">流程</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#DNS%E5%9F%9F%E5%90%8D%E7%B3%BB%E7%BB%9F%E5%B7%A5%E4%BD%9C%E6%B5%81%E7%A8%8B"><span class="toc-number">1.5.</span> <span class="toc-text">DNS域名系统工作流程</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#DNS%E5%AE%89%E5%85%A8"><span class="toc-number">1.6.</span> <span class="toc-text">DNS安全</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#DNS%E5%8A%AB%E6%8C%81"><span class="toc-number">1.6.1.</span> <span class="toc-text">DNS劫持</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#DNS%E6%AC%BA%E9%AA%97"><span class="toc-number">1.6.2.</span> <span class="toc-text">DNS欺骗</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#DDoS%E6%94%BB%E5%87%BB"><span class="toc-number">1.6.3.</span> <span class="toc-text">DDoS攻击</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#TCP%E3%80%81UDP%E5%8D%8F%E8%AE%AE"><span class="toc-number">1.7.</span> <span class="toc-text">TCP、UDP协议</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#UDP%E5%8D%8F%E8%AE%AE"><span class="toc-number">1.7.1.</span> <span class="toc-text">UDP协议</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#TCP%E5%8D%8F%E8%AE%AE"><span class="toc-number">1.7.2.</span> <span class="toc-text">TCP协议</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#TCP%E8%BF%9E%E6%8E%A5%E7%9A%84%E8%BF%87%E7%A8%8B%EF%BC%88%E4%B8%89%E6%AC%A1%E6%8F%A1%E6%89%8B%EF%BC%89"><span class="toc-number">1.8.</span> <span class="toc-text">TCP连接的过程（三次握手）</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#TCP%E9%87%8A%E6%94%BE%E8%BF%9E%E6%8E%A5%EF%BC%88%E5%9B%9B%E6%AC%A1%E6%8C%A5%E6%89%8B%EF%BC%89"><span class="toc-number">1.8.0.1.</span> <span class="toc-text">TCP释放连接（四次挥手）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88TIME-WAIT%E7%8A%B6%E6%80%81%E9%9C%80%E8%A6%81%E7%AD%89%E5%BE%852MSL%EF%BC%9F"><span class="toc-number">1.8.0.2.</span> <span class="toc-text">为什么TIME-WAIT状态需要等待2MSL？</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3%E7%9A%84%E5%B7%A5%E4%BD%9C%E8%BF%87%E7%A8%8B"><span class="toc-number">1.9.</span> <span class="toc-text">滑动窗口的工作过程</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%81%9C%E6%AD%A2-%E7%AD%89%E5%BE%85%E5%8D%8F%E8%AE%AE"><span class="toc-number">1.9.1.</span> <span class="toc-text">停止-等待协议</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%BF%9E%E7%BB%ADARQ-Automatic-Repeat-reQuest-%E5%8D%8F%E8%AE%AE"><span class="toc-number">1.9.2.</span> <span class="toc-text">连续ARQ(Automatic Repeat reQuest)协议</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3"><span class="toc-number">1.9.3.</span> <span class="toc-text">滑动窗口</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%8B%A5%E5%A1%9E%E9%81%BF%E5%85%8D%E7%AE%97%E6%B3%95"><span class="toc-number">1.10.</span> <span class="toc-text">拥塞避免算法</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF%E7%BD%91%E7%BB%9C%E6%8B%A5%E5%A1%9E"><span class="toc-number">1.10.1.</span> <span class="toc-text">什么是网络拥塞</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BB%A1%E5%BC%80%E5%A7%8B%E4%B8%8E%E6%8B%A5%E5%A1%9E%E9%81%BF%E5%85%8D"><span class="toc-number">1.10.2.</span> <span class="toc-text">满开始与拥塞避免</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%BF%AB%E9%87%8D%E4%BC%A0%E4%B8%8E%E5%BF%AB%E6%81%A2%E5%A4%8D"><span class="toc-number">1.10.3.</span> <span class="toc-text">快重传与快恢复</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#TCP%E7%B2%98%E5%8C%85"><span class="toc-number">1.11.</span> <span class="toc-text">TCP粘包</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF%E7%B2%98%E5%8C%85"><span class="toc-number">1.11.1.</span> <span class="toc-text">什么是粘包</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Nagle%E7%AE%97%E6%B3%95"><span class="toc-number">1.11.2.</span> <span class="toc-text">Nagle算法</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%B2%98%E5%8C%85%E6%8B%86%E5%8C%85%E5%8F%91%E7%94%9F%E5%9C%BA%E6%99%AF"><span class="toc-number">1.11.3.</span> <span class="toc-text">粘包拆包发生场景</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#SYN-flood%E6%94%BB%E5%87%BB"><span class="toc-number">1.12.</span> <span class="toc-text">SYN flood攻击</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%94%BB%E5%87%BB%E5%8E%9F%E7%90%86"><span class="toc-number">1.12.1.</span> <span class="toc-text">攻击原理</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#VPN%EF%BC%88%E8%99%9A%E6%8B%9F%E4%B8%93%E7%94%A8%E7%BD%91%EF%BC%89"><span class="toc-number">1.13.</span> <span class="toc-text">VPN（虚拟专用网）</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-日志系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明">Gorm-日志系统模块原理说明</a><time datetime="2026-01-11T11:56:27.000Z" title="发表于 2026-01-11 19:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-迁移功能模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明">Gorm-迁移功能模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-插件系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明">Gorm-插件系统模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-事务处理模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明">Gorm-事务处理模块原理说明</a><time datetime="2026-01-11T09:56:27.000Z" title="发表于 2026-01-11 17:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-关联关系模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明">Gorm-关联关系模块原理说明</a><time datetime="2026-01-11T08:56:27.000Z" title="发表于 2026-01-11 16:56:27">2026-01-11</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

@@ -1,0 +1,282 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Prometheus源码-Relabel | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="Prometheus源码-Relabel 基于3.5  relabel address流程 Prometheus读取Job中的targets，把target赋值给__address__标签，此标签代表采集地址 将__address__赋值给__param_target标签，因为Promehrues访问采集地址需要传参，__param_target代表target参数 将__param_target">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Prometheus源码-Relabel">
+<meta property="og:url" content="https://piwriw.github.io/2025/09/24/cloud/prometheus/Prometheus%E6%BA%90%E7%A0%81-Relabel%20address/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="Prometheus源码-Relabel 基于3.5  relabel address流程 Prometheus读取Job中的targets，把target赋值给__address__标签，此标签代表采集地址 将__address__赋值给__param_target标签，因为Promehrues访问采集地址需要传参，__param_target代表target参数 将__param_target">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/prometheus.png">
+<meta property="article:published_time" content="2025-09-24T14:08:55.000Z">
+<meta property="article:modified_time" content="2026-02-28T13:29:12.673Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="prometheus">
+<meta property="article:tag" content="prometheus源码">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/prometheus.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Prometheus源码-Relabel",
+  "url": "https://piwriw.github.io/2025/09/24/cloud/prometheus/Prometheus%E6%BA%90%E7%A0%81-Relabel%20address/",
+  "image": "https://piwriw.github.io/img/prometheus.png",
+  "datePublished": "2025-09-24T14:08:55.000Z",
+  "dateModified": "2026-02-28T13:29:12.673Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2025/09/24/cloud/prometheus/Prometheus%E6%BA%90%E7%A0%81-Relabel%20address/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Prometheus源码-Relabel',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/prometheus.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">Prometheus源码-Relabel</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">Prometheus源码-Relabel</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2025-09-24T14:08:55.000Z" title="发表于 2025-09-24 22:08:55">2025-09-24</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-02-28T13:29:12.673Z" title="更新于 2026-02-28 21:29:12">2026-02-28</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/prometheus/">prometheus</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">854</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>4分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-02-28 21:29:12&quot;}" hidden></div><h1 id="Prometheus源码-Relabel"><a href="#Prometheus源码-Relabel" class="headerlink" title="Prometheus源码-Relabel"></a>Prometheus源码-Relabel</h1><blockquote>
+<p>基于3.5</p>
+</blockquote>
+<h2 id="relabel-address流程"><a href="#relabel-address流程" class="headerlink" title="relabel address流程"></a>relabel address流程</h2><ol>
+<li>Prometheus读取Job中的targets，把target赋值给<code>__address__</code>标签，此标签代表采集地址</li>
+<li>将<code>__address__</code>赋值给<code>__param_target</code>标签，因为Promehrues访问采集地址需要传参，<code>__param_target</code>代表target参数</li>
+<li>将<code>__param_target</code>标签赋值给instance标签</li>
+<li>将<code>__param_target</code>替换为真实的采集地址</li>
+</ol>
+<h2 id="核心解析"><a href="#核心解析" class="headerlink" title="核心解析"></a>核心解析</h2><h3 id="Label-Re"><a href="#Label-Re" class="headerlink" title="Label Re"></a>Label Re</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// PopulateDiscoveredLabels sets base labels on lb from target and group labels and scrape configuration, before relabeling.</span></span><br><span class="line"><span class="comment">// PopulateDiscoveredLabels 在重新标记之前，从目标和组标签以及抓取配置在 lb 上设置基础标签</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">PopulateDiscoveredLabels</span><span class="params">(lb *labels.Builder, cfg *config.ScrapeConfig, tLabels, tgLabels model.LabelSet)</span></span> &#123;</span><br><span class="line">	lb.Reset(labels.EmptyLabels())</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> ln, lv := <span class="keyword">range</span> tLabels &#123;</span><br><span class="line">		lb.Set(<span class="type">string</span>(ln), <span class="type">string</span>(lv))</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">for</span> ln, lv := <span class="keyword">range</span> tgLabels &#123;</span><br><span class="line">		<span class="keyword">if</span> _, ok := tLabels[ln]; !ok &#123;</span><br><span class="line">			lb.Set(<span class="type">string</span>(ln), <span class="type">string</span>(lv))</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Copy labels into the labelset for the target if they are not set already.</span></span><br><span class="line">	<span class="comment">// 如果尚未设置，则将标签复制到目标的标签集中</span></span><br><span class="line">	scrapeLabels := []labels.Label&#123;</span><br><span class="line">		&#123;Name: model.JobLabel, Value: cfg.JobName&#125;,</span><br><span class="line">		&#123;Name: model.ScrapeIntervalLabel, Value: cfg.ScrapeInterval.String()&#125;,</span><br><span class="line">		&#123;Name: model.ScrapeTimeoutLabel, Value: cfg.ScrapeTimeout.String()&#125;,</span><br><span class="line">		&#123;Name: model.MetricsPathLabel, Value: cfg.MetricsPath&#125;,</span><br><span class="line">		&#123;Name: model.SchemeLabel, Value: cfg.Scheme&#125;,</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> _, l := <span class="keyword">range</span> scrapeLabels &#123;</span><br><span class="line">		<span class="keyword">if</span> lb.Get(l.Name) == <span class="string">&quot;&quot;</span> &#123;</span><br><span class="line">			lb.Set(l.Name, l.Value)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// Encode scrape query parameters as labels.</span></span><br><span class="line">	<span class="comment">// 将抓取查询参数编码为标签</span></span><br><span class="line">	<span class="keyword">for</span> k, v := <span class="keyword">range</span> cfg.Params &#123;</span><br><span class="line">		<span class="keyword">if</span> name := model.ParamLabelPrefix + k; <span class="built_in">len</span>(v) &gt; <span class="number">0</span> &amp;&amp; lb.Get(name) == <span class="string">&quot;&quot;</span> &#123;</span><br><span class="line">			lb.Set(name, v[<span class="number">0</span>])</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// PopulateLabels builds labels from target and group labels and scrape configuration,</span></span><br><span class="line"><span class="comment">// performs defined relabeling, checks validity, and adds Prometheus standard labels such as &#x27;instance&#x27;.</span></span><br><span class="line"><span class="comment">// A return of empty labels and nil error means the target was dropped by relabeling.</span></span><br><span class="line"><span class="comment">// PopulateLabels 从目标和组标签以及抓取配置构建标签，</span></span><br><span class="line"><span class="comment">// 执行定义的重新标记，检查有效性，并添加 Prometheus 标准标签如 &#x27;instance&#x27;。</span></span><br><span class="line"><span class="comment">// 返回空标签和 nil 错误意味着目标被重新标记丢弃。</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">PopulateLabels</span><span class="params">(lb *labels.Builder, cfg *config.ScrapeConfig, tLabels, tgLabels model.LabelSet)</span></span> (res labels.Labels, err <span class="type">error</span>) &#123;</span><br><span class="line">	PopulateDiscoveredLabels(lb, cfg, tLabels, tgLabels)</span><br><span class="line">	keep := relabel.ProcessBuilder(lb, cfg.RelabelConfigs...)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Check if the target was dropped.</span></span><br><span class="line">	<span class="comment">// 检查目标是否被丢弃</span></span><br><span class="line">	<span class="keyword">if</span> !keep &#123;</span><br><span class="line">		<span class="keyword">return</span> labels.EmptyLabels(), <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> v := lb.Get(model.AddressLabel); v == <span class="string">&quot;&quot;</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> labels.EmptyLabels(), errors.New(<span class="string">&quot;no address&quot;</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	addr := lb.Get(model.AddressLabel)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> err := config.CheckTargetAddress(model.LabelValue(addr)); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> labels.EmptyLabels(), err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	interval := lb.Get(model.ScrapeIntervalLabel)</span><br><span class="line">	intervalDuration, err := model.ParseDuration(interval)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> labels.EmptyLabels(), fmt.Errorf(<span class="string">&quot;error parsing scrape interval: %w&quot;</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> time.Duration(intervalDuration) == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> labels.EmptyLabels(), errors.New(<span class="string">&quot;scrape interval cannot be 0&quot;</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	timeout := lb.Get(model.ScrapeTimeoutLabel)</span><br><span class="line">	timeoutDuration, err := model.ParseDuration(timeout)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> labels.EmptyLabels(), fmt.Errorf(<span class="string">&quot;error parsing scrape timeout: %w&quot;</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> time.Duration(timeoutDuration) == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> labels.EmptyLabels(), errors.New(<span class="string">&quot;scrape timeout cannot be 0&quot;</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> timeoutDuration &gt; intervalDuration &#123;</span><br><span class="line">		<span class="keyword">return</span> labels.EmptyLabels(), fmt.Errorf(<span class="string">&quot;scrape timeout cannot be greater than scrape interval (%q &gt; %q)&quot;</span>, timeout, interval)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Meta labels are deleted after relabelling. Other internal labels propagate to</span></span><br><span class="line">	<span class="comment">// the target which decides whether they will be part of their label set.</span></span><br><span class="line">	<span class="comment">// 元标签在重新标记后被删除。其他内部标签传播到目标，由目标决定它们是否成为其标签集的一部分</span></span><br><span class="line">	lb.Range(<span class="function"><span class="keyword">func</span><span class="params">(l labels.Label)</span></span> &#123;</span><br><span class="line">		<span class="keyword">if</span> strings.HasPrefix(l.Name, model.MetaLabelPrefix) &#123;</span><br><span class="line">			lb.Del(l.Name)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Default the instance label to the target address.</span></span><br><span class="line">	<span class="comment">// 默认 instance 标签为目标地址</span></span><br><span class="line">	<span class="keyword">if</span> v := lb.Get(model.InstanceLabel); v == <span class="string">&quot;&quot;</span> &#123;</span><br><span class="line">		lb.Set(model.InstanceLabel, addr)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	res = lb.Labels()</span><br><span class="line">	err = res.Validate(<span class="function"><span class="keyword">func</span><span class="params">(l labels.Label)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">		<span class="comment">// Check label values are valid, drop the target if not.</span></span><br><span class="line">		<span class="comment">// 检查标签值是否有效，如果不有效则丢弃目标</span></span><br><span class="line">		<span class="keyword">if</span> !model.LabelValue(l.Value).IsValid() &#123;</span><br><span class="line">			<span class="keyword">return</span> fmt.Errorf(<span class="string">&quot;invalid label value for %q: %q&quot;</span>, l.Name, l.Value)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> labels.EmptyLabels(), err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> res, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2025/09/24/cloud/prometheus/Prometheus%E6%BA%90%E7%A0%81-Relabel%20address/">https://piwriw.github.io/2025/09/24/cloud/prometheus/Prometheus源码-Relabel address/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/prometheus/">prometheus</a><a class="post-meta__tags" href="/tags/prometheus%E6%BA%90%E7%A0%81/">prometheus源码</a></div><div class="post-share"><div class="social-share" data-image="/img/prometheus.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2026/01/11/web/gorm/01-connection/" title="Gorm-连接管理模块原理说明"><img class="cover" src="/img/go.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">Gorm-连接管理模块原理说明</div></div><div class="info-2"><div class="info-item-1">连接管理模块原理说明 基于1.31 本文档深入解析连接管理模块的设计原理和核心原理，为学习者提供系统性的理论支撑。   一、设计原理1.1 模块定位在整体架构中的位置 连接管理模块位于 GORM 架构的最底层，是整个框架与数据库交互的入口点。它在整体架构中的定位可以概括为： 123456789101112131415161718192021222324252627┌─────────────────────────────────────────────────────────────┐│                    应用层 (用户代码)                          │└────────────────────────┬────────────────────────────────────┘                         │                         ▼┌─────────────────────────────────────────────────────────────┐│              ...</div></div></div></a><a class="pagination-related" href="/2025/08/24/cloud/k8s/K8s%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97-%E5%AE%A2%E6%88%B7%E7%AB%AF/" title="K8s开发指南-客户端"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">K8s开发指南-客户端</div></div><div class="info-2"><div class="info-item-1">K8s开发指南-客户端 基于K8s v1.29  API客户端 Ref：https://github.com/kubernetes/client-go  K8s认证方式主要一下俩类：  集群外的认证：客户端程序运行在集群外，以独立进程访问API Server 集群内的认证：客户端在K8s内以Pod形式运行，通过内部服务名访问API Server  客户端访问API Server常见的认证方式有以下的几种  数字证书方式 ServiceAccount方式 BearerToken方式  对于运行在K8s集群之外的客户端，建议使用数字证书方式连接API Server，客户端需要配置的信息包括CA根证书、客户端证书、客户段私钥以及API Server地址 对于运行在集群内的Pod，建议使用ServiceAccount认证方式，需要为Pod增加ServiceAccount资源，并为ServiceAccount配置好正确的RBAC权限 基于kubeconfig文件的配置方式有以下几种：  用户HOME目录中的约定目录，例如$HOME&#x2F;.kube&#x2F;config 在环境变量K...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2025/08/05/cloud/prometheus/Prometheus-PromQL/" title="Prometheus-PromQL"><img class="cover" src="/img/prometheus.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-08-05</div><div class="info-item-2">Prometheus-PromQL</div></div><div class="info-2"><div class="info-item-1">Prometheus-PromQL 基于v3.5  工作原理graph TD     A[Query Input] --&gt; B[Parser]     B --&gt; C[Engine]     C --&gt; D[Query Execution]     D --&gt; E[Result Output]      %% Parser Module     subgraph Parser[&quot;Parser (parser/)&quot;]         B1[Lexical Analysis] --&gt; B2[Syntax Parsing]         B2 --&gt; B3[AST Generation]         B3 --&gt; B4[Validation]     end      %% Engine Module     subgraph Engine[&quot;Engine (engine.go)&quot;]         C1[Query Initialization] --&gt; C2[Query Planning]...</div></div></div></a><a class="pagination-related" href="/2025/07/26/cloud/prometheus/Prometheus-Rules%E5%91%8A%E8%AD%A6%E8%AF%84%E4%BC%B0/" title="Prometheus-Rules告警评估"><img class="cover" src="/img/prometheus.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-07-26</div><div class="info-item-2">Prometheus-Rules告警评估</div></div><div class="info-2"><div class="info-item-1">Prometheus-Rules告警评估 基于v3.5  工作原理graph TD     A[Rule Files] --&gt; B[Manager.LoadGroups]     B --&gt; C[Parse Rule Groups]     C --&gt; D[Create Rule Objects]     D --&gt; E[Analyse Rule Dependencies]     E --&gt; F[Build Dependency Map]     F --&gt; G[Set Rule Dependencies]          H[Manager.Run] --&gt; I[Group Evaluation Loop]     I --&gt; J[Split Rules into Batches]     J --&gt; K&#123;Concurrent Evaluation Enabled?&#125;     K --&gt;|Yes| L[Concurrent Rule Execution]     K --&gt;|No| M[S...</div></div></div></a><a class="pagination-related" href="/2025/07/25/cloud/prometheus/Prometheus-Srape%E6%8C%87%E6%A0%87%E6%8A%93%E5%8F%96/" title="Prometheus-Scrape指标抓取"><img class="cover" src="/img/prometheus.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-07-25</div><div class="info-item-2">Prometheus-Scrape指标抓取</div></div><div class="info-2"><div class="info-item-1">Prometheus-Scrape指标抓取 基于v3.5  工作原理graph TD     A[ScrapePool] --&gt; B[Target Discovery]     A --&gt; C[Scrape Loop Management]     A --&gt; D[HTTP Client] B --&gt; B1[Sync Targets] B1 --&gt; B2[Target Group Processing] B2 --&gt; B3[Target Creation/Deduplication] B3 --&gt; B4[Active Targets Update]  C --&gt; C1[Loop Creation] C1 --&gt; C2[Scrape Interval Setup] C2 --&gt; C3[Scraper Initialization]  D --&gt; D1[Target Scraper] D1 --&gt; D2[HTTP Request] D2 --&gt; D3[Metrics Endpoint]  C3 --&gt;...</div></div></div></a><a class="pagination-related" href="/2025/07/24/cloud/prometheus/Prometheus-notifier%E5%91%8A%E8%AD%A6%E6%8E%A8%E9%80%81/" title="Prometheus-notifier告警推送"><img class="cover" src="/img/prometheus.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-07-24</div><div class="info-item-2">Prometheus-notifier告警推送</div></div><div class="info-2"><div class="info-item-1">Prometheus-notifier告警推送 基于v3.5  工作原理sequenceDiagram     participant Q as Queue     participant M as Manager     participant AM as Alertmanager     participant AL as Alertmanager API Q-&gt;&gt;M: nextBatch() M-&gt;&gt;M: 分批处理告警 M-&gt;&gt;AM: sendAll() AM-&gt;&gt;AM: 应用特定于 AM 的 relabel AM-&gt;&gt;AL: HTTP POST /api/v2/alerts AL--&gt;&gt;AM: Response AM-&gt;&gt;M: 返回发送结果  关键特性  告警队列管理 有界队列，防止内存无限增长 支持队列满时的丢弃策略 可配置的批处理大小 Relabeling（重新标记） 发送前对告警应用 relabel 配置 支持每个 Alertmanager 集合的特定 relabel 规则 高可用性...</div></div></div></a><a class="pagination-related" href="/2025/07/23/cloud/prometheus/Prometheus-Discoverer%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0/" title="Prometheus-Discoverer服务发现"><img class="cover" src="/img/prometheus.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-07-23</div><div class="info-item-2">Prometheus-Discoverer服务发现</div></div><div class="info-2"><div class="info-item-1">Prometheus-Discoverer服务发现 基于v3.5  启动流程sequenceDiagram     participant main.go     participant Manager     participant Provider     participant Discoverer     participant TargetGroup main.go-&gt;&gt;Manager: NewManager()  main.go-&gt;&gt;Manager: ApplyConfig()  Manager-&gt;&gt;Provider: 创建Provider实例 Manager-&gt;&gt;Provider: startProvider()  Provider-&gt;&gt;Discoverer: 初始化具体发现器(如K8s/Consul等) Provider-&gt;&gt;Discoverer: Run(ctx, updatesCh)  loop 发现循环     Discoverer-&gt;&gt;TargetGroup: 获取目标组 ...</div></div></div></a><a class="pagination-related" href="/2025/07/22/cloud/prometheus/Prometheus-%E9%85%8D%E7%BD%AE%E7%AE%A1%E7%90%86/" title="Prometheus-载入配置"><img class="cover" src="/img/prometheus.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-07-22</div><div class="info-item-2">Prometheus-载入配置</div></div><div class="info-2"><div class="info-item-1">Prometheus-载入配置 基于v3.5  启动顺序sequenceDiagram     participant main.go     participant Config     participant GlobalConfig     participant ScrapeConfig     participant RemoteWriteConfig     participant RuntimeConfig     participant Storage          main.go-&gt;&gt;Config: 加载配置文件(Load/LoadFile)     Config-&gt;&gt;GlobalConfig: 初始化全局配置     Config-&gt;&gt;ScrapeConfig: 初始化抓取配置     Config-&gt;&gt;RemoteWriteConfig: 初始化远程写入配置     Config-&gt;&gt;RuntimeConfig: 初始化运行时配置          main.go-&gt;&gt;Storage...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Prometheus%E6%BA%90%E7%A0%81-Relabel"><span class="toc-number">1.</span> <span class="toc-text">Prometheus源码-Relabel</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#relabel-address%E6%B5%81%E7%A8%8B"><span class="toc-number">1.1.</span> <span class="toc-text">relabel address流程</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%A0%B8%E5%BF%83%E8%A7%A3%E6%9E%90"><span class="toc-number">1.2.</span> <span class="toc-text">核心解析</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Label-Re"><span class="toc-number">1.2.1.</span> <span class="toc-text">Label Re</span></a></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-日志系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明">Gorm-日志系统模块原理说明</a><time datetime="2026-01-11T11:56:27.000Z" title="发表于 2026-01-11 19:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-迁移功能模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明">Gorm-迁移功能模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-插件系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明">Gorm-插件系统模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-事务处理模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明">Gorm-事务处理模块原理说明</a><time datetime="2026-01-11T09:56:27.000Z" title="发表于 2026-01-11 17:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-关联关系模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明">Gorm-关联关系模块原理说明</a><time datetime="2026-01-11T08:56:27.000Z" title="发表于 2026-01-11 16:56:27">2026-01-11</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

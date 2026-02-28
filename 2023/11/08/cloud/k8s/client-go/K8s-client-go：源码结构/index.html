@@ -1,0 +1,361 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>K8s-client-go：源码结构 | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="K8s-client-go：源码结构   目录结构 含义    .github pull请求的模版   applyconfigurations applyconfiguration提供了构造服务区应用请求的应用配置的类型安全的go   discovery 提供DiscoverClient发现客户端   dynamic 提供DynamicClient动态客户端   examples 包含client">
+<meta property="og:type" content="article">
+<meta property="og:title" content="K8s-client-go：源码结构">
+<meta property="og:url" content="https://piwriw.github.io/2023/11/08/cloud/k8s/client-go/K8s-client-go%EF%BC%9A%E6%BA%90%E7%A0%81%E7%BB%93%E6%9E%84/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="K8s-client-go：源码结构   目录结构 含义    .github pull请求的模版   applyconfigurations applyconfiguration提供了构造服务区应用请求的应用配置的类型安全的go   discovery 提供DiscoverClient发现客户端   dynamic 提供DynamicClient动态客户端   examples 包含client">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/k8s-go.jpg">
+<meta property="article:published_time" content="2023-11-08T02:08:55.000Z">
+<meta property="article:modified_time" content="2026-02-28T13:29:12.662Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="k8s">
+<meta property="article:tag" content="cloud">
+<meta property="article:tag" content="K8s源码">
+<meta property="article:tag" content="client-go">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/k8s-go.jpg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "K8s-client-go：源码结构",
+  "url": "https://piwriw.github.io/2023/11/08/cloud/k8s/client-go/K8s-client-go%EF%BC%9A%E6%BA%90%E7%A0%81%E7%BB%93%E6%9E%84/",
+  "image": "https://piwriw.github.io/img/k8s-go.jpg",
+  "datePublished": "2023-11-08T02:08:55.000Z",
+  "dateModified": "2026-02-28T13:29:12.662Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2023/11/08/cloud/k8s/client-go/K8s-client-go%EF%BC%9A%E6%BA%90%E7%A0%81%E7%BB%93%E6%9E%84/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'K8s-client-go：源码结构',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/k8s-go.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">K8s-client-go：源码结构</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">K8s-client-go：源码结构</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2023-11-08T02:08:55.000Z" title="发表于 2023-11-08 10:08:55">2023-11-08</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-02-28T13:29:12.662Z" title="更新于 2026-02-28 21:29:12">2026-02-28</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/">k8s</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/client-go/">client-go</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">327</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>1分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-02-28 21:29:12&quot;}" hidden></div><h1 id="K8s-client-go：源码结构"><a href="#K8s-client-go：源码结构" class="headerlink" title="K8s-client-go：源码结构"></a>K8s-client-go：源码结构</h1><table>
+<thead>
+<tr>
+<th>目录结构</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>.github</td>
+<td>pull请求的模版</td>
+</tr>
+<tr>
+<td>applyconfigurations</td>
+<td>applyconfiguration提供了构造服务区应用请求的应用配置的类型安全的go</td>
+</tr>
+<tr>
+<td>discovery</td>
+<td>提供DiscoverClient发现客户端</td>
+</tr>
+<tr>
+<td>dynamic</td>
+<td>提供DynamicClient动态客户端</td>
+</tr>
+<tr>
+<td>examples</td>
+<td>包含client-go的各种用例和功能的演示</td>
+</tr>
+<tr>
+<td>informers</td>
+<td>每种K8s的各种资源的informer实现</td>
+</tr>
+<tr>
+<td>kubernetes</td>
+<td>提供ClientSet客户端</td>
+</tr>
+<tr>
+<td>kubernetes_test</td>
+<td>提供ClientSet客户端的测试</td>
+</tr>
+<tr>
+<td>listers</td>
+<td>为每一个K8s资源提供Listers功能，该功能对Get和List提供制度的缓存数据</td>
+</tr>
+<tr>
+<td>metadata</td>
+<td>包含关于client-go的元数据信息</td>
+</tr>
+<tr>
+<td>pkg</td>
+<td>客户端以及版本的包</td>
+</tr>
+<tr>
+<td>plugin&#x2F;pkg&#x2F;client&#x2F;auth</td>
+<td>认证插件包auth</td>
+</tr>
+<tr>
+<td>rest</td>
+<td>提供RestClient客户端，对K8s API Server执行Rest API操作</td>
+</tr>
+<tr>
+<td>restmapper</td>
+<td>映射器的一些方法</td>
+</tr>
+<tr>
+<td>scale</td>
+<td>提供scaleclient客户端，用于扩容和缩容deployment，replicasent，replication controller等资源</td>
+</tr>
+<tr>
+<td>testing</td>
+<td>测试文件</td>
+</tr>
+<tr>
+<td>thrid_party&#x2F;forked&#x2F;golang</td>
+<td>第三方库</td>
+</tr>
+<tr>
+<td>tools</td>
+<td>常用工具，比如shareinformer、Reflector、DealtFIFO以及Indexers。提供Client查询和缓存机制，减杀向kube-apisever请求</td>
+</tr>
+<tr>
+<td>transport</td>
+<td>提供安全的TCP连接，支持HTTPSTREAM。某些操作需要客户端和容器之间传输二进制流，例如exec，attach等，又内部的spdy包提供支持</td>
+</tr>
+<tr>
+<td>utils</td>
+<td>提供常用方法，比如workqueue工作队列，certificate证书管理等</td>
+</tr>
+</tbody></table>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2023/11/08/cloud/k8s/client-go/K8s-client-go%EF%BC%9A%E6%BA%90%E7%A0%81%E7%BB%93%E6%9E%84/">https://piwriw.github.io/2023/11/08/cloud/k8s/client-go/K8s-client-go：源码结构/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a><a class="post-meta__tags" href="/tags/cloud/">cloud</a><a class="post-meta__tags" href="/tags/K8s%E6%BA%90%E7%A0%81/">K8s源码</a><a class="post-meta__tags" href="/tags/client-go/">client-go</a></div><div class="post-share"><div class="social-share" data-image="/img/k8s-go.jpg" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2023/11/08/cloud/k8s/kube-apiserver/K8s-%E5%B8%B8%E8%A7%81API%20Server%E5%93%8D%E5%BA%94%E8%AF%B4%E6%98%8E/" title="K8s-常见API Server响应说明"><img class="cover" src="/img/k8s-go.jpg" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">K8s-常见API Server响应说明</div></div><div class="info-2"><div class="info-item-1">K8s-常见API Server响应说明   状态码 编码 描述    200 OK 请求完成成功   201 Created 创建类的请求完成成功   204 NoContent 请求完全成功，同时HTTP响应不包含响应体，在响应OPTIONS方法的HTTP请求时返回   307 TemporaryRedirect 请求资源地址改变，建议客户端使用Location首部给出的临时URL定位   400 Bad Request 非法请求   401 Unauthorized 表示请求能够到达服务端，并且服务端能理解用户的请求。需要认证   403 Forbidden 拒绝访问   404 NotFound 资源不存在   405 MethodNotAllowed 资源请求不支持这种方法   409 Conflict 资源已存在，冲击，更新操作不能完成   422 UnprocessableEntity 提交请求部分数据非法，创建或者修改失败   429 TooManyRequests 客户端出现了访问频率限制，或者服务端收到太多请求   500 InternalServerErro...</div></div></div></a><a class="pagination-related" href="/2023/11/07/cloud/k8s/introduce/K8s-%E6%A0%B8%E5%BF%83%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-scheme%E8%B5%84%E6%BA%90%E6%B3%A8%E5%86%8C%E8%A1%A8/" title="K8s-核心数据结构-scheme资源注册表"><img class="cover" src="/img/k8s-go.jpg" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">K8s-核心数据结构-scheme资源注册表</div></div><div class="info-2"><div class="info-item-1">K8s-核心数据结构-scheme资源注册表所有的K8s资源类型都会注册到Scheme资源注册表中，有如下的特点：  支持多种资源类型，包括内部版本和外部版本 支持多种版本转换机制 支持不同资源的的序列化&#x2F;反序列化  Scheme资源注册支持俩种类型，分别是UnversionedType和KnowType资源类型。  UnversionedType:无版本资源类型，这类资源对象不需要进行转换。目前比少 KnowType：目前K8s最常用资源类型，UnversionedType通过scheme.AddUnversionedTypes方法进行注册，Knowtype通过scheme.AddKnowType	进行注册  Scheme资源注册表结构字段说明如下：  gvToType:存储GVK与Type的映射关系  typeToGVK:存储type与GVK的映射关系，一个Type会对应一个或多个GVK  unversionedTypes：存储UnversionedType与GVK的映射关系  unversionedKind:存储kind名称和UnversionedType的映射关...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2024/11/10/cloud/k8s/client-go/K8s-client-go(%E5%B8%B8%E7%94%A8%E5%B7%A5%E5%85%B7%E7%B1%BB)/" title="K8s-client-go(常用工具类:事件管理机制+Leader选举机制)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-11-10</div><div class="info-item-2">K8s-client-go(常用工具类:事件管理机制+Leader选举机制)</div></div><div class="info-2"><div class="info-item-1">K8s-client-go(常用工具类:事件管理机制+Leader选举机制) 基于1.25  事件管理机制Event是一种对象资源，展示集群中发生的事件，包含调度器的操作、Pod为什么被驱逐  存储在kube-apiserver的Pod中，有强制保留策略，在最后一次事件发生之后，删除一个小时之前的事件  Ref:https://github.com/kubernetes/api/blob/f7b7ea4f0fcc6cb8c8dd42eb46a94c7e163d1b9d/core/v1/types.go#L5776 1234567891011121314151617181920212223242526272829303132333435363738394041424344454647484950515253545556575859606162type Event struct &#123;        // metav1.TypeMeta 嵌入类型，包含 APIVersion 和 Kind 字段，用于标识对象的 API 版本和类型        metav1.TypeMeta `...</div></div></div></a><a class="pagination-related" href="/2024/11/10/cloud/k8s/client-go/K8s-client-go(Informer%E6%9C%BA%E5%88%B6)/" title="K8s-client-go(Informer机制)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-11-10</div><div class="info-item-2">K8s-client-go(Informer机制)</div></div><div class="info-2"><div class="info-item-1">K8s-client-go(Informer机制) 基于1.25  什么是InformerInformer实现了组件之间使用HTTP通信，但是不依赖任何中间件的情况下，实现了保证消息的实时性、可靠性、顺序性等 使用示例123456789101112131415161718192021222324252627282930313233343536373839404142434445464748495051525354555657585960616263646566676869707172737475767778798081828384858687888990package mainimport (	&quot;flag&quot;	&quot;fmt&quot;	&quot;path/filepath&quot;	&quot;time&quot;	v1 &quot;k8s.io/api/apps/v1&quot;	&quot;k8s.io/apimachinery/pkg/labels&quot;	&quot;k8s.io/client-go/informers&quot;	&quo...</div></div></div></a><a class="pagination-related" href="/2024/11/09/cloud/k8s/client-go/K8s-client-go/" title="K8s-client-go"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-11-09</div><div class="info-item-2">K8s-client-go</div></div><div class="info-2"><div class="info-item-1">K8s-client-go什么是Client-goClient-go是K8s提供的调用K8s对西那个的客户端，实现了访问kube-apiserver，对K8s集群中的资源对象管理  Link：https://github.com/kubernetes/client-go  客户端client-go支持Client Set、DynamicClient、Discovery Client、RESTClient四种  RESTClient是最基础的客户端，对HTTP请求进行了封装 ClientSet对在RESTClient基础上，封装了Resource和Version的管理方法 ClientSet只能处理K8s内置资源 通过client-gen代码生成器生成   DynamicClient：DynamicClient可以处理所有的资源，包括CRD DiscoveryClient:用于发现kube-apisever所支持的Group、Versions、Resources  kuebconfig配置管理kubeconfig就是管理访问kube-apiserver的配置信息，支持管理访问多个k...</div></div></div></a><a class="pagination-related" href="/2023/11/11/cloud/k8s/client-go/K8s-client-goWorkQueue%E5%B7%A5%E4%BD%9C%E9%98%9F%E5%88%97/" title="K8s-client-go:WorkQueue工作队列"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2023-11-11</div><div class="info-item-2">K8s-client-go:WorkQueue工作队列</div></div><div class="info-2"><div class="info-item-1">K8s-client-go:WorkQueue工作队列WorkQueue队列与普通的FIFO队列，添加了标记和去重功能。有如下特性：  有序：按照顺序处理元素 去重：相同元素同一时间不会被重复处理 并发性：多生产者和消费者 标记机制：ShutDown方法通过信号量通知队列不再接收新的元素，并通知metric goroutine退出 延迟：支持延迟队列，延迟一段时间将元素存入队列 限速：支持限速队列，元素存入队列时进行速率限制。限制一个元素出现排队（REenqueued）的次数 Metric：支持metric监控指标，可用Prometheus监控   WorkQueue支持三种队列，并且提供三种接口：  Interface:FIFO队列，支持去重 Delaying Interface:延迟队列接口，基于Interface接口限制 RateLimtingInterface:限速接口队列  FIFO基本队列位置：k8s.io&#x2F;client-go&#x2F;util&#x2F;workqueue 1234567891011121314type Interface interfa...</div></div></div></a><a class="pagination-related" href="/2023/11/11/cloud/k8s/client-go/K8s-Client-go%EF%BC%9A%E5%9B%9B%E7%A7%8D%E5%AE%A2%E6%88%B7%E7%AB%AF/" title="K8s-Client-go：四种客户端"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2023-11-11</div><div class="info-item-2">K8s-Client-go：四种客户端</div></div><div class="info-2"><div class="info-item-1">K8s-Client-go：四种客户端概述ClientSet、DynamicClient、DiscoveryClient. —&gt; RESTClient —&gt; kubeconfig 其实，前面三种都是依赖于 RESTClient  RESTClient：就是对HTTP Client进行了封装，实现了RESTful风格的API。  ClientSet：在RESTClient之上封装了Resource和Version的管理方法，ClientSet只能访问K8s内置的资源，不能访问CRD资源，它是通过client-gen代码生成器生成的  DynamicClient:比ClientSet多一个支持CRD资源  DiscoveryClient:用于发现kube-apiserver所支持的资源组、资源版本、资源信息（Group、Version、Resource）   kubeconf文件kubeconf文件存储了集群、用户、命名空间和身份验证等信息。  clusters：集群信息 users：K8s机器用户的客户端凭证 contexts：定义K8s集群，用户信息和命名空间   读...</div></div></div></a><a class="pagination-related" href="/2025/03/15/cloud/k8s/job/K8sController-Job(%E6%89%B9%E5%A4%84%E7%90%86%E4%BB%BB%E5%8A%A1)/" title="K8sController-Job(批处理任务)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-03-15</div><div class="info-item-2">K8sController-Job(批处理任务)</div></div><div class="info-2"><div class="info-item-1">K8sController-Job(批处理任务) 基于K8s 1.31  主要配置和工作机制123456789101112131415161718192021222324252627282930313233343536apiVersion: batch/v1kind: Jobmetadata:  name: hellospec:  # 可以并行任务数量，默认1  parallelism: 3  completions: 3  # Pod完成模式，NonIndexed（数量达到completions推出，默认），Indexed  # Indexed模式：会被设置为Pod服务名  # - 设置Pod名称：&lt;Job Name&gt;-&lt;索引序号&gt;-&lt;随机字符串&gt;  # - 设置Annotation &quot;batch.kubernetes.io/job-completion-index&quot;: &lt;索引序号&gt;  # - 设置Label &quot;batch.kubernetes.io/job-completion-index&quot...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#K8s-client-go%EF%BC%9A%E6%BA%90%E7%A0%81%E7%BB%93%E6%9E%84"><span class="toc-number">1.</span> <span class="toc-text">K8s-client-go：源码结构</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-日志系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明">Gorm-日志系统模块原理说明</a><time datetime="2026-01-11T11:56:27.000Z" title="发表于 2026-01-11 19:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-迁移功能模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明">Gorm-迁移功能模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-插件系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明">Gorm-插件系统模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-事务处理模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明">Gorm-事务处理模块原理说明</a><time datetime="2026-01-11T09:56:27.000Z" title="发表于 2026-01-11 17:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-关联关系模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明">Gorm-关联关系模块原理说明</a><time datetime="2026-01-11T08:56:27.000Z" title="发表于 2026-01-11 16:56:27">2026-01-11</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

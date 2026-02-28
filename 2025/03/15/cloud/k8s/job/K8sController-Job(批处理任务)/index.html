@@ -1,0 +1,335 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>K8sController-Job(批处理任务) | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="K8sController-Job(批处理任务) 基于K8s 1.31  主要配置和工作机制123456789101112131415161718192021222324252627282930313233343536apiVersion: batch&#x2F;v1kind: Jobmetadata:  name: hellospec:  # 可以并行任务数量，默认1  parallelism: 3  c">
+<meta property="og:type" content="article">
+<meta property="og:title" content="K8sController-Job(批处理任务)">
+<meta property="og:url" content="https://piwriw.github.io/2025/03/15/cloud/k8s/job/K8sController-Job(%E6%89%B9%E5%A4%84%E7%90%86%E4%BB%BB%E5%8A%A1)/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="K8sController-Job(批处理任务) 基于K8s 1.31  主要配置和工作机制123456789101112131415161718192021222324252627282930313233343536apiVersion: batch&#x2F;v1kind: Jobmetadata:  name: hellospec:  # 可以并行任务数量，默认1  parallelism: 3  c">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/k8sLogo.png">
+<meta property="article:published_time" content="2025-03-15T14:08:55.000Z">
+<meta property="article:modified_time" content="2026-02-28T13:29:12.666Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="k8s">
+<meta property="article:tag" content="cloud">
+<meta property="article:tag" content="K8s源码">
+<meta property="article:tag" content="job">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/k8sLogo.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "K8sController-Job(批处理任务)",
+  "url": "https://piwriw.github.io/2025/03/15/cloud/k8s/job/K8sController-Job(%E6%89%B9%E5%A4%84%E7%90%86%E4%BB%BB%E5%8A%A1)/",
+  "image": "https://piwriw.github.io/img/k8sLogo.png",
+  "datePublished": "2025-03-15T14:08:55.000Z",
+  "dateModified": "2026-02-28T13:29:12.666Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2025/03/15/cloud/k8s/job/K8sController-Job(%E6%89%B9%E5%A4%84%E7%90%86%E4%BB%BB%E5%8A%A1)/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'K8sController-Job(批处理任务)',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/k8sLogo.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">K8sController-Job(批处理任务)</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">K8sController-Job(批处理任务)</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2025-03-15T14:08:55.000Z" title="发表于 2025-03-15 22:08:55">2025-03-15</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-02-28T13:29:12.666Z" title="更新于 2026-02-28 21:29:12">2026-02-28</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/">k8s</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/job/">job</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">2k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>6分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-02-28 21:29:12&quot;}" hidden></div><h1 id="K8sController-Job-批处理任务"><a href="#K8sController-Job-批处理任务" class="headerlink" title="K8sController-Job(批处理任务)"></a>K8sController-Job(批处理任务)</h1><blockquote>
+<p>基于K8s 1.31</p>
+</blockquote>
+<h2 id="主要配置和工作机制"><a href="#主要配置和工作机制" class="headerlink" title="主要配置和工作机制"></a>主要配置和工作机制</h2><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">batch/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Job</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">hello</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="comment"># 可以并行任务数量，默认1</span></span><br><span class="line">  <span class="attr">parallelism:</span> <span class="number">3</span></span><br><span class="line">  <span class="attr">completions:</span> <span class="number">3</span></span><br><span class="line">  <span class="comment"># Pod完成模式，NonIndexed（数量达到completions推出，默认），Indexed</span></span><br><span class="line">  <span class="comment"># Indexed模式：会被设置为Pod服务名</span></span><br><span class="line">  <span class="comment"># - 设置Pod名称：&lt;Job Name&gt;-&lt;索引序号&gt;-&lt;随机字符串&gt;</span></span><br><span class="line">  <span class="comment"># - 设置Annotation &quot;batch.kubernetes.io/job-completion-index&quot;: &lt;索引序号&gt;</span></span><br><span class="line">  <span class="comment"># - 设置Label &quot;batch.kubernetes.io/job-completion-index&quot;: &lt;索引序号&gt;，从K8s v1.28 需要开启PodIndexLabel特性门控</span></span><br><span class="line">  <span class="comment"># - 在容器内注入环境变量JOB_COMPLETION_INDEX，值为索引序号</span></span><br><span class="line">  <span class="comment"># - 与一个Headless Service搭配使用，Pod网络访问域名将被设置为&lt;$(job_name)-$(index)&gt;.&lt;headless-service-name&gt;，并且设置正确的DNS记录</span></span><br><span class="line">  <span class="attr">completionMode:</span> <span class="string">NonIndexed</span></span><br><span class="line">  <span class="comment"># 失败任务的最大重试次数上限</span></span><br><span class="line">  <span class="attr">backoffLimit:</span> <span class="number">4</span></span><br><span class="line">  <span class="comment"># K8s v1.28 开始支持，Pod失效时候，支持Ignore、FailJob、Count或FailIndex</span></span><br><span class="line">  <span class="attr">podFailurePolicy:</span></span><br><span class="line">    <span class="attr">rules:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">action:</span> <span class="string">FailJob</span></span><br><span class="line">  <span class="comment"># K8s v1.28 开始支持，Pod失效时候,替换策略</span></span><br><span class="line">  <span class="attr">podReplacementPolicy:</span> <span class="string">OnPodFailure</span></span><br><span class="line">  <span class="comment"># K8s v1.27 引入手动设置标签选择器</span></span><br><span class="line">  <span class="attr">manualSelector:</span> <span class="literal">true</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">restartPolicy:</span> <span class="string">Never</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">hello</span></span><br><span class="line">          <span class="attr">image:</span> <span class="string">busybox</span></span><br><span class="line">          <span class="attr">command:</span></span><br><span class="line">            <span class="bullet">-</span> <span class="string">/bin/sh</span></span><br><span class="line">            <span class="bullet">-</span> <span class="string">-c</span></span><br><span class="line">            <span class="bullet">-</span> <span class="string">date;</span> <span class="string">echo</span> <span class="string">Hello</span> <span class="string">from</span> <span class="string">the</span> <span class="string">Kubernetes</span> <span class="string">cluster</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="并行处理机制和常用模式"><a href="#并行处理机制和常用模式" class="headerlink" title="并行处理机制和常用模式"></a>并行处理机制和常用模式</h2><p>Job适用于3种形式运行的Job</p>
+<ol>
+<li>单个一次性任务：通常一个Job只启动一个Pod，除非Pod异常，才会重启该Pod，一旦该Pod正常结束，Job将完成</li>
+<li>具有指定完成数量的并行任务，并行任务会启动多个Pod</li>
+<li>带有工作队列的并行任务：任务队列的方式并行Pod需要一个独立的Queue，工作项都在一个Queue中存放，不能设置Job的Spec.completions参数，Job此刻有以下的特性<ol>
+<li>多个Pod之间必须能够协调好分别处理哪个工作项，或者需要借助外部服务来确定</li>
+<li>每个Pod都能确定其他Pod是否完成工作，进而确定Job是否完成</li>
+<li>如果某个Pod正常结束，则Job不会再启动新的Pod</li>
+<li>如果一个Pod成功结束，则此时应该不存在其他Pod还在工作的情况，它们应该处于即将结束、退出的状态</li>
+</ol>
+</li>
+</ol>
+<p>在并行运行的情况下，实际运行的Pod数量可能为parallelism设置的略大或者略小，可能原因如下：</p>
+<ul>
+<li>对于具有指定完成的并行数量（completions&gt;0），实际运行的Pod数量不会超过未完成的剩余数量，如果parallelism比cmpletions的值大，系统会忽略parallelism的设置</li>
+<li>对于带有工作队列的并行任务，只要有一个Pod成功结束，就不会创建新的Pod，并且剩下的Pod开始自动退出流程</li>
+<li>在Job工作负载控制器没有即使响应，实际运行的Pod数量可能略少</li>
+<li>当Job Controller在某些情况下无法创建Pod（资源不足），可能略少</li>
+<li>Job Controller因为同一个Pod失败次数太多而不再创建新的Pod</li>
+<li>在某个Pod处于优雅终止的过程中，需要消耗更多时间Pod才能终止，实际运行Pod数量可能略多</li>
+</ul>
+<h2 id="Pod失效时的处理机制"><a href="#Pod失效时的处理机制" class="headerlink" title="Pod失效时的处理机制"></a>Pod失效时的处理机制</h2><p>对于Job的Pod的restartPolicy只能被设置为Never和OnFailed，不能被设置为Always</p>
+<p>K8s为了更好的控制Pod失效之后，设置了一些新的配置，失效策略（podFailurePolicy）、失效次数上限（backoffLimit）、每个索引失效的次数上限（backoffLimitPerIndex）等机制</p>
+<h3 id="使用Pod失效次数上限（backoffLimit）控制Pod终止时机"><a href="#使用Pod失效次数上限（backoffLimit）控制Pod终止时机" class="headerlink" title="使用Pod失效次数上限（backoffLimit）控制Pod终止时机"></a>使用Pod失效次数上限（backoffLimit）控制Pod终止时机</h3><p>在某些场景下，看你要求Pod在不断失败经过有限的重试次数就不再尝试，而是将Job置为失败的情况，可以通过设置backoffLimit进行控制，默认值为6。在Pod失效后，Job Controller会重建Pod，而重试间隔从10s开始，后一次是前一次的2倍，最长时间为6min</p>
+<p>判断Job处于失败的计算逻辑：以下俩个值之一达到用backoffLimit设置的次数，系统就设置Job的状态为失败，并且删除一直失败的Pod</p>
+<ol>
+<li>status.phase&#x3D;”Failed”时的Pod数量</li>
+<li>restartPolicy&#x3D;OnFailure时，status.phase&#x3D;”Pending”或”Running”的Pod，其中容器的重启次数</li>
+</ol>
+<h3 id="使用每个索引的失效次数上限（backoffLimitPerIndex）控制器何时终止带索引的Job"><a href="#使用每个索引的失效次数上限（backoffLimitPerIndex）控制器何时终止带索引的Job" class="headerlink" title="使用每个索引的失效次数上限（backoffLimitPerIndex）控制器何时终止带索引的Job"></a>使用每个索引的失效次数上限（backoffLimitPerIndex）控制器何时终止带索引的Job</h3><p>从K8s 1.28开始，引入了针对带索引的Job的失效次数上限设置，需要开启K8s各个服务的JobBackoffLimitPerIndex的特性门控启用，该特性到v1.29版进入到Beta</p>
+<p>使用该特性：<strong>必须设置completionMode&#x3D;Indexed,Pod的restartPolicy：Never</strong></p>
+<ul>
+<li>容器计算逻辑：当环境变量JOB_COMPLETOP_INDEX为基数异常退出，偶数正常退出</li>
+</ul>
+<h3 id="Pod失效策略"><a href="#Pod失效策略" class="headerlink" title="Pod失效策略"></a>Pod失效策略</h3><p>从K8s v1.25版本开始，引入了Pod失效策略（podFailurePolicy），使用用户可以根据某些条件更好的控制失效时的处理方式，该机制在v1.26进入Beta，需要开启特性门控JobPodFailurePolicy特性门控</p>
+<p>常见的应用场景：</p>
+<ul>
+<li>根据特定的退出码立刻终止Job无需重试</li>
+<li>忽略某些干扰因素（例如优先级抢占、被驱逐）等导致的Pod失效，不应收到基于backoffLimit的失效次数重试</li>
+</ul>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">spec</span></span><br><span class="line">	  <span class="comment"># K8s v1.28 开始支持，Pod失效时候，支持Ignore、FailJob、Count或FailIndex</span></span><br><span class="line">  <span class="attr">podFailurePolicy:</span></span><br><span class="line">    <span class="comment"># 按照顺序对多个规则进行评估，一旦某个规则匹配，则立即停止评估后续规则</span></span><br><span class="line">    <span class="attr">rules:</span></span><br><span class="line">      <span class="comment"># FailJob: 立即终止Job并且标记为Failed，同时停止全部未终止的Pod</span></span><br><span class="line">      <span class="comment"># Ignore: 重建一个新的Pod，同时不计入backoffLimit</span></span><br><span class="line">      <span class="comment"># FailIndex： 在使用索引的情况下，将失效索引的Pod设置为不再重试</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">action:</span> <span class="string">FailJob</span></span><br><span class="line">        <span class="comment"># onPodConditions:根据Pod的情况，采用什么样子的action</span></span><br><span class="line">        <span class="comment"># onExitCode: 根据Pod退出码，采用什么样子的action</span></span><br><span class="line">        <span class="attr">onPodConditions:</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">type:</span> <span class="string">Disrupted</span></span><br><span class="line">            <span class="attr">status:</span> <span class="string">&quot;true&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>在使用Pod失效策略的时候，Job Controller 只对于失效阶段的Pod进行规则匹配，不考试Succeeded或者Terminating的Pod</p>
+<p>从K8s的V1.27版中，kubelet会将已经删除的Pod转换到终止阶段（Failed或者Succeeded），转换为失效阶段的Pod将也被Pod失效策略纳入考虑</p>
+<h3 id="Pod替换策略"><a href="#Pod替换策略" class="headerlink" title="Pod替换策略"></a>Pod替换策略</h3><p>从K8s v1.28引入新的Pod替换策略（podReplacementPolicy)机制，用于管理创建替换Pod对时间，该特性v1.29版本上处于Beta通过开启JobPodReplacementPolicy特性门控进行启用</p>
+<p>在默认情况下，在Pod失效和停止中时，Job Controller会立刻创建一个新的替换Pod。Pod 替换策略允许用户通过控制器延迟来创建新的替换Pod，例如，设置pod ReplacementPolicy&#x3D;Failed来表示只在Pod完全失效（statsu.phase&#x3D;Failed)才让系统替换Pod</p>
+<ul>
+<li>Failed：失效Pod处于失效状态，重建替换Pod</li>
+<li>TerminatingOrFailed：失效Pod处于停止中和失效状态，重建替换Pod，这是系统默认的策略</li>
+</ul>
+<p>从K8s v1.28版本后，在启用Pod失效策略机制时，Job Controller会判断仅当Pod为失效状态，才重建新的替换Pod。如果设置Pod替换策略，只允许设置podReplacementPolicy&#x3D;Failed</p>
+<h2 id="Job的终止和清理机制"><a href="#Job的终止和清理机制" class="headerlink" title="Job的终止和清理机制"></a>Job的终止和清理机制</h2><p>Job在结束之后，不会创建新的Pod，通常也不会删除已经结束的Pod。保留结束的Pod，可以提供用户执行查看容器日志、排查勘误等操作</p>
+<p>从K8s v1.20开始，引入了ttlSecondsAfterFinished字段，用于设置TTL Controller机制，到v1.22阶段进入到Stable阶段</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">spec</span></span><br><span class="line">  <span class="comment"># Pod最长运行时间，单位s</span></span><br><span class="line">  <span class="attr">activeDeadlineSeconds:</span> <span class="number">2</span></span><br><span class="line">  <span class="comment"># 用于设置TTL Controller自动清理机制</span></span><br><span class="line">  <span class="attr">ttlSecondsAfterFinished:</span> <span class="number">10</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="Job的挂起与恢复"><a href="#Job的挂起与恢复" class="headerlink" title="Job的挂起与恢复"></a>Job的挂起与恢复</h2><p>K8s从开始，引入一个新的刮起的特性，通过一个新字段suspend，暂停对Pod得创建操作，在v1.24进入Stable</p>
+<p>需要挂起Job，只需要设计suspend&#x3D;true，如果初始化设置了pod suspend&#x3D;true，那吗创建Pod之后处于挂起</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2025/03/15/cloud/k8s/job/K8sController-Job(%E6%89%B9%E5%A4%84%E7%90%86%E4%BB%BB%E5%8A%A1)/">https://piwriw.github.io/2025/03/15/cloud/k8s/job/K8sController-Job(批处理任务)/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a><a class="post-meta__tags" href="/tags/cloud/">cloud</a><a class="post-meta__tags" href="/tags/K8s%E6%BA%90%E7%A0%81/">K8s源码</a><a class="post-meta__tags" href="/tags/job/">job</a></div><div class="post-share"><div class="social-share" data-image="/img/k8sLogo.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2025/03/17/cloud/k8s/job/K8sController-CronJob(%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1)/" title="K8sController-CronJob(定时任务)"><img class="cover" src="/img/k8s-go.jpg" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">K8sController-CronJob(定时任务)</div></div><div class="info-2"><div class="info-item-1">K8sController-CronJob(定时任务) 基于K8s v1.31  Cron Job支持用于每隔一段时间创建定期运行的批处理任务 CronJob定时表达式12345678910# ┌───────────── 分钟 (0 - 59)# │ ┌───────────── 小时 (0 - 23)# │ │ ┌───────────── 月的某天 (1 - 31)# │ │ │ ┌───────────── 月份 (1 - 12)# │ │ │ │ ┌───────────── 周的某天 (0 - 6)（周日到周六）# │ │ │ │ │                          或者是 sun，mon，tue，web，thu，fri，sat# │ │ │ │ │# │ │ │ │ │# * * * * *Minutes Hours DayofMonth Month DayofWeek   Minutes: , - * &#x2F; 或者0-59的整数  Hours： , - * &#x2F; 或者0-23的整数  DayofMonth： , - * &#x2F;...</div></div></div></a><a class="pagination-related" href="/2025/03/14/database/mysql/MySQL-schema%E8%AE%BE%E8%AE%A1%E4%B8%8E%E7%AE%A1%E7%90%86/" title="MySQL-schema设计与管理"><img class="cover" src="/img/mysql.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">MySQL-schema设计与管理</div></div><div class="info-2"><div class="info-item-1">MySQL-schema设计与管理选择数据库优化的数据类型常见原则：  更小的通用 简单为好 尽量避免存储NULL  MySQL为了兼容性支持很多别名，例如， INTEGER（映射到INT）、BOOL（映射到TINYINT）和NUMERIC（映射 到DECIMAL）。它们都只是别名。这些别名可能令人不解，但不会影响性 能。如果建表时采用数据类型的别名，然后用SHOW CREATE TABLE检 查，会发现MySQL报告的是基本类型，而不是别名 整数类型 有两种类型的数字：整数（whole number）和实数（real number，带有小数 部分的数字）。如果存储整数，可以使用这几种整数类型：TINYINT、 SMALLINT、MEDIUMINT、INT或BIGINT。它们分别使用8、16、24、32 和64位存储空间。可以存储的值的范围从-2（N-1）到2（N-1）-1，其中N是存 储空间的位数。  整数类型有可选的UNSIGNED属性，表示不允许负值，这大致可以使正数 的上限提高一倍。例如，TINYINT UNSIGNED可以存储的值的范围是0～ 255，而TINYINT的...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2024/11/02/cloud/k8s/job/K8s%E5%B7%A5%E4%BD%9C%E8%B4%9F%E8%BD%BD-Job/" title="K8s工作负载-Job"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-11-02</div><div class="info-item-2">K8s工作负载-Job</div></div><div class="info-2"><div class="info-item-1">K8s工作负载-Job 基于1.25  什么是JobJob会创建一个或多个Pod，并持续重试Pod的执行，直至指定数量的Pod成功终止  随着Pod成功终止，Job会记录成功的Pod个数，Pod到达指定数量，Job终止 删除Job，会删除Job的所有Pod  JobSpec Ref:https://github.com/kubernetes/api/blob/f7b7ea4f0fcc6cb8c8dd42eb46a94c7e163d1b9d/batch/v1/types.go#L206  12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849505152535455565758596061626364656667686970717273747576777879808182838485868788899091929394959697989910010110210310410510610710810911011111211311411511611711811912...</div></div></div></a><a class="pagination-related" href="/2025/03/17/cloud/k8s/job/K8sController-CronJob(%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1)/" title="K8sController-CronJob(定时任务)"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-03-17</div><div class="info-item-2">K8sController-CronJob(定时任务)</div></div><div class="info-2"><div class="info-item-1">K8sController-CronJob(定时任务) 基于K8s v1.31  Cron Job支持用于每隔一段时间创建定期运行的批处理任务 CronJob定时表达式12345678910# ┌───────────── 分钟 (0 - 59)# │ ┌───────────── 小时 (0 - 23)# │ │ ┌───────────── 月的某天 (1 - 31)# │ │ │ ┌───────────── 月份 (1 - 12)# │ │ │ │ ┌───────────── 周的某天 (0 - 6)（周日到周六）# │ │ │ │ │                          或者是 sun，mon，tue，web，thu，fri，sat# │ │ │ │ │# │ │ │ │ │# * * * * *Minutes Hours DayofMonth Month DayofWeek   Minutes: , - * &#x2F; 或者0-59的整数  Hours： , - * &#x2F; 或者0-23的整数  DayofMonth： , - * &#x2F;...</div></div></div></a><a class="pagination-related" href="/2024/12/16/cloud/k8s/kubelet/K8s-kubelet(HTTP%E6%9C%8D%E5%8A%A1%E6%8E%A5%E5%8F%A3)/" title="K8s-kubelet(HTTP服务接口)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-16</div><div class="info-item-2">K8s-kubelet(HTTP服务接口)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(HTTP服务接口) 基于1.25  kubelet通过HTTP Server对外暴露API，为了确保接口安全，kubelet按照安全等级从低到高顺序支持3种HTTP Server，分别是healthz server、readonly server和kubelet core server    一级类目 二级类目 Path路径 描述    Default Handlerers healthz &#x2F;healthz 检查kubelet是否健康，重点检查syncLoop是否持续在规定时间内完成。检查syncLoop四因为其他组件故障会间接导致syncLoop不能执行成功   Default Handlerers pods &#x2F;pods 读取当前节点运行的Pod列表（通过PodManager获取）   Default Handlerers stats &#x2F;stats&#x2F;summary 读取资源使用状态   Default Handlerers metrics &#x2F;metrics 读取kubelet监控指标数据   Defaul...</div></div></div></a><a class="pagination-related" href="/2024/12/15/cloud/k8s/kubelet/K8s-kubelet(PLEG%E6%A0%B8%E5%BF%83%E5%8E%9F%E7%90%86)/" title="K8s-kubelet(PLEG核心原理)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-15</div><div class="info-item-2">K8s-kubelet(PLEG核心原理)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(PLEG核心原理) 基于1.25  PLEG是kubelet的一个重要组件，负责监控kubelet管理的节点运行的Pod的生命周期，并生成于生命周期相关的事件 PLEG产生原因在K8s中，kubelet负责维护和管理每个节点上的Pod，不断的调谐Pod的状态以使得符合Spec。  为了实现这个目标，kubelet同时需要支持对Pod Spec和Container Status 的事件监听。对于前者kubelet通过watch不同源的对PodSpec事件实现，对于后者，PLEG之前，不断需要Pod处理协程不断的周期性拉取最新状态，尝试了大量轮询压力。 在kubeletv1.2.0版本引入了PLEG，目标是改善kubelet的可拓展性 减少不必要的处理操作（当状态为发生变化时，不执行无效的调谐操作） 减少对底层容器运行的并发请求，以减轻容器运行时的压力    PLEG架构设计PLEG主要包含俩个核心工作，一是感受容器变化，生成Pod事件，俩是维持一份最新的Pod Status Cache数据供其他组件读取。   kubelet同时接收俩个方向的事件，Pod S...</div></div></div></a><a class="pagination-related" href="/2024/12/14/cloud/k8s/kubelet/K8s-kubelet(Cgroup%E8%B5%84%E6%BA%90%E9%9A%94%E7%A6%BB%E4%BB%A5%E5%8F%8A%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E5%8E%9F%E7%90%86)/" title="K8s-kubelet(Cgroup资源隔离以及垃圾回收原理)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-14</div><div class="info-item-2">K8s-kubelet(Cgroup资源隔离以及垃圾回收原理)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(Cgroup资源隔离以及垃圾回收原理) 基于1.25  什么是Cgroup资源隔离kubelet基于cgroup限制Pod资源使用。cgroup是Linux内核的一个重要功能，用来限制、控制和分离一个进程组的资源（CPU、内存、磁盘I&#x2F;O） kubelet在创建Pod时，会将其配置的cgroups parent目录传递给容器运行时，使容器运行时创建的进程都会限制到kubelet配置父级cgroup之下。  kubelet负责维护Pod、QoS、Node级别的cgroup配置 Container级别的cgroup直接交给容器运行时实现  cgroup的层级结构 kubelet采用了四级cgroups层级架构存储  Node Level cgroup 为了保证系统运行的稳定性，kubelet支持为系统守护进程预留资源，避免Pod占用整个系统资源，造成系统卡死或者崩溃。  默认情况下，kube-reserved和system-reserved不会启用。 但是启用之后，需要注意守护进程添加了cgroup之后，可能导致配置的上限太小，导致守护进程资源不足退...</div></div></div></a><a class="pagination-related" href="/2024/12/13/cloud/k8s/kubelet/K8s-kubelet(Pod%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F%E7%AE%A1%E7%90%86)/" title="K8s-kubelet(Pod生命周期管理)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-13</div><div class="info-item-2">K8s-kubelet(Pod生命周期管理)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(Pod生命周期管理) 基于1.25  kubelet以Pod为基本处理单元，负责Pod从创建到消亡的整个生命周期   在1.21中Unknown状态已经被标记为弃用。  CRIkubelet通过CRI RPC管理容器的生命周期，执行容器的lifecycle hook和 startup&#x2F;liveness&#x2F;readiness的健康检查，同时根据Pod的重启策略在容器失败退出后自动重启容器，CRI是kubelet管理Pod和容器的基础   Ref:https://github.com/kubernetes/cri-api/blob/2c8d015e0d408208ca8843c1d6e2e2fce1e5dd94/pkg/apis/runtime/v1/api.proto#L34 12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849505152535455565758596061626364656667686970717...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#K8sController-Job-%E6%89%B9%E5%A4%84%E7%90%86%E4%BB%BB%E5%8A%A1"><span class="toc-number">1.</span> <span class="toc-text">K8sController-Job(批处理任务)</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%BB%E8%A6%81%E9%85%8D%E7%BD%AE%E5%92%8C%E5%B7%A5%E4%BD%9C%E6%9C%BA%E5%88%B6"><span class="toc-number">1.1.</span> <span class="toc-text">主要配置和工作机制</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B9%B6%E8%A1%8C%E5%A4%84%E7%90%86%E6%9C%BA%E5%88%B6%E5%92%8C%E5%B8%B8%E7%94%A8%E6%A8%A1%E5%BC%8F"><span class="toc-number">1.2.</span> <span class="toc-text">并行处理机制和常用模式</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Pod%E5%A4%B1%E6%95%88%E6%97%B6%E7%9A%84%E5%A4%84%E7%90%86%E6%9C%BA%E5%88%B6"><span class="toc-number">1.3.</span> <span class="toc-text">Pod失效时的处理机制</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8Pod%E5%A4%B1%E6%95%88%E6%AC%A1%E6%95%B0%E4%B8%8A%E9%99%90%EF%BC%88backoffLimit%EF%BC%89%E6%8E%A7%E5%88%B6Pod%E7%BB%88%E6%AD%A2%E6%97%B6%E6%9C%BA"><span class="toc-number">1.3.1.</span> <span class="toc-text">使用Pod失效次数上限（backoffLimit）控制Pod终止时机</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8%E6%AF%8F%E4%B8%AA%E7%B4%A2%E5%BC%95%E7%9A%84%E5%A4%B1%E6%95%88%E6%AC%A1%E6%95%B0%E4%B8%8A%E9%99%90%EF%BC%88backoffLimitPerIndex%EF%BC%89%E6%8E%A7%E5%88%B6%E5%99%A8%E4%BD%95%E6%97%B6%E7%BB%88%E6%AD%A2%E5%B8%A6%E7%B4%A2%E5%BC%95%E7%9A%84Job"><span class="toc-number">1.3.2.</span> <span class="toc-text">使用每个索引的失效次数上限（backoffLimitPerIndex）控制器何时终止带索引的Job</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Pod%E5%A4%B1%E6%95%88%E7%AD%96%E7%95%A5"><span class="toc-number">1.3.3.</span> <span class="toc-text">Pod失效策略</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Pod%E6%9B%BF%E6%8D%A2%E7%AD%96%E7%95%A5"><span class="toc-number">1.3.4.</span> <span class="toc-text">Pod替换策略</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Job%E7%9A%84%E7%BB%88%E6%AD%A2%E5%92%8C%E6%B8%85%E7%90%86%E6%9C%BA%E5%88%B6"><span class="toc-number">1.4.</span> <span class="toc-text">Job的终止和清理机制</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Job%E7%9A%84%E6%8C%82%E8%B5%B7%E4%B8%8E%E6%81%A2%E5%A4%8D"><span class="toc-number">1.5.</span> <span class="toc-text">Job的挂起与恢复</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-日志系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明">Gorm-日志系统模块原理说明</a><time datetime="2026-01-11T11:56:27.000Z" title="发表于 2026-01-11 19:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-迁移功能模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明">Gorm-迁移功能模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-插件系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明">Gorm-插件系统模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-事务处理模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明">Gorm-事务处理模块原理说明</a><time datetime="2026-01-11T09:56:27.000Z" title="发表于 2026-01-11 17:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-关联关系模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明">Gorm-关联关系模块原理说明</a><time datetime="2026-01-11T08:56:27.000Z" title="发表于 2026-01-11 16:56:27">2026-01-11</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

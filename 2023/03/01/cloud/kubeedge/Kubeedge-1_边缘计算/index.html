@@ -1,0 +1,330 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Kubeedge-边缘计算 | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="why I write the series of kubeedge It base on an experience I had studying kubeege. What is more,I chose it as my graduation project.(ps： somethings from Kubeedge 云原生边缘计算公开课) When I stumbled upon this">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Kubeedge-边缘计算">
+<meta property="og:url" content="https://piwriw.github.io/2023/03/01/cloud/kubeedge/Kubeedge-1_%E8%BE%B9%E7%BC%98%E8%AE%A1%E7%AE%97/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="why I write the series of kubeedge It base on an experience I had studying kubeege. What is more,I chose it as my graduation project.(ps： somethings from Kubeedge 云原生边缘计算公开课) When I stumbled upon this">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/kubeedge.png">
+<meta property="article:published_time" content="2023-03-01T14:25:38.000Z">
+<meta property="article:modified_time" content="2026-02-28T13:29:12.672Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="k8s">
+<meta property="article:tag" content="go">
+<meta property="article:tag" content="cloud">
+<meta property="article:tag" content="kubeedge">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/kubeedge.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Kubeedge-边缘计算",
+  "url": "https://piwriw.github.io/2023/03/01/cloud/kubeedge/Kubeedge-1_%E8%BE%B9%E7%BC%98%E8%AE%A1%E7%AE%97/",
+  "image": "https://piwriw.github.io/img/kubeedge.png",
+  "datePublished": "2023-03-01T14:25:38.000Z",
+  "dateModified": "2026-02-28T13:29:12.672Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2023/03/01/cloud/kubeedge/Kubeedge-1_%E8%BE%B9%E7%BC%98%E8%AE%A1%E7%AE%97/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Kubeedge-边缘计算',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/kubeedge.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">Kubeedge-边缘计算</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">Kubeedge-边缘计算</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2023-03-01T14:25:38.000Z" title="发表于 2023-03-01 22:25:38">2023-03-01</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-02-28T13:29:12.672Z" title="更新于 2026-02-28 21:29:12">2026-02-28</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/kubeedge/">kubeedge</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">1.8k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>5分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-02-28 21:29:12&quot;}" hidden></div><h1 id="why-I-write-the-series-of-kubeedge"><a href="#why-I-write-the-series-of-kubeedge" class="headerlink" title="why I write the series of kubeedge"></a>why I write the series of kubeedge</h1><ul>
+<li>It base on an experience I had studying kubeege. What is more,I chose it as my graduation project.(ps： somethings from Kubeedge 云原生边缘计算公开课) When I stumbled upon this series of courses.</li>
+<li>Now let get it!</li>
+</ul>
+<h1 id="Backgroud-of-Edge-calculation"><a href="#Backgroud-of-Edge-calculation" class="headerlink" title="Backgroud of Edge calculation"></a>Backgroud of Edge calculation</h1><ul>
+<li>Famous words:” <strong>The future is here and it is built on cloud native</strong> “ (未来就在这里，它建立在云原生之上)</li>
+<li>Edge Computing will be 4x larger than cloud and will generate 75% of data worldwide by 2025. With hardware and<br>software spread across hundreds or thousands of locations, the only feasible way to manage these distributed systems<br>are the simple paradigms around observability, loosely coupled systems, declarative APIs, and robust automation, that have made cloud native technologies so successful in the cloud. Kubernetes is already becoming a key part of the edge ecosystem, driving integrations and operations</li>
+<li>到2025年，全世界75%的数据将会产生于边缘，边缘计算的规模将会比云大4倍。由于软硬件分散部署在成百上千的 不同位置上，管理这些分布式系统的唯一可行的方法是围绕可观测性、松耦合系统、声明式API和强大的自动化的简单范式，这些范式已经在云计算中促使云原生技术获得成功。Kubernetes已经成为边缘生态系统的关键部分，持续推动其集成和运维 –from <a target="_blank" rel="noopener" href="https://www.cncf.io/wp-content/uploads/2022/06/KubernetesEdge-2022-report_FINAL.pdf">Reported from Kubernetes on EDGE DAY</a></li>
+</ul>
+<h1 id="What-the-Cloud-Native-advantage"><a href="#What-the-Cloud-Native-advantage" class="headerlink" title="What the Cloud Native advantage"></a>What the Cloud Native advantage</h1><p>◆更高效、更稳定的资源调度与管理：<br>    ➢ 一致的使用体验：依托已成事实标准的Kubernetes API，边缘与云上数据中心一致的使用体验，降低学习成本<br>    ➢ 容器化应用交付：容器化的应用封装，屏蔽边缘复杂的底层硬件环境，应用交付更统一、更便捷<br>    ➢ 细粒度的应用管理: 针对边缘资源有限的环境，云原生以微服务方式提供极其灵活的方式来开发和交付更细粒度<br>的边缘服务，不需要更新整个单体应用<br>    ➢ 更稳定的边缘应用管理能力：依托边缘自治等能力，服务可以稳定运行在边缘<br>    ➢ 更快的故障恢复能力: 出现故障或存在错误的边缘应用可以迅速回滚，恢复到工作状态</p>
+<p>◆丰富的技术生态集成：<br>➢ 基于CNCF庞大、丰富的云原生技术生态，轻松与生态集成，构建监控、日志等系统能力</p>
+<p>◆使用云原生路径也带来经济利益:<br>➢ 云原生提供的带宽减少和流线型数据可以降低成本，使其成为一种非常有效的企业工具。 可以允许基于消费的边<br>缘计算定价方法，而无需大量的前期资本支出</p>
+<h1 id="What-is-Edge-calculation"><a href="#What-is-Edge-calculation" class="headerlink" title="What is Edge calculation"></a>What is Edge calculation</h1><h2 id="什么是云计算"><a href="#什么是云计算" class="headerlink" title="什么是云计算"></a>什么是云计算</h2><ul>
+<li>云计算是指通过互联网按需访问计算资源 - 应用、服务器（物理服务器和虚拟服务器）、数据存储、开发工具和网络功能等等，这些资源托管在由云服务提供商（或 CSP）管理的远程数据中心内。 CSP 提供这些资源时会按月收取订阅费用，或者按使用量收费</li>
+</ul>
+<h2 id="什么是边缘计算"><a href="#什么是边缘计算" class="headerlink" title="什么是边缘计算"></a>什么是边缘计算</h2><ul>
+<li><ol>
+<li>对于中心云，边缘就算靠近业务现场，提供一定的算力支持</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>边缘解决本地业务实时、安全、业务持续性的问题</li>
+</ol>
+</li>
+<li><ol start="3">
+<li>边缘无处不在，远远大于云端的数量</li>
+</ol>
+</li>
+</ul>
+<h2 id="云边协同的经典应用场景"><a href="#云边协同的经典应用场景" class="headerlink" title="云边协同的经典应用场景"></a>云边协同的经典应用场景</h2><ul>
+<li>CDN结合边缘计算向下一代内容分发平台升级<br>CDN结合边缘计算，将vCDN（virtual Content Delivery Network，虚拟内容分发网络）下沉到运营商的边缘数据中心，<br>从而降低响应时延，可提升QoS指标，同时提高用户体验，降低眩晕感和延迟卡顿。</li>
+<li>新时代的万亿云游戏市场<br>“快速切换，点开即玩”。新时代的云游戏利用云边协同快速扩张，游戏研发、硬件设备商、通信设备商、游戏平<br>台将基于自身现有优势从不同角度切入，实现万亿云游戏市场的突破。</li>
+<li>云边协同是工业互联网的重要支柱<br>在工业互联网场景中，边缘设备只能处理局部数据，无法形成全局认知，在实际应用中仍然需要借助云计算平台来实<br>现信息的融合。因此，云边协同正逐渐成为支撑工业互联网发展的重要支柱。</li>
+<li>传统能源产业的智慧升级<br>能源产业在传统模式下，需要大量的人力定期对数据进行收集和处理，一来人工成本非常高，二来数据分析效率低、<br>时延大。因此，云边协同正为传统能源产业的智慧升级提供道路。</li>
+<li>加速数字中国在农业领域落地<br>云边协同将推动农业供给端的变革，农业由经验主导向数据主导转变，通过智能化手段，可以将人的经验传递给机器，<br>通过数据挖掘，可以发现新的生产规律和农业商品优化的新空间。<br>家庭智能化信息服务成为可能</li>
+<li>云边协同使电器控制、安全保护、视频监控、定时控制、环境检测、场景控制、可视对讲等家庭智能化功能得以实<br>现，同时使政务、医疗、教育等产业进一步丰富家庭智能化信息服务成为可能。</li>
+<li>智慧交通借助云边协同向车路协同方向发展<br>车路协同是智慧交通的重要发展方向之一，能力构建涉及车内边缘计算、道路边缘计算、车路协同云等方面，云边<br>协同可以从多方面提供车车、车路动态实时信息交互，并开展车辆主动安全控制和道路协同管理。</li>
+<li>云边协同引领安防智能化技术潮流<br>现代安防监控可以和人工智能相结合，面向智能安防、视频监控、人脸识别等业务场景，以低时延、大带宽、快速<br>响应等特性实现本地分析、快速处理、实时响应。</li>
+<li>云边协同重新定义医疗保健<br>医疗保健是药师直接且负责任地提供的与药物治疗相关的服务，其目的是达到改善病人生命质量的确切效果，云边协同则从实时本地数据分析、数据断点续传、数据安全传输等方面让医生我患者提供更快、更高的护理<br><del>——中国信息通信研究院《云计算与边缘计算协同九大应用场景》</del></li>
+</ul>
+<h1 id="What-is-KubeEdge"><a href="#What-is-KubeEdge" class="headerlink" title="What is KubeEdge"></a>What is KubeEdge</h1><ul>
+<li>KubeEdge是一个开源系统，用于将容器化应用程序编排功能扩展到Edge的主机。它基于kubernetes构建，并为网络应用程序提供基础架构支持。云和边缘之间的部署和元数据同步</li>
+<li>KubeEdge 是CNCF首个云原生边缘计算项目</li>
+<li>KubeEdge Info：<ul>
+<li>官网：<a target="_blank" rel="noopener" href="https://kubeedge.io/en/">https://kubeedge.io/en/</a> </li>
+<li>GiteHub KubeEdge组织：<a target="_blank" rel="noopener" href="https://github.com/kubeedge">https://github.com/kubeedge</a></li>
+<li>GitHub:<a target="_blank" rel="noopener" href="https://github.com/kubeedge/kubeedge">https://github.com/kubeedge/kubeedge</a></li>
+</ul>
+</li>
+</ul>
+<h1 id="KubeEdge-Info"><a href="#KubeEdge-Info" class="headerlink" title="KubeEdge Info"></a>KubeEdge Info</h1><h2 id="KubeEdge-消息介绍"><a href="#KubeEdge-消息介绍" class="headerlink" title="KubeEdge 消息介绍"></a>KubeEdge 消息介绍</h2><p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20230211191153.png" alt="20230211191153"></p>
+<h2 id="KubeEdge-发展历程"><a href="#KubeEdge-发展历程" class="headerlink" title="KubeEdge 发展历程"></a>KubeEdge 发展历程</h2><p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/20230211191305.png" alt="20230211191305"></p>
+<h1 id="引用"><a href="#引用" class="headerlink" title="引用"></a>引用</h1><ul>
+<li>云原生边缘计算公开课</li>
+<li>KubeEdge官网</li>
+<li>中国信息通信研究院《云计算与边缘计算协同九大应用场景》</li>
+</ul>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2023/03/01/cloud/kubeedge/Kubeedge-1_%E8%BE%B9%E7%BC%98%E8%AE%A1%E7%AE%97/">https://piwriw.github.io/2023/03/01/cloud/kubeedge/Kubeedge-1_边缘计算/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a><a class="post-meta__tags" href="/tags/go/">go</a><a class="post-meta__tags" href="/tags/cloud/">cloud</a><a class="post-meta__tags" href="/tags/kubeedge/">kubeedge</a></div><div class="post-share"><div class="social-share" data-image="/img/kubeedge.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2023/03/01/cloud/kubeedge/Kubeedge-6_AI%E5%8D%8F%E5%90%8C%E5%AD%90%E9%A1%B9%E7%9B%AE-Sedna/" title="AI协同子项目-Sedna"><img class="cover" src="/img/kubeedge.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">AI协同子项目-Sedna</div></div><div class="info-2"><div class="info-item-1">Kubeedge - 6：AI协同子项目-Sedna什么是 Sedna Sedna是在KubeEdge SIG AI孵化的边云协同AI项目。得益于 KubeEdge 提供的边云协同能力，Sedna 可以实现跨边云协同训练和协同推理能力，如联合推理、增量学习、联邦学习和终身学习。Sedna支持流行的AI框架，如TensorFlow，Pytorch，PaddlePaddle，MindSpore。 Sedna可以简单地为现有的训练和推理脚本启用边缘云协同功能，从而带来降低成本、提高模型性能和保护数据隐私的好处  安装Sedna环境准备  1VM    2CPU(个人建议4CPU)    2GB+MEMORY(建议4G+)    10GB+ free disk space    Internet connection(docker hub, github etc.)    Linux platform, such as ubuntu&#x2F;centos    Docker 17.06+   特别提醒：当你运行样例的时候，发现卡死，线查看主机的CPU和运行占用情况，所以要求CPU和内存...</div></div></div></a><a class="pagination-related" href="/2023/02/28/web/go/piwriw-blog/" title="piwriw_blog"><img class="cover" src="/img/go.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">piwriw_blog</div></div><div class="info-2"><div class="info-item-1">Piwriw Blog                          基于Gin的个人博客系统        一个后端使用了Gin、数据库ORM使用Sqlx，前端使用了Vue2.X的个人博客系统          探索本项目的文档 »            本篇README.md面向开发者 目录 项目概述 页面演示 用户端 管理端   快速启动 文件目录说明 作者 鸣谢  项目概述Piwriw_blog是一个博客系统，前端基于Vue2构建了用户端和管理员系统，后端基于Gin和Sqlx构建。 页面演示用户端 首页         详情        管理端 文章编辑         文章列表         评论管理         分类列表         用户列表         个人设置        快速启动  克隆项目到本地1git clone git@github.com:Piwriw/piwriw_blog.git    下载后端依赖(前提：你已经开启了go modules 并且设置了国内镜像代理)12cd piwriw_blog go mod tidy    下...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2023/12/30/cloud/kubeedge/Kubeedge-%E8%A7%A3%E6%9E%90%E8%8E%B7%E5%8F%96Token%EF%BC%88keadm%20gettoken)/" title="Kubeedge-解析获取Token（keadm gettoken)"><img class="cover" src="/img/kubeedge.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2023-12-30</div><div class="info-item-2">Kubeedge-解析获取Token（keadm gettoken)</div></div><div class="info-2"><div class="info-item-1">Kubeedge-解析获取Token（keadm gettoken)什么是keadm gettokenleads gettoken一般用于我们接入cloudcore的token的值的获取。 如何获取token通过解析keadm gettoken源码，我们发现，其实keadm gettoken本质上就是查询下了kubeedge namespace 下的name为tokensecret 的Secret的tokendata的值 https://github.com/kubeedge/kubeedge/blob/4ab8abe101e1037415d2c641feef642ab73a1d47/keadm/cmd/keadm/app/cmd/cloud/gettoken.go#L63 这是一个Kubeedge 获取token的最简单的抽象： 123456789101112131415161718192021222324package mainimport (	&quot;context&quot;	&quot;fmt&quot;	metaV1 &quot;k8s.io/apimachine...</div></div></div></a><a class="pagination-related" href="/2023/03/12/cloud/kubeedge/Kubeedge-5_%E7%8E%A9%E8%BD%ACRouter/" title="玩转 Router"><img class="cover" src="/img/kubeedge.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2023-03-12</div><div class="info-item-2">玩转 Router</div></div><div class="info-2"><div class="info-item-1">Kubeedge - 5： 玩转 Router什么是 Router router 是 KubeEdge 中的一种通过实现 CRDs 来实现与边缘端进行MQTT通信的模式 在 KubeEdge 中通过 Rule 和 RuleEndPoint 实现了几种通信模式  配置开启 router云端（cloud） 开启router模式123# 如果你是通过pod安装的cloudcore 查看是否开启#可以通过kubectl edit pod &lt;cloudcore_name&gt; -n kubeedge 修改kubectl describe cm cloudcore -n kubeedge  1234.......  router:    enable: true.......  边缘端（edge） 开启eventbus和servicebus1vi /etc/kubeedge/config/edgecore.yaml 1234567891011121314151617metaManager:  contextSendGroup: hub  contextSendModule: webs...</div></div></div></a><a class="pagination-related" href="/2023/03/12/cloud/kubeedge/Kubeedge-4_%E7%8E%A9%E8%BD%ACDevicetwin/" title="玩转 Device twin"><img class="cover" src="/img/kubeedge.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2023-03-12</div><div class="info-item-2">玩转 Device twin</div></div><div class="info-2"><div class="info-item-1">Kubeedge - 4： 玩转 Device twin什么是 Device twinDevice twin 设备的动态属性，在 KubeEdge 中的设备孪生 包含了desired value(期望值)和reported value(真实值) 在 KubeEdge 利用 Device Model 和 Device Instance 的机制，通过一套 Device Model 生成大量  Device Instance 的机制实现关联管理  Device Commpents in KubeEdge Membership Module 该模块主要负责绑定新加入的设备与指定的边缘节点（其实就是NodeSelector的体现）。比如温度传感器关联在边缘节点node-A上，蓝牙音箱关联在了节点node-B上，如果云端要控制蓝牙音箱，那就要把数据准确的推到node-B上  Twin Module 该模块主要负责所有设备孪生相关的操作。比如，设备孪生更新（device twin update）、设备孪生获取（device twin get）和设备孪生同步至云端（device twin syn...</div></div></div></a><a class="pagination-related" href="/2023/03/05/cloud/kubeedge/Kubeedge-2_%E9%83%A8%E7%BD%B2%E5%AE%89%E8%A3%85KubeEdge/" title="部署安装KubeEdge"><img class="cover" src="/img/kubeedge.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2023-03-05</div><div class="info-item-2">部署安装KubeEdge</div></div><div class="info-2"><div class="info-item-1">Kubeedge - 2： 部署安装KubeEdgeKubeEdge 部署环境 在云端方面，我们需要：Kubernetes 集群 Kubernetes：在CPU:2G，运行内存2G以上   在边缘，我们需要：容器运行时，现在我们支持： Docker Containerd Cri-o Virtlet MQTT服务器（可选）   建议公网开放端口：9443、10252、10251、5353、20006、2701、9376、12345、2379、2380、6443、10000-10004 出现无法访问，第一时间考虑是否未开放相应端口号  1. 安装DockerDocker 一键shell脚本安装：安装实例中Docker版本19.03.51234567891011121314151617 yum install -y yum-utils \device-mapper-persistent-data \lvm2yum-config-manager \--add-repo \https://download.docker.com/linux/centos/docker-ce.repoyum ...</div></div></div></a><a class="pagination-related" href="/2023/03/05/cloud/kubeedge/Kubeedge-3_%E9%83%A8%E7%BD%B2%E5%AE%89%E8%A3%85EdgeMesh/" title="部署安装EdgeMesh"><img class="cover" src="/img/kubeedge.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2023-03-05</div><div class="info-item-2">部署安装EdgeMesh</div></div><div class="info-2"><div class="info-item-1">Kubeedge - 3： 部署安装EdgeMesh什么是EdgeMesh EdgeMesh 作为 KubeEdge 集群的数据面组件，为应用程序提供了简单的服务发现与流量代理功能，从而屏蔽了边缘场景下复杂的网络结构 KubeEdge 基于 Kubernetes 构建，将云原生容器化应用程序编排能力延伸到了边缘。但是，在边缘计算场景下，网络拓扑较为复杂，不同区域中的边缘节点往往网络不互通，并且应用之间流量的互通是业务的首要需求，而 EdgeMesh 正是对此提供了一套解决方案  为什么要使用EdgeMeshEdgeMesh 满足边缘场景下的新需求（如边缘资源有限、边云网络不稳定、网络结构复杂等），即实现了高可用性、高可靠性和极致轻量化：  高可用性 利用 LibP2P 提供的能力，来打通边缘节点间的网络 将边缘节点间的通信分为局域网内和跨局域网 局域网内的通信：直接通信 跨局域网的通信：打洞成功时 Agent 之间建立直连隧道，否则通过中继转发流量     高可靠性 （离线场景） 元数据通过 KubeEdge 边云通道下发，无需访问云端 apiserver EdgeMesh 内部...</div></div></div></a><a class="pagination-related" href="/2023/03/01/cloud/kubeedge/Kubeedge-6_AI%E5%8D%8F%E5%90%8C%E5%AD%90%E9%A1%B9%E7%9B%AE-Sedna/" title="AI协同子项目-Sedna"><img class="cover" src="/img/kubeedge.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2023-03-01</div><div class="info-item-2">AI协同子项目-Sedna</div></div><div class="info-2"><div class="info-item-1">Kubeedge - 6：AI协同子项目-Sedna什么是 Sedna Sedna是在KubeEdge SIG AI孵化的边云协同AI项目。得益于 KubeEdge 提供的边云协同能力，Sedna 可以实现跨边云协同训练和协同推理能力，如联合推理、增量学习、联邦学习和终身学习。Sedna支持流行的AI框架，如TensorFlow，Pytorch，PaddlePaddle，MindSpore。 Sedna可以简单地为现有的训练和推理脚本启用边缘云协同功能，从而带来降低成本、提高模型性能和保护数据隐私的好处  安装Sedna环境准备  1VM    2CPU(个人建议4CPU)    2GB+MEMORY(建议4G+)    10GB+ free disk space    Internet connection(docker hub, github etc.)    Linux platform, such as ubuntu&#x2F;centos    Docker 17.06+   特别提醒：当你运行样例的时候，发现卡死，线查看主机的CPU和运行占用情况，所以要求CPU和内存...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#why-I-write-the-series-of-kubeedge"><span class="toc-number">1.</span> <span class="toc-text">why I write the series of kubeedge</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Backgroud-of-Edge-calculation"><span class="toc-number">2.</span> <span class="toc-text">Backgroud of Edge calculation</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#What-the-Cloud-Native-advantage"><span class="toc-number">3.</span> <span class="toc-text">What the Cloud Native advantage</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#What-is-Edge-calculation"><span class="toc-number">4.</span> <span class="toc-text">What is Edge calculation</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF%E4%BA%91%E8%AE%A1%E7%AE%97"><span class="toc-number">4.1.</span> <span class="toc-text">什么是云计算</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF%E8%BE%B9%E7%BC%98%E8%AE%A1%E7%AE%97"><span class="toc-number">4.2.</span> <span class="toc-text">什么是边缘计算</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%91%E8%BE%B9%E5%8D%8F%E5%90%8C%E7%9A%84%E7%BB%8F%E5%85%B8%E5%BA%94%E7%94%A8%E5%9C%BA%E6%99%AF"><span class="toc-number">4.3.</span> <span class="toc-text">云边协同的经典应用场景</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#What-is-KubeEdge"><span class="toc-number">5.</span> <span class="toc-text">What is KubeEdge</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#KubeEdge-Info"><span class="toc-number">6.</span> <span class="toc-text">KubeEdge Info</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#KubeEdge-%E6%B6%88%E6%81%AF%E4%BB%8B%E7%BB%8D"><span class="toc-number">6.1.</span> <span class="toc-text">KubeEdge 消息介绍</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#KubeEdge-%E5%8F%91%E5%B1%95%E5%8E%86%E7%A8%8B"><span class="toc-number">6.2.</span> <span class="toc-text">KubeEdge 发展历程</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%BC%95%E7%94%A8"><span class="toc-number">7.</span> <span class="toc-text">引用</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-日志系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明">Gorm-日志系统模块原理说明</a><time datetime="2026-01-11T11:56:27.000Z" title="发表于 2026-01-11 19:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-迁移功能模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明">Gorm-迁移功能模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-插件系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明">Gorm-插件系统模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-事务处理模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明">Gorm-事务处理模块原理说明</a><time datetime="2026-01-11T09:56:27.000Z" title="发表于 2026-01-11 17:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-关联关系模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明">Gorm-关联关系模块原理说明</a><time datetime="2026-01-11T08:56:27.000Z" title="发表于 2026-01-11 16:56:27">2026-01-11</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

@@ -1,0 +1,333 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="该知道的都知道，不知道的慢慢了解">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Joohwan">
+<meta property="og:url" content="https://piwriw.github.io/page/24/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="该知道的都知道，不知道的慢慢了解">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/avatar.jpg">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="Joohwan">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/avatar.jpg"><script type="application/ld+json"></script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/page/24/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Joohwan',
+  isHighlightShrink: false,
+  isToc: false,
+  pageType: 'home'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="page" id="body-wrap"><header class="full_page" id="page-header" style="background-image: url(/img/background.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="site-info"><h1 id="site-title">Joohwan</h1><div id="site-subtitle"><span id="subtitle"></span></div><div id="site_social_icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div id="scroll-down"><i class="fas fa-angle-down scroll-down-effects"></i></div></header><main class="layout" id="content-inner"><div class="recent-posts nc" id="recent-posts"><div class="recent-post-items"><div class="recent-post-item"><div class="post_cover left"><a href="/2023/07/04/basic/meeting/%E9%9D%A2%E8%AF%95%E5%85%AB%E8%82%A1%E6%96%87-%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E7%AF%87/" title="面试八股文-计算机网络篇"><img class="post-bg" src="/img/basic.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="面试八股文-计算机网络篇"></a></div><div class="recent-post-info"><a class="article-title" href="/2023/07/04/basic/meeting/%E9%9D%A2%E8%AF%95%E5%85%AB%E8%82%A1%E6%96%87-%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E7%AF%87/" title="面试八股文-计算机网络篇">面试八股文-计算机网络篇</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2023-07-03T16:10:55.000Z" title="发表于 2023-07-04 00:10:55">2023-07-04</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/basic/">basic</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/basic/%E9%9D%A2%E8%AF%95/">面试</a></span></div><div class="content">面试八股文-计算机网络篇OSI七层模型和TCP&#x2F;IP四层协议概述OSI七层模型协议 帧结构 各层级之间的作用网络层： 关键协议：IP协议、ICMP协议  主机之间的通信，目的是向上提供简单灵活、无连接的、最大努力的交付的数据报服务，网络层不提供服务质量的承诺 不需要建立连接 每个数据报单独路由 每个数据报有完整的目标地址 不提供可靠的连接 到达终点可能无序 每终点进行差错控制  传输层： 关键协议：TCP协议、UDP协议  主机间进程之间的通信，向应用层提供通信服务，屏蔽下面的核心网的网络细节，使得面向传输层编程就像二个主机之间有一条端到端的逻辑通信信道一样 传输层使用TCP协议的时候，这个逻辑通信信道是可靠的，尽管下面的网络是不可靠的  应用层： 关键协议：HTTP协议、FTP协议、SMTP协议、DNS  定义了运行不同端系统上的应用程序如何互相传递报文 提供了不同应用之间的通信  TCP&#x2F;IP四层协议 HTTP版本的演进graph LR     A(HTTP0.9/1991)     B(HTTP1.0/1996)     C(HTTP1.1/1997) ...</div></div></div><div class="recent-post-item"><div class="post_cover right"><a href="/2023/07/01/basic/go/Go%E5%86%85%E5%AD%98%E5%AF%B9%E9%BD%90/" title="Go-内存对齐"><img class="post-bg" src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Go-内存对齐"></a></div><div class="recent-post-info"><a class="article-title" href="/2023/07/01/basic/go/Go%E5%86%85%E5%AD%98%E5%AF%B9%E9%BD%90/" title="Go-内存对齐">Go-内存对齐</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2023-07-01T09:08:55.000Z" title="发表于 2023-07-01 17:08:55">2023-07-01</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/basic/">basic</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/basic/go/">go</a></span></div><div class="content">内存对齐什么是内存对齐 CPU 访问内存时，并不是逐个字节访问，而是以字长（word size）为单位访问，通过内存对齐，减少CPU访问次数,加大CPU访问内存的吞吐量 内存对齐:两个结构体包含的字段类型一致，但是顺序不一致，最终输出的大小也不一样  内存对齐规则成员对齐规则 针对一个基础类型变量，如果 unsafe.AlignOf() 返回的值是 m，那么该变量的地址需要 被m整除 （如果当前地址不能整除，填充空白字节，直至可以整除  整体对齐规则 针对一个结构体，如果 unsafe.AlignOf() 返回值是 m，需要保证该结构体整体内存占用是 m的整数倍，如果当前不是整数倍，需要在后面填充空白字节。  通过内存对齐后，就可以在保证在访问一个变量地址时：  如果该变量占用内存小于字长：保证一次访问就能得到数据； 如果该变量占用内存大于字长：保证第一次内存访问的首地址，是该变量的首地址    空结构体的对齐规则 如果空结构体作为结构体的内置字段：当变量位于结构体的前面和中间时，不会占用内存；当该变量位于结构体的末尾位置时，需要进行内存对齐，内存占用大小和前一个变量的大小保持一...</div></div></div><div class="recent-post-item"><div class="post_cover left"><a href="/2023/06/26/web/go/Go-%E6%97%A5%E5%BF%97%E5%BA%93Zap/" title="Go-日志库Zap"><img class="post-bg" src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Go-日志库Zap"></a></div><div class="recent-post-info"><a class="article-title" href="/2023/06/26/web/go/Go-%E6%97%A5%E5%BF%97%E5%BA%93Zap/" title="Go-日志库Zap">Go-日志库Zap</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2023-06-26T11:57:51.000Z" title="发表于 2023-06-26 19:57:51">2023-06-26</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/web/">web</a></span></div><div class="content">Go-日志库Zap什么是zap 快，非常快，这也是 zap 最显著的特点。速度快的原因是 zap 避免使用 interface&#123;&#125; 和反射，并且使用 sync.Pool 减少堆内存分配。在 zap 面前 Logrus 的执行速度只有被吊打的份，你可以在官方 GitHub 仓库中看到 zap 与不同日志库的速度对比。 支持结构化日志记录。这是一个优秀的日志库必备功能。 支持七种日志级别：Debug、Info、Warn、Error、DPanic、Panic、Fatal，其中 DPanic 是指在开发环境下（development）记录日志后会进行 panic。 支持输出调用堆栈。 支持 Hooks 机制。  安装1go get -u go.uber.org/zap  基础使用&#x2F;&#x2F; suger 模式会稍微比logger 原生慢一点 1234567891011121314151617	logger, _ := zap.NewDevelopment()	//logger, _ := zap.NewDevelopment()	defer logger....</div></div></div><div class="recent-post-item"><div class="post_cover right"><a href="/2023/06/23/tools/Git%20%E8%A7%84%E8%8C%83/" title="Git 规范"><img class="post-bg" src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Git 规范"></a></div><div class="recent-post-info"><a class="article-title" href="/2023/06/23/tools/Git%20%E8%A7%84%E8%8C%83/" title="Git 规范">Git 规范</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2023-06-23T13:51:32.000Z" title="发表于 2023-06-23 21:51:32">2023-06-23</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/web/">web</a></span></div><div class="content">Git 规范为什么需要git规范遵循 Git Commit 规范可以提高团队协作效率和代码库的可维护性。 通过明确的 Commit 类型和格式，开发者能够更轻松地理解每个提交所带来的更改，并能够快速回溯和回滚代码。 建议团队在项目中制定统一的 Git Commit 规范，并通过培训和代码审查来确保规范的遵循 git规范 约定式():  git commit 合并     type subject    feat 新功能（feature）   fix 修补bug   docs 文档（documentation）   style 格式（不影响代码运行的变动）   refactor 重构（即不是新增功能，也不是修改bug的代码变动）   chore 构建过程或辅助工具的变动   revert 撤销，版本回退   perf 性能优化   test 测试   improvement 改进   build 打包   ci 持续集成   </div></div></div><div class="recent-post-item"><div class="post_cover left"><a href="/2023/06/23/web/go/%E4%BC%98%E9%9B%85%E9%80%80%E5%87%BA%E6%B3%A8%E9%94%80%E6%9C%8D%E5%8A%A1/" title="优雅退出注销服务"><img class="post-bg" src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="优雅退出注销服务"></a></div><div class="recent-post-info"><a class="article-title" href="/2023/06/23/web/go/%E4%BC%98%E9%9B%85%E9%80%80%E5%87%BA%E6%B3%A8%E9%94%80%E6%9C%8D%E5%8A%A1/" title="优雅退出注销服务">优雅退出注销服务</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2023-06-23T13:44:08.000Z" title="发表于 2023-06-23 21:44:08">2023-06-23</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/web/">web</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/web/%E5%BE%AE%E6%9C%8D%E5%8A%A1/">微服务</a></span></div><div class="content">优雅退出注销服务为什么需要优雅注销服务当往服务中心注册了服务之后，由于调试，可能会重复注册同一个服务。当时之前服务由于健康检查，并不会立即退出注销，这就会多线多个“重复的服务” 整合优雅退出服务12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849505152535455565758596061626364656667686970package consulimport (	&quot;fmt&quot;	&quot;github.com/hashicorp/consul/api&quot;)// register.go 工具type Registry struct &#123;	Host string	Port int&#125;type RegistryClient interface &#123;	Register(address string, port int, name string, tags []string, id string) erro...</div></div></div><div class="recent-post-item"><div class="post_cover right"><a href="/2023/06/19/web/go/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%85%8D%E7%BD%AE%E4%B8%AD%E5%BF%83/" title="微服务之配置中心"><img class="post-bg" src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="微服务之配置中心"></a></div><div class="recent-post-info"><a class="article-title" href="/2023/06/19/web/go/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%85%8D%E7%BD%AE%E4%B8%AD%E5%BF%83/" title="微服务之配置中心">微服务之配置中心</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2023-06-19T12:19:50.000Z" title="发表于 2023-06-19 20:19:50">2023-06-19</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/web/">web</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/web/%E5%BE%AE%E6%9C%8D%E5%8A%A1/">微服务</a></span></div><div class="content">微服务之配置中心为什么需要配置中心 添加配置项不方便，大量部署实例需要修改配置麻烦 go使用viper能自动生效，不保证其他服务 开发、测试、生产的环境隔离   配置中心技术选型目前主流有spring cloud config、apollo和nacos apollo是协程开源，nacos是阿里开源  Apollo大而全，功能完善。nacos小而全 部署nacos简单 nacos不仅仅支持配置中心和支持服务注册和发现 都支持各种语言，不过apollo是第三方支持，nacos 是官方支持     功能点 apollo nacos    开源时间 2016.5 2018.6   配置实时推送 支持（http长轮询） 支持（http长轮询）   配置回滚 支持 支持   灰度发布 支持 待支持   权限管理 支持 支持   多集群 支持 支持   监听查询 支持 支持   多语言 主流语言 主流语言（官方支持）   通信协议 http http   nacos安装12# docker模式 docker run --name nacos-standlone -e MODE=standalo...</div></div></div><div class="recent-post-item"><div class="post_cover left"><a href="/2023/06/19/web/go/%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1/" title="微服务之配置中心"><img class="post-bg" src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="微服务之配置中心"></a></div><div class="recent-post-info"><a class="article-title" href="/2023/06/19/web/go/%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1/" title="微服务之配置中心">微服务之配置中心</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2023-06-19T12:19:50.000Z" title="发表于 2023-06-19 20:19:50">2023-06-19</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/web/">web</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/web/%E5%BE%AE%E6%9C%8D%E5%8A%A1/">微服务</a></span></div><div class="content">负载均衡什么是负载均衡负载均衡是将网络流量分发到多个后台服务的一种机制。通过负载均衡的流量分发，降低了单台服务器的负载，减少了应用的响应时间  负载均衡类型集中式Load balance集中式LB方案，如下图。首先，服务的消费方和提供方不直接耦合，而是在服务消费者和服务提供者之间有一个独立的LB（LB通常是专门的硬件设备如F5，或者基于软件如LVS，HAproxy等实现）。  进程内load balance 可看到引入了第三方：服务注册中心。它做两件事：   维护服务提供方的节点列表，并检测这些节点的健康度。检测的方式是：每个节点部署成功，都通知服务注册中心；然后一直和注册中心保持心跳。 允许服务调用方注册感兴趣的事件，把服务提供方的变化情况推送到服务调用方。    这种方案下，整个load balance的过程是这样的：   服务注册中心维护所有节点的情况。 任何一个节点想要订阅其他服务提供方的节点列表，向服务注册中心注册。 服务注册中心将服务提供方的列表（以长连接的方式）推送到消费方。 消费方接收到消息后，在本地维护一份这个列表，并自己做load balance。    可见...</div></div></div><div class="recent-post-item"><div class="post_cover right"><a href="/2023/06/18/web/go/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E4%B9%8B%E6%B3%A8%E5%86%8C%E4%B8%AD%E5%BF%83/" title="微服务之注册中心"><img class="post-bg" src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="微服务之注册中心"></a></div><div class="recent-post-info"><a class="article-title" href="/2023/06/18/web/go/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E4%B9%8B%E6%B3%A8%E5%86%8C%E4%B8%AD%E5%BF%83/" title="微服务之注册中心">微服务之注册中心</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2023-06-18T04:00:13.000Z" title="发表于 2023-06-18 12:00:13">2023-06-18</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/web/">web</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/web/%E5%BE%AE%E6%9C%8D%E5%8A%A1/">微服务</a></span></div><div class="content">微服务之注册中心什么是注册中心注册中心的作用一句话概括就是存放和调度服务，实现服务和注册中心，服务和服务之间的相互通信 常见的几种注册中心   名称 优点 缺点 接口 一致性算法    zookeeper 1. 功能强大，不仅仅是服务发现2、提供watch机制，实时获取服务状态3、支持dubbo等框架 1、不支健康检查2、需要在服务中集成sdk，复杂度高3、不支持多数据中心 sdk Paxos   consul 1、简单易用，不需要集成sdk2、自带健康检查3、支持多数据中心4、提供web管理界面 1、不能实时获取服务msg变化 http&#x2F;dns Raft   etcd 1、简单易用、不需要集成sdk2、可配置性强 1、没有健康检查2、需要配合第三方工具一起完成服务发现3、不支持多数据中心 http Raft   consul的安装和配置Docker安装12# 8500 http端口 8600 dns端口docker run -d -p 8500:8500 -p 8300:8300 -p 8301:8301 -p 8302:8302 -p 8600:8600/udp c...</div></div></div><div class="recent-post-item"><div class="post_cover left"><a href="/2023/06/10/cloud/k8s/install/K8s%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81%E5%85%AC%E7%BD%91%E8%AE%BF%E9%97%AE/" title="K8s如何支持公网访问"><img class="post-bg" src="/img/kubernetes.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s如何支持公网访问"></a></div><div class="recent-post-info"><a class="article-title" href="/2023/06/10/cloud/k8s/install/K8s%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81%E5%85%AC%E7%BD%91%E8%AE%BF%E9%97%AE/" title="K8s如何支持公网访问">K8s如何支持公网访问</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2023-06-10T09:08:55.000Z" title="发表于 2023-06-10 17:08:55">2023-06-10</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/k8s/">k8s</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/k8s/install/">install</a></span></div><div class="content">K8s如何支持公网访问因为k8s默认启动支持内网ip，下面是三种 让k8s支持公网访问的模式 keadm init添加参数12# 未实践kubeadm init --apiserver-advertise-address= 内网ip  --apiserver-cert-extra-sans 公网ip --image-repository registry.aliyuncs.com/google_containers --kubernetes-version v1.19.4 --service-cidr=10.96.0.0/12 --pod-network-cidr=10.244.0.0/16  重新生成apiserver证书 删除原来的apiserver证书 12cd /etc/kubernetes/pkirm apiserver.*	  生成新的apiserver证书 1kubeadm init phase certs apiserver --apiserver-advertise-address 内网ip --apiserver-cert-extra-sans 公网ip --...</div></div></div><div class="recent-post-item"><div class="post_cover right"><a href="/2023/03/13/web/go/Gin%E4%B8%ADsession%E5%92%8Ccookies/" title="Gin中session和cookies"><img class="post-bg" src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gin中session和cookies"></a></div><div class="recent-post-info"><a class="article-title" href="/2023/03/13/web/go/Gin%E4%B8%ADsession%E5%92%8Ccookies/" title="Gin中session和cookies">Gin中session和cookies</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2023-03-13T07:56:27.000Z" title="发表于 2023-03-13 15:56:27">2023-03-13</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/web/">web</a></span></div><div class="content">Gin中session和cookiessession什么是session Session是在无状态的HTTP协议下，服务端记录用户状态时用于标识具体用户的机制 它是在服务端保存的用来跟踪用户的状态的数据结构，可以保存在文件、数据库或者集群中 在浏览器关闭后这次的Session就消失了，下次打开就不再拥有这个Session。其实并不是Session消失了，而是Session ID变了  cookie什么是cookie？ Cookie是客户端保存用户信息的一种机制，用来记录用户的一些信息 每次HTTP请求时，客户端都会发送相应的Cookie信息到服务端。它的过期时间可以任意设置，如果你不主动清除它，保留  二者对比 Cookie 在客户端（浏览器），Session 在服务器端 Cookie的安全性一般，他人可通过分析存放在本地的Cookie并进行Cookie欺骗。在安全性第一的前提下，选择Session更优。重要交互信息比如权限等就要放在Session中，一般的信息记录放Cookie就好了 单个Cookie保存的数据不能超过4K，很多浏览器都限制一个站点最多保存20个Cookie S...</div></div></div></div><nav id="pagination"><div class="pagination"><a class="extend prev" rel="prev" href="/page/23/#content-inner"><i class="fas fa-chevron-left fa-fw"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/23/#content-inner">23</a><span class="page-number current">24</span><a class="page-number" href="/page/25/#content-inner">25</a><a class="page-number" href="/page/26/#content-inner">26</a><a class="extend next" rel="next" href="/page/25/#content-inner"><i class="fas fa-chevron-right fa-fw"></i></a></div></nav></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-日志系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明">Gorm-日志系统模块原理说明</a><time datetime="2026-01-11T11:56:27.000Z" title="发表于 2026-01-11 19:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-迁移功能模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明">Gorm-迁移功能模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-插件系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明">Gorm-插件系统模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-事务处理模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明">Gorm-事务处理模块原理说明</a><time datetime="2026-01-11T09:56:27.000Z" title="发表于 2026-01-11 17:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-关联关系模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明">Gorm-关联关系模块原理说明</a><time datetime="2026-01-11T08:56:27.000Z" title="发表于 2026-01-11 16:56:27">2026-01-11</time></div></div></div></div><div class="card-widget card-categories"><div class="item-headline">
+            <i class="fas fa-folder-open"></i>
+            <span>分类</span>
+            <a class="card-more-btn" href="/categories/" title="查看更多">
+      <i class="fas fa-angle-right"></i></a>
+          </div>
+          <ul class="card-category-list" id="aside-cat-list">
+            <li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/"><span class="card-category-list-name">basic</span><span class="card-category-list-count">36</span></a><ul class="card-category-list child"><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/go/"><span class="card-category-list-name">go</span><span class="card-category-list-count">14</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/"><span class="card-category-list-name">设计模式</span><span class="card-category-list-count">13</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/%E9%9D%A2%E8%AF%95/"><span class="card-category-list-name">面试</span><span class="card-category-list-count">9</span></a></li></ul></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/braveheart/"><span class="card-category-list-name">braveheart</span><span class="card-category-list-count">1</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/cloud/"><span class="card-category-list-name">cloud</span><span class="card-category-list-count">166</span></a><ul class="card-category-list child"><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/cloud/Harbor/"><span class="card-category-list-name">Harbor</span><span class="card-category-list-count">1</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/cloud/Istio/"><span class="card-category-list-name">Istio</span><span class="card-category-list-count">1</span></a></li></ul></li>
+          </ul></div><div class="card-widget card-tags"><div class="item-headline"><i class="fas fa-tags"></i><span>标签</span></div><div class="card-tag-cloud"><a href="/tags/k8s/" style="font-size: 1.5em; color: #99a9bf">k8s</a> <a href="/tags/CKAD/" style="font-size: 1.13em; color: #999a9c">CKAD</a> <a href="/tags/kubeedge/" style="font-size: 1.3em; color: #99a1ac">kubeedge</a> <a href="/tags/kube-apiserver/" style="font-size: 1.37em; color: #99a4b2">kube-apiserver</a> <a href="/tags/%E9%9D%A2%E8%AF%95/" style="font-size: 1.37em; color: #99a4b2">面试</a> <a href="/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/" style="font-size: 1.27em; color: #99a0a9">微服务</a> <a href="/tags/prometheus%E6%BA%90%E7%A0%81/" style="font-size: 1.33em; color: #99a2af">prometheus源码</a> <a href="/tags/kubelet/" style="font-size: 1.1em; color: #999">kubelet'</a> <a href="/tags/crd/" style="font-size: 1.13em; color: #999a9c">crd</a> <a href="/tags/kubeadm/" style="font-size: 1.17em; color: #999c9f">kubeadm</a> <a href="/tags/kubelet/" style="font-size: 1.27em; color: #99a0a9">kubelet</a> <a href="/tags/zap/" style="font-size: 1.13em; color: #999a9c">zap</a> <a href="/tags/cookies/" style="font-size: 1.1em; color: #999">cookies</a> <a href="/tags/alertmanager/" style="font-size: 1.27em; color: #99a0a9">alertmanager</a> <a href="/tags/validation/" style="font-size: 1.1em; color: #999">validation</a> <a href="/tags/deployment/" style="font-size: 1.13em; color: #999a9c">deployment</a> <a href="/tags/crio/" style="font-size: 1.1em; color: #999">crio</a> <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" style="font-size: 1.4em; color: #99a5b6">分布式</a> <a href="/tags/kustomize/" style="font-size: 1.1em; color: #999">kustomize</a> <a href="/tags/grafana/" style="font-size: 1.13em; color: #999a9c">grafana</a> <a href="/tags/Harbor/" style="font-size: 1.1em; color: #999">Harbor</a> <a href="/tags/dasemonset/" style="font-size: 1.17em; color: #999c9f">dasemonset</a> <a href="/tags/%E6%BA%90%E7%A0%81/" style="font-size: 1.4em; color: #99a5b6">源码</a> <a href="/tags/mysql/" style="font-size: 1.13em; color: #999a9c">mysql</a> <a href="/tags/kubectl/" style="font-size: 1.2em; color: #999da3">kubectl</a> <a href="/tags/private/" style="font-size: 1.2em; color: #999da3">private</a> <a href="/tags/gc/" style="font-size: 1.1em; color: #999">gc</a> <a href="/tags/tools/" style="font-size: 1.33em; color: #99a2af">tools</a> <a href="/tags/Istio/" style="font-size: 1.1em; color: #999">Istio</a> <a href="/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/" style="font-size: 1.27em; color: #99a0a9">计算机网络</a> <a href="/tags/web/" style="font-size: 1.43em; color: #99a6b9">web</a> <a href="/tags/cloud/" style="font-size: 1.47em; color: #99a8bc">cloud</a> <a href="/tags/containerd/" style="font-size: 1.23em; color: #999ea6">containerd</a> <a href="/tags/etcd/" style="font-size: 1.1em; color: #999">etcd</a> <a href="/tags/braveheart/" style="font-size: 1.1em; color: #999">braveheart</a> <a href="/tags/kubemark/" style="font-size: 1.1em; color: #999">kubemark</a> <a href="/tags/%E9%99%90%E6%B5%81%E7%AD%96%E7%95%A5/" style="font-size: 1.1em; color: #999">限流策略</a> <a href="/tags/job/" style="font-size: 1.2em; color: #999da3">job</a> <a href="/tags/devops/" style="font-size: 1.1em; color: #999">devops</a> <a href="/tags/Gin/" style="font-size: 1.17em; color: #999c9f">Gin</a></div></div><div class="card-widget card-archives">
+    <div class="item-headline">
+      <i class="fas fa-archive"></i>
+      <span>归档</span>
+      <a class="card-more-btn" href="/archives/"
+            title="查看更多">
+            <i class="fas fa-angle-right"></i>
+          </a>
+    </div>
+  
+    <ul class="card-archive-list">
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2026/01/">
+            <span class="card-archive-list-date">
+              一月 2026
+            </span>
+            <span class="card-archive-list-count">10</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/09/">
+            <span class="card-archive-list-date">
+              九月 2025
+            </span>
+            <span class="card-archive-list-count">1</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/08/">
+            <span class="card-archive-list-date">
+              八月 2025
+            </span>
+            <span class="card-archive-list-count">6</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/07/">
+            <span class="card-archive-list-date">
+              七月 2025
+            </span>
+            <span class="card-archive-list-count">11</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/06/">
+            <span class="card-archive-list-date">
+              六月 2025
+            </span>
+            <span class="card-archive-list-count">1</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/05/">
+            <span class="card-archive-list-date">
+              五月 2025
+            </span>
+            <span class="card-archive-list-count">1</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/03/">
+            <span class="card-archive-list-date">
+              三月 2025
+            </span>
+            <span class="card-archive-list-count">11</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/02/">
+            <span class="card-archive-list-date">
+              二月 2025
+            </span>
+            <span class="card-archive-list-count">1</span>
+          </a>
+        </li>
+      
+    </ul>
+  </div><div class="card-widget card-webinfo"><div class="item-headline"><i class="fas fa-chart-line"></i><span>网站信息</span></div><div class="webinfo"><div class="webinfo-item"><div class="item-name">文章数目 :</div><div class="item-count">259</div></div><div class="webinfo-item"><div class="item-name">本站总字数 :</div><div class="item-count">519.1k</div></div><div class="webinfo-item"><div class="item-name">本站访客数 :</div><div class="item-count" id="busuanzi_value_site_uv"><i class="fa-solid fa-spinner fa-spin"></i></div></div><div class="webinfo-item"><div class="item-name">本站总浏览量 :</div><div class="item-count" id="busuanzi_value_site_pv"><i class="fa-solid fa-spinner fa-spin"></i></div></div><div class="webinfo-item"><div class="item-name">最后更新时间 :</div><div class="item-count" id="last-push-date" data-lastPushDate="2026-02-28T13:30:23.474Z"><i class="fa-solid fa-spinner fa-spin"></i></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>window.typedJSFn = {
+  init: str => {
+    window.typed = new Typed('#subtitle', Object.assign({
+      strings: str,
+      startDelay: 300,
+      typeSpeed: 150,
+      loop: true,
+      backSpeed: 50,
+    }, null))
+  },
+  run: subtitleType => {
+    if (true) {
+      if (typeof Typed === 'function') {
+        subtitleType()
+      } else {
+        btf.getScript('https://cdn.jsdelivr.net/npm/typed.js/dist/typed.umd.min.js').then(subtitleType)
+      }
+    } else {
+      subtitleType()
+    }
+  },
+  processSubtitle: (content, extraContents = []) => {
+    if (true) {
+      const sub = ["我们登上并非我们所选择的舞台，演出并非我们所选择的剧本","该知道的都知道，不知道的慢慢了解","偶尔怀念一下就好了，脚下的路更重要"].slice()
+
+      if (extraContents.length > 0) {
+        sub.unshift(...extraContents)
+      }
+
+      if (typeof content === 'string') {
+        sub.unshift(content)
+      } else if (Array.isArray(content)) {
+        sub.unshift(...content)
+      }
+
+      sub.length > 0 && typedJSFn.init(sub)
+    } else {
+      document.getElementById('subtitle').textContent = typeof content === 'string' ? content :
+        (Array.isArray(content) && content.length > 0 ? content[0] : '')
+    }
+  }
+}
+btf.addGlobalFn('pjaxSendOnce', () => { typed.destroy() }, 'typedDestroy')
+</script><script>function subtitleType () {
+  typedJSFn.processSubtitle(["我们登上并非我们所选择的舞台，演出并非我们所选择的剧本","该知道的都知道，不知道的慢慢了解","偶尔怀念一下就好了，脚下的路更重要"])
+}
+typedJSFn.run(subtitleType)</script><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script></div><script src="/js/categories.js" defer></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

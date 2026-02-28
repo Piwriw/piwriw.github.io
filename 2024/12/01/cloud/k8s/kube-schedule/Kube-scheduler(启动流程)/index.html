@@ -1,0 +1,353 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Kube-scheduler(启动流程) | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="Kube-scheduler(启动流程) 基于1.25   Cobra命令参数解析 Ref:https:&#x2F;&#x2F;github.com&#x2F;kubernetes&#x2F;kubernetes&#x2F;blob&#x2F;810e9e212ec5372d16b655f57b9231d8654a2179&#x2F;cmd&#x2F;kube-scheduler&#x2F;app&#x2F;server.go#L80 123456789101112131415161718192">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Kube-scheduler(启动流程)">
+<meta property="og:url" content="https://piwriw.github.io/2024/12/01/cloud/k8s/kube-schedule/Kube-scheduler(%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B)/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="Kube-scheduler(启动流程) 基于1.25   Cobra命令参数解析 Ref:https:&#x2F;&#x2F;github.com&#x2F;kubernetes&#x2F;kubernetes&#x2F;blob&#x2F;810e9e212ec5372d16b655f57b9231d8654a2179&#x2F;cmd&#x2F;kube-scheduler&#x2F;app&#x2F;server.go#L80 123456789101112131415161718192">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/k8sLogo.png">
+<meta property="article:published_time" content="2024-12-01T04:08:55.000Z">
+<meta property="article:modified_time" content="2026-02-28T13:29:12.669Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="k8s">
+<meta property="article:tag" content="cloud">
+<meta property="article:tag" content="K8s源码">
+<meta property="article:tag" content=" Kube-scheduler">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/k8sLogo.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Kube-scheduler(启动流程)",
+  "url": "https://piwriw.github.io/2024/12/01/cloud/k8s/kube-schedule/Kube-scheduler(%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B)/",
+  "image": "https://piwriw.github.io/img/k8sLogo.png",
+  "datePublished": "2024-12-01T04:08:55.000Z",
+  "dateModified": "2026-02-28T13:29:12.669Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2024/12/01/cloud/k8s/kube-schedule/Kube-scheduler(%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B)/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Kube-scheduler(启动流程)',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/k8sLogo.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">Kube-scheduler(启动流程)</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">Kube-scheduler(启动流程)</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2024-12-01T04:08:55.000Z" title="发表于 2024-12-01 12:08:55">2024-12-01</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-02-28T13:29:12.669Z" title="更新于 2026-02-28 21:29:12">2026-02-28</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/">k8s</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/Kube-scheduler/">Kube-scheduler</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">1.9k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>9分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-02-28 21:29:12&quot;}" hidden></div><h1 id="Kube-scheduler-启动流程"><a href="#Kube-scheduler-启动流程" class="headerlink" title="Kube-scheduler(启动流程)"></a>Kube-scheduler(启动流程)</h1><blockquote>
+<p>基于1.25</p>
+</blockquote>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image202412010132219.png"></p>
+<h2 id="Cobra命令参数解析"><a href="#Cobra命令参数解析" class="headerlink" title="Cobra命令参数解析"></a>Cobra命令参数解析</h2><ul>
+<li><p>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/810e9e212ec5372d16b655f57b9231d8654a2179/cmd/kube-scheduler/app/server.go#L80">https://github.com/kubernetes/kubernetes/blob/810e9e212ec5372d16b655f57b9231d8654a2179/cmd/kube-scheduler/app/server.go#L80</a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// NewSchedulerCommand creates a *cobra.Command object with default parameters and registryOptions</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewSchedulerCommand</span><span class="params">(registryOptions ...Option)</span></span> *cobra.Command &#123;</span><br><span class="line">	<span class="comment">// explicitly register (if not already registered) the kube effective version and feature gate in DefaultComponentGlobalsRegistry,</span></span><br><span class="line">	<span class="comment">// which will be used in NewOptions.</span></span><br><span class="line">	_, _ = featuregate.DefaultComponentGlobalsRegistry.ComponentGlobalsOrRegister(</span><br><span class="line">		featuregate.DefaultKubeComponent, utilversion.DefaultBuildEffectiveVersion(), utilfeature.DefaultMutableFeatureGate)</span><br><span class="line">	opts := options.NewOptions()</span><br><span class="line"></span><br><span class="line">	cmd := &amp;cobra.Command&#123;</span><br><span class="line">		Use: <span class="string">&quot;kube-scheduler&quot;</span>,</span><br><span class="line">		Long: <span class="string">`The Kubernetes scheduler is a control plane process which assigns</span></span><br><span class="line"><span class="string">Pods to Nodes. The scheduler determines which Nodes are valid placements for</span></span><br><span class="line"><span class="string">each Pod in the scheduling queue according to constraints and available</span></span><br><span class="line"><span class="string">resources. The scheduler then ranks each valid Node and binds the Pod to a</span></span><br><span class="line"><span class="string">suitable Node. Multiple different schedulers may be used within a cluster;</span></span><br><span class="line"><span class="string">kube-scheduler is the reference implementation.</span></span><br><span class="line"><span class="string">See [scheduling](https://kubernetes.io/docs/concepts/scheduling-eviction/)</span></span><br><span class="line"><span class="string">for more information about scheduling and the kube-scheduler component.`</span>,</span><br><span class="line">		PersistentPreRunE: <span class="function"><span class="keyword">func</span><span class="params">(*cobra.Command, []<span class="type">string</span>)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">			<span class="comment">// makes sure feature gates are set before RunE.</span></span><br><span class="line">			<span class="keyword">return</span> opts.ComponentGlobalsRegistry.Set()</span><br><span class="line">		&#125;,</span><br><span class="line">		RunE: <span class="function"><span class="keyword">func</span><span class="params">(cmd *cobra.Command, args []<span class="type">string</span>)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> runCommand(cmd, opts, registryOptions...)</span><br><span class="line">		&#125;,</span><br><span class="line">		Args: <span class="function"><span class="keyword">func</span><span class="params">(cmd *cobra.Command, args []<span class="type">string</span>)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">			<span class="keyword">for</span> _, arg := <span class="keyword">range</span> args &#123;</span><br><span class="line">				<span class="keyword">if</span> <span class="built_in">len</span>(arg) &gt; <span class="number">0</span> &#123;</span><br><span class="line">					<span class="keyword">return</span> fmt.Errorf(<span class="string">&quot;%q does not take any arguments, got %q&quot;</span>, cmd.CommandPath(), args)</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">		&#125;,</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	nfs := opts.Flags</span><br><span class="line">	verflag.AddFlags(nfs.FlagSet(<span class="string">&quot;global&quot;</span>))</span><br><span class="line">	globalflag.AddGlobalFlags(nfs.FlagSet(<span class="string">&quot;global&quot;</span>), cmd.Name(), logs.SkipLoggingConfigurationFlags())</span><br><span class="line">	fs := cmd.Flags()</span><br><span class="line">	<span class="keyword">for</span> _, f := <span class="keyword">range</span> nfs.FlagSets &#123;</span><br><span class="line">		fs.AddFlagSet(f)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	cols, _, _ := term.TerminalSize(cmd.OutOrStdout())</span><br><span class="line">	cliflag.SetUsageAndHelpFunc(cmd, *nfs, cols)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> err := cmd.MarkFlagFilename(<span class="string">&quot;config&quot;</span>, <span class="string">&quot;yaml&quot;</span>, <span class="string">&quot;yml&quot;</span>, <span class="string">&quot;json&quot;</span>); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		klog.Background().Error(err, <span class="string">&quot;Failed to mark flag filename&quot;</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> cmd</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h2 id="实例化Scheduler对象"><a href="#实例化Scheduler对象" class="headerlink" title="实例化Scheduler对象"></a>实例化Scheduler对象</h2><p>Scheduler对象是kube-scheduler运行的主要载体，主要包含五个关键步骤</p>
+<ol>
+<li>frameworkplugins.NewInTreeRegistry（内置插件注册）</li>
+<li>registry.Merge外部插件注册</li>
+<li>buildExtenders（Extender拓展接口注册）</li>
+<li>newScheduler（Schduler对象实例化）</li>
+<li>addAllEventHandlers（Informer事件处理函数注册）</li>
+</ol>
+<h3 id="内置插件注册"><a href="#内置插件注册" class="headerlink" title="内置插件注册"></a>内置插件注册</h3><ul>
+<li><p>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/810e9e212ec5372d16b655f57b9231d8654a2179/pkg/scheduler/framework/plugins/registry.go#L47">https://github.com/kubernetes/kubernetes/blob/810e9e212ec5372d16b655f57b9231d8654a2179/pkg/scheduler/framework/plugins/registry.go#L47</a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// NewInTreeRegistry builds the registry with all the in-tree plugins.</span></span><br><span class="line"><span class="comment">// A scheduler that runs out of tree plugins can register additional plugins</span></span><br><span class="line"><span class="comment">// through the WithFrameworkOutOfTreeRegistry option.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewInTreeRegistry</span><span class="params">()</span></span> runtime.Registry &#123;</span><br><span class="line">	fts := plfeature.Features&#123;</span><br><span class="line">		EnableDRAAdminAccess:                         feature.DefaultFeatureGate.Enabled(features.DRAAdminAccess),</span><br><span class="line">		EnableDynamicResourceAllocation:              feature.DefaultFeatureGate.Enabled(features.DynamicResourceAllocation),</span><br><span class="line">		EnableVolumeCapacityPriority:                 feature.DefaultFeatureGate.Enabled(features.VolumeCapacityPriority),</span><br><span class="line">		EnableNodeInclusionPolicyInPodTopologySpread: feature.DefaultFeatureGate.Enabled(features.NodeInclusionPolicyInPodTopologySpread),</span><br><span class="line">		EnableMatchLabelKeysInPodTopologySpread:      feature.DefaultFeatureGate.Enabled(features.MatchLabelKeysInPodTopologySpread),</span><br><span class="line">		EnableInPlacePodVerticalScaling:              feature.DefaultFeatureGate.Enabled(features.InPlacePodVerticalScaling),</span><br><span class="line">		EnableSidecarContainers:                      feature.DefaultFeatureGate.Enabled(features.SidecarContainers),</span><br><span class="line">		EnableSchedulingQueueHint:                    feature.DefaultFeatureGate.Enabled(features.SchedulerQueueingHints),</span><br><span class="line">		EnableAsyncPreemption:                        feature.DefaultFeatureGate.Enabled(features.SchedulerAsyncPreemption),</span><br><span class="line">		EnablePodLevelResources:                      feature.DefaultFeatureGate.Enabled(features.PodLevelResources),</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	registry := runtime.Registry&#123;</span><br><span class="line">		dynamicresources.Name:                runtime.FactoryAdapter(fts, dynamicresources.New),</span><br><span class="line">		imagelocality.Name:                   imagelocality.New,</span><br><span class="line">		tainttoleration.Name:                 runtime.FactoryAdapter(fts, tainttoleration.New),</span><br><span class="line">		nodename.Name:                        runtime.FactoryAdapter(fts, nodename.New),</span><br><span class="line">		nodeports.Name:                       runtime.FactoryAdapter(fts, nodeports.New),</span><br><span class="line">		nodeaffinity.Name:                    runtime.FactoryAdapter(fts, nodeaffinity.New),</span><br><span class="line">		podtopologyspread.Name:               runtime.FactoryAdapter(fts, podtopologyspread.New),</span><br><span class="line">		nodeunschedulable.Name:               runtime.FactoryAdapter(fts, nodeunschedulable.New),</span><br><span class="line">		noderesources.Name:                   runtime.FactoryAdapter(fts, noderesources.NewFit),</span><br><span class="line">		noderesources.BalancedAllocationName: runtime.FactoryAdapter(fts, noderesources.NewBalancedAllocation),</span><br><span class="line">		volumebinding.Name:                   runtime.FactoryAdapter(fts, volumebinding.New),</span><br><span class="line">		volumerestrictions.Name:              runtime.FactoryAdapter(fts, volumerestrictions.New),</span><br><span class="line">		volumezone.Name:                      runtime.FactoryAdapter(fts, volumezone.New),</span><br><span class="line">		nodevolumelimits.CSIName:             runtime.FactoryAdapter(fts, nodevolumelimits.NewCSI),</span><br><span class="line">		interpodaffinity.Name:                runtime.FactoryAdapter(fts, interpodaffinity.New),</span><br><span class="line">		queuesort.Name:                       queuesort.New,</span><br><span class="line">		defaultbinder.Name:                   defaultbinder.New,</span><br><span class="line">		defaultpreemption.Name:               runtime.FactoryAdapter(fts, defaultpreemption.New),</span><br><span class="line">		schedulinggates.Name:                 runtime.FactoryAdapter(fts, schedulinggates.New),</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> registry</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h3 id="外部插件注册"><a href="#外部插件注册" class="headerlink" title="外部插件注册"></a>外部插件注册</h3><ul>
+<li><p>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/810e9e212ec5372d16b655f57b9231d8654a2179/pkg/scheduler/framework/runtime/registry.go#L94">https://github.com/kubernetes/kubernetes/blob/810e9e212ec5372d16b655f57b9231d8654a2179/pkg/scheduler/framework/runtime/registry.go#L94</a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Merge merges the provided registry to the current one.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(r Registry)</span></span> Merge(in Registry) <span class="type">error</span> &#123;</span><br><span class="line">	<span class="keyword">for</span> name, factory := <span class="keyword">range</span> in &#123;</span><br><span class="line">		<span class="keyword">if</span> err := r.Register(name, factory); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h3 id="Extender拓展接口注册"><a href="#Extender拓展接口注册" class="headerlink" title="Extender拓展接口注册"></a>Extender拓展接口注册</h3><p>除了Scheduling Framework代码侵入的拓展方式吗还支持基于Webhook的拓展，即Extender</p>
+<p>Extender在过滤，打分、绑定和驱逐的关键注册注册了hook，在执行了调度算法之后，把调度的结果通过HTTP发送给外部第三方服务器进行了二次决策，但是也存在网络实验，导致性能下降，拓展不够丰富、拓展能力受到限制</p>
+<p><strong>目前Scheduling Framework才是主推的调度器拓展方案</strong></p>
+<h3 id="Scheduler对象实例化"><a href="#Scheduler对象实例化" class="headerlink" title="Scheduler对象实例化"></a>Scheduler对象实例化</h3><p>Scheduler对象数据结构为Schedling Queue和Cache</p>
+<ul>
+<li><p>Schedling Queue维护了等待调度的Pod队列，调度器每次从队列中取出堆头的Pod进行调度</p>
+</li>
+<li><p>Cache维护了Pod和节点的缓存信息，便于在调度更快的获取到调度的上下文，不需要请求kube-apiserver，提高调度性能</p>
+</li>
+<li><p>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/scheduler/scheduler.go#L295">https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/scheduler/scheduler.go#L295</a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">podQueue := internalqueue.NewSchedulingQueue(</span><br><span class="line">	profiles[options.profiles[<span class="number">0</span>].SchedulerName].QueueSortFunc(),</span><br><span class="line">	informerFactory,</span><br><span class="line">	internalqueue.WithPodInitialBackoffDuration(time.Duration(options.podInitialBackoffSeconds)*time.Second),</span><br><span class="line">	internalqueue.WithPodMaxBackoffDuration(time.Duration(options.podMaxBackoffSeconds)*time.Second),</span><br><span class="line">	internalqueue.WithPodLister(podLister),</span><br><span class="line">	internalqueue.WithClusterEventMap(clusterEventMap),</span><br><span class="line">	internalqueue.WithPodMaxInUnschedulablePodsDuration(options.podMaxInUnschedulablePodsDuration),</span><br><span class="line">)</span><br><span class="line">  </span><br><span class="line"><span class="keyword">for</span> _, fwk := <span class="keyword">range</span> profiles &#123;</span><br><span class="line">	fwk.SetPodNominator(podQueue)</span><br><span class="line">&#125;</span><br><span class="line">  </span><br><span class="line">schedulerCache := internalcache.New(durationToExpireAssumedPod, stopEverything)</span><br><span class="line">  </span><br><span class="line"><span class="comment">// Setup cache debugger.</span></span><br><span class="line">debugger := cachedebugger.New(nodeLister, podLister, schedulerCache, podQueue)</span><br><span class="line">debugger.ListenForSignal(stopEverything)</span><br><span class="line">  </span><br><span class="line">sched := newScheduler(</span><br><span class="line">	schedulerCache,</span><br><span class="line">	extenders,</span><br><span class="line">	internalqueue.MakeNextPodFunc(podQueue),</span><br><span class="line">	stopEverything,</span><br><span class="line">	podQueue,</span><br><span class="line">	profiles,</span><br><span class="line">	client,</span><br><span class="line">	snapshot,</span><br><span class="line">	options.percentageOfNodesToScore,</span><br><span class="line">)</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h3 id="Informer事件处理函数注册"><a href="#Informer事件处理函数注册" class="headerlink" title="Informer事件处理函数注册"></a>Informer事件处理函数注册</h3><p>kube-scheduler整体使用事件驱动模型，基于Informer实现。通过注册Informer事件处理函数次，kube-schdeuler能发现集群中调度相关事件</p>
+<ul>
+<li><p>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/scheduler/eventhandlers.go#L249">https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/scheduler/eventhandlers.go#L249</a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">informerFactory.Core().V1().Nodes().Informer().AddEventHandler(</span><br><span class="line">	cache.ResourceEventHandlerFuncs&#123;</span><br><span class="line">		AddFunc:    sched.addNodeToCache,</span><br><span class="line">		UpdateFunc: sched.updateNodeInCache,</span><br><span class="line">		DeleteFunc: sched.deleteNodeFromCache,</span><br><span class="line">	&#125;,</span><br><span class="line">)</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h2 id="运行EventBroadcaster事件管理器"><a href="#运行EventBroadcaster事件管理器" class="headerlink" title="运行EventBroadcaster事件管理器"></a>运行EventBroadcaster事件管理器</h2><p>K8s事件是一种资源对象，用于展示集群内容的情况，kube- scheduler会把运行的各种事件上报给api-server</p>
+<ul>
+<li><p>事件在K8s，默认保留一个笑死</p>
+</li>
+<li><p>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/810e9e212ec5372d16b655f57b9231d8654a2179/cmd/kube-scheduler/app/server.go#L178">https://github.com/kubernetes/kubernetes/blob/810e9e212ec5372d16b655f57b9231d8654a2179/cmd/kube-scheduler/app/server.go#L178</a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Start events processing pipeline.</span></span><br><span class="line"><span class="comment">// 上报各类事件给kube-apiserver</span></span><br><span class="line">	cc.EventBroadcaster.StartRecordingToSink(ctx.Done())</span><br><span class="line">	<span class="keyword">defer</span> cc.EventBroadcaster.Shutdown()</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h2 id="运行HTTP-Server"><a href="#运行HTTP-Server" class="headerlink" title="运行HTTP Server"></a>运行HTTP Server</h2><p>kube-scheduler在1.23版本之后不在支持使用非安全的HTTP服务，仅支持TLS加密的HTTPS服务，默认服务端口是10259</p>
+<ul>
+<li><p>kube-scheduler提供的HTTPS服务主要展示调度器运行的状态信息，包括健康状态、健康指标、当前使用的配置信息</p>
+</li>
+<li><p>HTTPS主要提供以下接口</p>
+<ul>
+<li>&#x2F;healthz：探测kube-schedule健康状态</li>
+<li>&#x2F;metrics：健康指标，展示调度器时延、调度队列等信息</li>
+<li>&#x2F;configz：打印kube- scheduler当前使用的实时配置</li>
+<li>&#x2F;debug&#x2F;pprof：用于golang pprof性能分析</li>
+</ul>
+</li>
+<li><p>默认情况下，只有&#x2F;healthz允许匿名访问，其他接口需要授权</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">curl -k -H &#x27;Authorization: Bearer $&#123;kubectl create token my-monitor&#125;&#x27; \</span><br><span class="line">https://localhost:10259/metrics</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h2 id="运行Informer同步资源"><a href="#运行Informer同步资源" class="headerlink" title="运行Informer同步资源"></a>运行Informer同步资源</h2><p>运行CompletedConfig中已经实例化的Informer对象</p>
+<ul>
+<li><p>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/810e9e212ec5372d16b655f57b9231d8654a2179/cmd/kube-scheduler/app/server.go#L249">https://github.com/kubernetes/kubernetes/blob/810e9e212ec5372d16b655f57b9231d8654a2179/cmd/kube-scheduler/app/server.go#L249</a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">startInformersAndWaitForSync := <span class="function"><span class="keyword">func</span><span class="params">(ctx context.Context)</span></span> &#123;</span><br><span class="line">	<span class="comment">// Start all informers.</span></span><br><span class="line">	cc.InformerFactory.Start(ctx.Done())</span><br><span class="line">	<span class="comment">// DynInformerFactory can be nil in tests.</span></span><br><span class="line">	<span class="keyword">if</span> cc.DynInformerFactory != <span class="literal">nil</span> &#123;</span><br><span class="line">		cc.DynInformerFactory.Start(ctx.Done())</span><br><span class="line">	&#125;</span><br><span class="line">  </span><br><span class="line">	<span class="comment">// Wait for all caches to sync before scheduling.</span></span><br><span class="line">	cc.InformerFactory.WaitForCacheSync(ctx.Done())</span><br><span class="line">	<span class="comment">// DynInformerFactory can be nil in tests.</span></span><br><span class="line">	<span class="keyword">if</span> cc.DynInformerFactory != <span class="literal">nil</span> &#123;</span><br><span class="line">		cc.DynInformerFactory.WaitForCacheSync(ctx.Done())</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h2 id="执行Leader选举"><a href="#执行Leader选举" class="headerlink" title="执行Leader选举"></a>执行Leader选举</h2><p>为了满足高可用需求，kube-schedule支持多副本运行，多副本存在调度冲突，所以引入了Leader选举机制</p>
+<ul>
+<li><p>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/cmd/kube-scheduler/app/server.go#L206">https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/cmd/kube-scheduler/app/server.go#L206</a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// If leader election is enabled, runCommand via LeaderElector until done and exit.</span></span><br><span class="line">	<span class="keyword">if</span> cc.LeaderElection != <span class="literal">nil</span> &#123;</span><br><span class="line">		cc.LeaderElection.Callbacks = leaderelection.LeaderCallbacks&#123;</span><br><span class="line">      <span class="comment">// OnStartedLeading d当前实例被选举为Leader之后，需要执行的回调函数</span></span><br><span class="line">			OnStartedLeading: <span class="function"><span class="keyword">func</span><span class="params">(ctx context.Context)</span></span> &#123;</span><br><span class="line">				<span class="built_in">close</span>(waitingForLeader)</span><br><span class="line">				sched.Run(ctx)</span><br><span class="line">			&#125;,</span><br><span class="line">      <span class="comment">// OnStoppedLeading 丢失掉Leader之后，进行回调函数</span></span><br><span class="line">			OnStoppedLeading: <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">				<span class="keyword">select</span> &#123;</span><br><span class="line">				<span class="keyword">case</span> &lt;-ctx.Done():</span><br><span class="line">					<span class="comment">// We were asked to terminate. Exit 0.</span></span><br><span class="line">					klog.InfoS(<span class="string">&quot;Requested to terminate, exiting&quot;</span>)</span><br><span class="line">					os.Exit(<span class="number">0</span>)</span><br><span class="line">				<span class="keyword">default</span>:</span><br><span class="line">					<span class="comment">// We lost the lock.</span></span><br><span class="line">					klog.ErrorS(<span class="literal">nil</span>, <span class="string">&quot;Leaderelection lost&quot;</span>)</span><br><span class="line">					klog.FlushAndExit(klog.ExitFlushTimeout, <span class="number">1</span>)</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;,</span><br><span class="line">		&#125;</span><br><span class="line">		leaderElector, err := leaderelection.NewLeaderElector(*cc.LeaderElection)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> fmt.Errorf(<span class="string">&quot;couldn&#x27;t create leader elector: %v&quot;</span>, err)</span><br><span class="line">		&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h2 id="运行调度器"><a href="#运行调度器" class="headerlink" title="运行调度器"></a>运行调度器</h2><p>Leader选举成功之后，通过回调方式进行schedu.Run函数实现，真正启动调度器的主逻辑</p>
+<ul>
+<li><p>sched.SchedulingQueue.Run()：启动维护Schedulung Queue中的多级队列的协程，反复调度失败的Pod</p>
+</li>
+<li><p>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/scheduler/scheduler.go#L333">https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/scheduler/scheduler.go#L333</a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Run begins watching and scheduling. It starts scheduling and blocked until the context is done.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(sched *Scheduler)</span></span> Run(ctx context.Context) &#123;</span><br><span class="line">	sched.SchedulingQueue.Run()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// We need to start scheduleOne loop in a dedicated goroutine,</span></span><br><span class="line">	<span class="comment">// because scheduleOne function hangs on getting the next item</span></span><br><span class="line">	<span class="comment">// from the SchedulingQueue.</span></span><br><span class="line">	<span class="comment">// If there are no new pods to schedule, it will be hanging there</span></span><br><span class="line">	<span class="comment">// and if done in this goroutine it will be blocking closing</span></span><br><span class="line">	<span class="comment">// SchedulingQueue, in effect causing a deadlock on shutdown.</span></span><br><span class="line">	<span class="keyword">go</span> wait.UntilWithContext(ctx, sched.scheduleOne, <span class="number">0</span>)</span><br><span class="line"></span><br><span class="line">	&lt;-ctx.Done()</span><br><span class="line">	sched.SchedulingQueue.Close()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2024/12/01/cloud/k8s/kube-schedule/Kube-scheduler(%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B)/">https://piwriw.github.io/2024/12/01/cloud/k8s/kube-schedule/Kube-scheduler(启动流程)/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a><a class="post-meta__tags" href="/tags/cloud/">cloud</a><a class="post-meta__tags" href="/tags/K8s%E6%BA%90%E7%A0%81/">K8s源码</a><a class="post-meta__tags" href="/tags/Kube-scheduler/"> Kube-scheduler</a></div><div class="post-share"><div class="social-share" data-image="/img/k8sLogo.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2024/12/01/cloud/k8s/kube-schedule/Kube-scheduler(SchedulingFramework&amp;%E8%B0%83%E5%BA%A6%E5%99%A8%E8%BF%90%E8%A1%8C%E6%B5%81%E7%A8%8B)/" title="Kube-scheduler(SchedulingFramework&amp;调度器运行流程)"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">Kube-scheduler(SchedulingFramework&调度器运行流程)</div></div><div class="info-2"><div class="info-item-1">Kube-scheduler(SchedulingFramework&amp;调度器运行流程) 基于1.25  SchedulingFramework是调度器中一个核心概念，支持Pod调度过程中定义为一系列的拓展点 SchedulingFramework背景K8s不断强大， 调度日渐复杂，以前版本支持了Webhook Extender拓展原生调度但是存在以下的限制  拓展点数量和调用位置限制 Filter Extender只能在内置的预选算法结束之后才能调用 Preempt Extender只能在内置驱逐算法完成之后才被调用 Bind Extender只能用于Pod绑定节点，同一时刻只能使用一个Bind Exender，启用了Webhook的Bind插件，内置的Bind不再使用   网络调用降低调度器性能 每次调用Webhook都会产生HTTP请求响应过程，有多次数据的JSON序列化和反序列化   难以通知外部的Extender内部的调度已经被终止 外部的Extender难以和内置的调度器恭喜那个缓存  基于以上问题，设计了SchedulingFramework，插件化的架构模式...</div></div></div></a><a class="pagination-related" href="/2024/11/30/cloud/k8s/kube-schedule/Kube-scheduler(OverView)/" title="Kube-scheduler(OverView)"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">Kube-scheduler(OverView)</div></div><div class="info-2"><div class="info-item-1">Kube-scheduler(OverView) 基于1.25  Kube-schedule是K8s的控制平面组件之一，负责调度整个集群的Pod kube-scheduler调度模型kube-schedule的调度过程主要可以分为两个周期、三个阶段  两个周期主要是调度周期和绑定周期 三个阶段主要是预选（Filter）、优选（score）、绑定（Bind）三个阶段     kube-schedule在调度周期使用出串行策略，每次调度一个Pod 在绑定周期，使用并行策略  kube-scheduler调度Pod有俩种最优解：  全局最优解：执行调度策略会遍历所有的节点，找出全局最优节点 局部最优解，执行调度策略只遍历部分你节点，找出部分最优解   kube-schduler通过自动调度方法执行调度最优解，默认节点小于等于100，寻找最优解  kube-scheduler内部架构主要包含Informer、Scheduling Quque，Cache以及Scheduling Framework组件  Scheduling Queue主要是用于缓存待调度的Pod，以便在调度的时候高效获取...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2024/12/01/cloud/k8s/kube-schedule/Kube-scheduler(%E4%BC%98%E5%85%88%E7%BA%A7%E5%92%8C%E6%8A%A2%E5%8D%A0%E5%BC%8F%E8%B0%83%E5%BA%A6)/" title="Kube-scheduler(优先级和抢占式调度)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-01</div><div class="info-item-2">Kube-scheduler(优先级和抢占式调度)</div></div><div class="info-2"><div class="info-item-1">Kube-scheduler(优先级和抢占式调度) 基于1.25  K8s支持Pod优先级设置  抢占：把优先级低的Pod驱逐，高优先级的Pod先运行  Pod优先级pod优先级通过spec.priority字段定义，该字段为int32整数指针，数字越大，标识Pod优先级等级越大  通过PriorityClass可以为某个优先级定一个名称 通过spec.prioityClassName就可以自动载入优先级  K8s默认提供了俩种PriorityClass：  system-cluster-critial：优先级2000000000 system-node-critial：优先级2000001000  PriorityClass主要注意把某个globalDefault设置为true，那么没有指定的都会使用这个  一个集群只有一个globalDefault可以设置为true 允许被设置为PreemptLowerPrioity或者Never，设置为Never，该PrioityClass的Pod无法被调度，也不会被触发对低优先级低Pod驱逐  Pod驱逐抢占机制当调度器无法为高优先级的P...</div></div></div></a><a class="pagination-related" href="/2024/12/01/cloud/k8s/kube-schedule/Kube-scheduler(SchedulingFramework&%E8%B0%83%E5%BA%A6%E5%99%A8%E8%BF%90%E8%A1%8C%E6%B5%81%E7%A8%8B)/" title="Kube-scheduler(SchedulingFramework&amp;调度器运行流程)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-01</div><div class="info-item-2">Kube-scheduler(SchedulingFramework&amp;调度器运行流程)</div></div><div class="info-2"><div class="info-item-1">Kube-scheduler(SchedulingFramework&amp;调度器运行流程) 基于1.25  SchedulingFramework是调度器中一个核心概念，支持Pod调度过程中定义为一系列的拓展点 SchedulingFramework背景K8s不断强大， 调度日渐复杂，以前版本支持了Webhook Extender拓展原生调度但是存在以下的限制  拓展点数量和调用位置限制 Filter Extender只能在内置的预选算法结束之后才能调用 Preempt Extender只能在内置驱逐算法完成之后才被调用 Bind Extender只能用于Pod绑定节点，同一时刻只能使用一个Bind Exender，启用了Webhook的Bind插件，内置的Bind不再使用   网络调用降低调度器性能 每次调用Webhook都会产生HTTP请求响应过程，有多次数据的JSON序列化和反序列化   难以通知外部的Extender内部的调度已经被终止 外部的Extender难以和内置的调度器恭喜那个缓存  基于以上问题，设计了SchedulingFramework，插件化的架构模式...</div></div></div></a><a class="pagination-related" href="/2024/11/30/cloud/k8s/kube-schedule/Kube-scheduler(OverView)/" title="Kube-scheduler(OverView)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-11-30</div><div class="info-item-2">Kube-scheduler(OverView)</div></div><div class="info-2"><div class="info-item-1">Kube-scheduler(OverView) 基于1.25  Kube-schedule是K8s的控制平面组件之一，负责调度整个集群的Pod kube-scheduler调度模型kube-schedule的调度过程主要可以分为两个周期、三个阶段  两个周期主要是调度周期和绑定周期 三个阶段主要是预选（Filter）、优选（score）、绑定（Bind）三个阶段     kube-schedule在调度周期使用出串行策略，每次调度一个Pod 在绑定周期，使用并行策略  kube-scheduler调度Pod有俩种最优解：  全局最优解：执行调度策略会遍历所有的节点，找出全局最优节点 局部最优解，执行调度策略只遍历部分你节点，找出部分最优解   kube-schduler通过自动调度方法执行调度最优解，默认节点小于等于100，寻找最优解  kube-scheduler内部架构主要包含Informer、Scheduling Quque，Cache以及Scheduling Framework组件  Scheduling Queue主要是用于缓存待调度的Pod，以便在调度的时候高效获取...</div></div></div></a><a class="pagination-related" href="/2025/03/15/cloud/k8s/job/K8sController-Job(%E6%89%B9%E5%A4%84%E7%90%86%E4%BB%BB%E5%8A%A1)/" title="K8sController-Job(批处理任务)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-03-15</div><div class="info-item-2">K8sController-Job(批处理任务)</div></div><div class="info-2"><div class="info-item-1">K8sController-Job(批处理任务) 基于K8s 1.31  主要配置和工作机制123456789101112131415161718192021222324252627282930313233343536apiVersion: batch/v1kind: Jobmetadata:  name: hellospec:  # 可以并行任务数量，默认1  parallelism: 3  completions: 3  # Pod完成模式，NonIndexed（数量达到completions推出，默认），Indexed  # Indexed模式：会被设置为Pod服务名  # - 设置Pod名称：&lt;Job Name&gt;-&lt;索引序号&gt;-&lt;随机字符串&gt;  # - 设置Annotation &quot;batch.kubernetes.io/job-completion-index&quot;: &lt;索引序号&gt;  # - 设置Label &quot;batch.kubernetes.io/job-completion-index&quot...</div></div></div></a><a class="pagination-related" href="/2024/12/16/cloud/k8s/kubelet/K8s-kubelet(HTTP%E6%9C%8D%E5%8A%A1%E6%8E%A5%E5%8F%A3)/" title="K8s-kubelet(HTTP服务接口)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-16</div><div class="info-item-2">K8s-kubelet(HTTP服务接口)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(HTTP服务接口) 基于1.25  kubelet通过HTTP Server对外暴露API，为了确保接口安全，kubelet按照安全等级从低到高顺序支持3种HTTP Server，分别是healthz server、readonly server和kubelet core server    一级类目 二级类目 Path路径 描述    Default Handlerers healthz &#x2F;healthz 检查kubelet是否健康，重点检查syncLoop是否持续在规定时间内完成。检查syncLoop四因为其他组件故障会间接导致syncLoop不能执行成功   Default Handlerers pods &#x2F;pods 读取当前节点运行的Pod列表（通过PodManager获取）   Default Handlerers stats &#x2F;stats&#x2F;summary 读取资源使用状态   Default Handlerers metrics &#x2F;metrics 读取kubelet监控指标数据   Defaul...</div></div></div></a><a class="pagination-related" href="/2024/12/15/cloud/k8s/kubelet/K8s-kubelet(PLEG%E6%A0%B8%E5%BF%83%E5%8E%9F%E7%90%86)/" title="K8s-kubelet(PLEG核心原理)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-15</div><div class="info-item-2">K8s-kubelet(PLEG核心原理)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(PLEG核心原理) 基于1.25  PLEG是kubelet的一个重要组件，负责监控kubelet管理的节点运行的Pod的生命周期，并生成于生命周期相关的事件 PLEG产生原因在K8s中，kubelet负责维护和管理每个节点上的Pod，不断的调谐Pod的状态以使得符合Spec。  为了实现这个目标，kubelet同时需要支持对Pod Spec和Container Status 的事件监听。对于前者kubelet通过watch不同源的对PodSpec事件实现，对于后者，PLEG之前，不断需要Pod处理协程不断的周期性拉取最新状态，尝试了大量轮询压力。 在kubeletv1.2.0版本引入了PLEG，目标是改善kubelet的可拓展性 减少不必要的处理操作（当状态为发生变化时，不执行无效的调谐操作） 减少对底层容器运行的并发请求，以减轻容器运行时的压力    PLEG架构设计PLEG主要包含俩个核心工作，一是感受容器变化，生成Pod事件，俩是维持一份最新的Pod Status Cache数据供其他组件读取。   kubelet同时接收俩个方向的事件，Pod S...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Kube-scheduler-%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B"><span class="toc-number">1.</span> <span class="toc-text">Kube-scheduler(启动流程)</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#Cobra%E5%91%BD%E4%BB%A4%E5%8F%82%E6%95%B0%E8%A7%A3%E6%9E%90"><span class="toc-number">1.1.</span> <span class="toc-text">Cobra命令参数解析</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%9E%E4%BE%8B%E5%8C%96Scheduler%E5%AF%B9%E8%B1%A1"><span class="toc-number">1.2.</span> <span class="toc-text">实例化Scheduler对象</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%86%85%E7%BD%AE%E6%8F%92%E4%BB%B6%E6%B3%A8%E5%86%8C"><span class="toc-number">1.2.1.</span> <span class="toc-text">内置插件注册</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%A4%96%E9%83%A8%E6%8F%92%E4%BB%B6%E6%B3%A8%E5%86%8C"><span class="toc-number">1.2.2.</span> <span class="toc-text">外部插件注册</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Extender%E6%8B%93%E5%B1%95%E6%8E%A5%E5%8F%A3%E6%B3%A8%E5%86%8C"><span class="toc-number">1.2.3.</span> <span class="toc-text">Extender拓展接口注册</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Scheduler%E5%AF%B9%E8%B1%A1%E5%AE%9E%E4%BE%8B%E5%8C%96"><span class="toc-number">1.2.4.</span> <span class="toc-text">Scheduler对象实例化</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Informer%E4%BA%8B%E4%BB%B6%E5%A4%84%E7%90%86%E5%87%BD%E6%95%B0%E6%B3%A8%E5%86%8C"><span class="toc-number">1.2.5.</span> <span class="toc-text">Informer事件处理函数注册</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%BF%90%E8%A1%8CEventBroadcaster%E4%BA%8B%E4%BB%B6%E7%AE%A1%E7%90%86%E5%99%A8"><span class="toc-number">1.3.</span> <span class="toc-text">运行EventBroadcaster事件管理器</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%BF%90%E8%A1%8CHTTP-Server"><span class="toc-number">1.4.</span> <span class="toc-text">运行HTTP Server</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%BF%90%E8%A1%8CInformer%E5%90%8C%E6%AD%A5%E8%B5%84%E6%BA%90"><span class="toc-number">1.5.</span> <span class="toc-text">运行Informer同步资源</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%89%A7%E8%A1%8CLeader%E9%80%89%E4%B8%BE"><span class="toc-number">1.6.</span> <span class="toc-text">执行Leader选举</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%BF%90%E8%A1%8C%E8%B0%83%E5%BA%A6%E5%99%A8"><span class="toc-number">1.7.</span> <span class="toc-text">运行调度器</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-日志系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明">Gorm-日志系统模块原理说明</a><time datetime="2026-01-11T11:56:27.000Z" title="发表于 2026-01-11 19:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-迁移功能模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明">Gorm-迁移功能模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-插件系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明">Gorm-插件系统模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-事务处理模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明">Gorm-事务处理模块原理说明</a><time datetime="2026-01-11T09:56:27.000Z" title="发表于 2026-01-11 17:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-关联关系模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明">Gorm-关联关系模块原理说明</a><time datetime="2026-01-11T08:56:27.000Z" title="发表于 2026-01-11 16:56:27">2026-01-11</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

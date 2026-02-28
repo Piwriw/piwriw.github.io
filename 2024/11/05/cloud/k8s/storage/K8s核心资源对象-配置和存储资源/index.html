@@ -1,0 +1,427 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>K8s核心资源对象-配置和存储资源 | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="K8s核心资源对象-配置和存储资源 基于1.25  卷什么是卷容器中的文件在磁盘上是临时存放，Pod重启数据可能就会消息，卷就是为了实现持久化而出现 卷的类型emptyDir卷当Pod被分配到某个节点上的时候，emptyDir卷会被创建  Pod在节点运行中，emptyDir卷一直存在 emptyDir卷最初是空的 emptyDir卷在Pod在该节点被删除之后，也会消失  hostPath卷能把主">
+<meta property="og:type" content="article">
+<meta property="og:title" content="K8s核心资源对象-配置和存储资源">
+<meta property="og:url" content="https://piwriw.github.io/2024/11/05/cloud/k8s/storage/K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-%E9%85%8D%E7%BD%AE%E5%92%8C%E5%AD%98%E5%82%A8%E8%B5%84%E6%BA%90/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="K8s核心资源对象-配置和存储资源 基于1.25  卷什么是卷容器中的文件在磁盘上是临时存放，Pod重启数据可能就会消息，卷就是为了实现持久化而出现 卷的类型emptyDir卷当Pod被分配到某个节点上的时候，emptyDir卷会被创建  Pod在节点运行中，emptyDir卷一直存在 emptyDir卷最初是空的 emptyDir卷在Pod在该节点被删除之后，也会消失  hostPath卷能把主">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/k8sLogo.png">
+<meta property="article:published_time" content="2024-11-05T03:57:55.000Z">
+<meta property="article:modified_time" content="2026-02-28T13:29:12.672Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="k8s">
+<meta property="article:tag" content="cloud">
+<meta property="article:tag" content="storage">
+<meta property="article:tag" content="K8s源码">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/k8sLogo.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "K8s核心资源对象-配置和存储资源",
+  "url": "https://piwriw.github.io/2024/11/05/cloud/k8s/storage/K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-%E9%85%8D%E7%BD%AE%E5%92%8C%E5%AD%98%E5%82%A8%E8%B5%84%E6%BA%90/",
+  "image": "https://piwriw.github.io/img/k8sLogo.png",
+  "datePublished": "2024-11-05T03:57:55.000Z",
+  "dateModified": "2026-02-28T13:29:12.672Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2024/11/05/cloud/k8s/storage/K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-%E9%85%8D%E7%BD%AE%E5%92%8C%E5%AD%98%E5%82%A8%E8%B5%84%E6%BA%90/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'K8s核心资源对象-配置和存储资源',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/k8sLogo.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">K8s核心资源对象-配置和存储资源</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">K8s核心资源对象-配置和存储资源</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2024-11-05T03:57:55.000Z" title="发表于 2024-11-05 11:57:55">2024-11-05</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-02-28T13:29:12.672Z" title="更新于 2026-02-28 21:29:12">2026-02-28</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/">k8s</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/storage/">storage</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">3.3k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>16分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-02-28 21:29:12&quot;}" hidden></div><h1 id="K8s核心资源对象-配置和存储资源"><a href="#K8s核心资源对象-配置和存储资源" class="headerlink" title="K8s核心资源对象-配置和存储资源"></a>K8s核心资源对象-配置和存储资源</h1><blockquote>
+<p>基于1.25</p>
+</blockquote>
+<h2 id="卷"><a href="#卷" class="headerlink" title="卷"></a>卷</h2><h3 id="什么是卷"><a href="#什么是卷" class="headerlink" title="什么是卷"></a>什么是卷</h3><p>容器中的文件在磁盘上是临时存放，Pod重启数据可能就会消息，卷就是为了实现持久化而出现</p>
+<h3 id="卷的类型"><a href="#卷的类型" class="headerlink" title="卷的类型"></a>卷的类型</h3><h4 id="emptyDir卷"><a href="#emptyDir卷" class="headerlink" title="emptyDir卷"></a>emptyDir卷</h4><p>当Pod被分配到某个节点上的时候，emptyDir卷会被创建</p>
+<ul>
+<li>Pod在节点运行中，emptyDir卷一直存在</li>
+<li>emptyDir卷最初是空的</li>
+<li>emptyDir卷在Pod在该节点被删除之后，也会消失</li>
+</ul>
+<h4 id="hostPath卷"><a href="#hostPath卷" class="headerlink" title="hostPath卷"></a>hostPath卷</h4><p>能把主机节点系统上的文件目录挂载到Pod</p>
+<h4 id="configMap卷"><a href="#configMap卷" class="headerlink" title="configMap卷"></a>configMap卷</h4><p>提供向Pod注入ConfigMap的方法</p>
+<ul>
+<li>ConfigMap对象中存储的数据可以被ConfigMap卷引用，之后被Pod中运行的容器化应用使用</li>
+</ul>
+<h4 id="downwardAPI卷"><a href="#downwardAPI卷" class="headerlink" title="downwardAPI卷"></a>downwardAPI卷</h4><p>为应用服务器提供DownwardAPI数据</p>
+<ul>
+<li>允许容器在不使用K8s客户端的情况下，获得到自己或者集群的信息</li>
+</ul>
+<h4 id="secret卷"><a href="#secret卷" class="headerlink" title="secret卷"></a>secret卷</h4><p>用来给Pod传递一些敏感的信息</p>
+<ul>
+<li>可以通过文件的形式挂到Pod中</li>
+</ul>
+<h4 id="nfs卷"><a href="#nfs卷" class="headerlink" title="nfs卷"></a>nfs卷</h4><p>把NFS挂到Pod中</p>
+<ul>
+<li>nfs数据不会随着Pod消减，而消减</li>
+</ul>
+<h4 id="cephfs卷"><a href="#cephfs卷" class="headerlink" title="cephfs卷"></a>cephfs卷</h4><p>允许把现存的cephfs卷挂载到Pod中</p>
+<ul>
+<li>cephfs卷数据不随着Pod消减，而消减</li>
+</ul>
+<h4 id="persistentVolumeCliam卷"><a href="#persistentVolumeCliam卷" class="headerlink" title="persistentVolumeCliam卷"></a>persistentVolumeCliam卷</h4><p>用来给持久卷（PV）挂载到Pod中</p>
+<ul>
+<li>不会随着Pod消减，而消减</li>
+</ul>
+<h3 id="卷的状态"><a href="#卷的状态" class="headerlink" title="卷的状态"></a>卷的状态</h3><ul>
+<li>Available：可用，空闲资源，等待使用</li>
+<li>Bound：已经绑定，卷已经被某处使用</li>
+<li>Released：已经释放，绑定消失，还没有被集群回收</li>
+<li>Failed：失败，卷的自动回收操作失败</li>
+</ul>
+<h2 id="PV和PVC"><a href="#PV和PVC" class="headerlink" title="PV和PVC"></a>PV和PVC</h2><h3 id="什么是PV和PVC"><a href="#什么是PV和PVC" class="headerlink" title="什么是PV和PVC"></a>什么是PV和PVC</h3><p>PV是集群中的一块存储资源</p>
+<p>PVC是对集群存储资源的申请</p>
+<h3 id="PersistentVolumeSpec"><a href="#PersistentVolumeSpec" class="headerlink" title="PersistentVolumeSpec"></a>PersistentVolumeSpec</h3><ul>
+<li>Ref：<a target="_blank" rel="noopener" href="https://github.com/kubernetes/api/blob/f7b7ea4f0fcc6cb8c8dd42eb46a94c7e163d1b9d/core/v1/types.go#L324">https://github.com/kubernetes/api/blob/f7b7ea4f0fcc6cb8c8dd42eb46a94c7e163d1b9d/core/v1/types.go#L324</a></li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// PersistentVolumeSpec is the specification of a persistent volume.</span></span><br><span class="line"><span class="keyword">type</span> PersistentVolumeSpec <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// capacity is the description of the persistent volume&#x27;s resources and capacity.</span></span><br><span class="line">	<span class="comment">// More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#capacity</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 描述PV的资源和容量</span></span><br><span class="line">	Capacity ResourceList <span class="string">`json:&quot;capacity,omitempty&quot; protobuf:&quot;bytes,1,rep,name=capacity,casttype=ResourceList,castkey=ResourceName&quot;`</span></span><br><span class="line">	<span class="comment">// persistentVolumeSource is the actual volume backing the persistent volume.</span></span><br><span class="line">  <span class="comment">// 支持PV的实际卷</span></span><br><span class="line">	PersistentVolumeSource <span class="string">`json:&quot;,inline&quot; protobuf:&quot;bytes,2,opt,name=persistentVolumeSource&quot;`</span></span><br><span class="line">	<span class="comment">// accessModes contains all ways the volume can be mounted.</span></span><br><span class="line">	<span class="comment">// More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#access-modes</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 访问模式</span></span><br><span class="line">	AccessModes []PersistentVolumeAccessMode <span class="string">`json:&quot;accessModes,omitempty&quot; protobuf:&quot;bytes,3,rep,name=accessModes,casttype=PersistentVolumeAccessMode&quot;`</span></span><br><span class="line">	<span class="comment">// claimRef is part of a bi-directional binding between PersistentVolume and PersistentVolumeClaim.</span></span><br><span class="line">	<span class="comment">// Expected to be non-nil when bound.</span></span><br><span class="line">	<span class="comment">// claim.VolumeName is the authoritative bind between PV and PVC.</span></span><br><span class="line">	<span class="comment">// More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#binding</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">	<span class="comment">// +structType=granular</span></span><br><span class="line">  <span class="comment">// 实现PV和PVC双向绑定</span></span><br><span class="line">	ClaimRef *ObjectReference <span class="string">`json:&quot;claimRef,omitempty&quot; protobuf:&quot;bytes,4,opt,name=claimRef&quot;`</span></span><br><span class="line">	<span class="comment">// persistentVolumeReclaimPolicy defines what happens to a persistent volume when released from its claim.</span></span><br><span class="line">	<span class="comment">// Valid options are Retain (default for manually created PersistentVolumes), Delete (default</span></span><br><span class="line">	<span class="comment">// for dynamically provisioned PersistentVolumes), and Recycle (deprecated).</span></span><br><span class="line">	<span class="comment">// Recycle must be supported by the volume plugin underlying this PersistentVolume.</span></span><br><span class="line">	<span class="comment">// More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#reclaiming</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 卷回收策略</span></span><br><span class="line">	PersistentVolumeReclaimPolicy PersistentVolumeReclaimPolicy <span class="string">`json:&quot;persistentVolumeReclaimPolicy,omitempty&quot; protobuf:&quot;bytes,5,opt,name=persistentVolumeReclaimPolicy,casttype=PersistentVolumeReclaimPolicy&quot;`</span></span><br><span class="line">	<span class="comment">// storageClassName is the name of StorageClass to which this persistent volume belongs. Empty value</span></span><br><span class="line">	<span class="comment">// means that this volume does not belong to any StorageClass.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// PV所属的StorageClass的名称</span></span><br><span class="line">  <span class="comment">// 空表示PV不属于任何StorageClass</span></span><br><span class="line">	StorageClassName <span class="type">string</span> <span class="string">`json:&quot;storageClassName,omitempty&quot; protobuf:&quot;bytes,6,opt,name=storageClassName&quot;`</span></span><br><span class="line">	<span class="comment">// mountOptions is the list of mount options, e.g. [&quot;ro&quot;, &quot;soft&quot;]. Not validated - mount will</span></span><br><span class="line">	<span class="comment">// simply fail if one is invalid.</span></span><br><span class="line">	<span class="comment">// More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes/#mount-options</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 挂载选项列表</span></span><br><span class="line">	MountOptions []<span class="type">string</span> <span class="string">`json:&quot;mountOptions,omitempty&quot; protobuf:&quot;bytes,7,opt,name=mountOptions&quot;`</span></span><br><span class="line">	<span class="comment">// volumeMode defines if a volume is intended to be used with a formatted filesystem</span></span><br><span class="line">	<span class="comment">// or to remain in raw block state. Value of Filesystem is implied when not included in spec.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 可选值 Block和Filesystem</span></span><br><span class="line">  <span class="comment">// 默认是Filesystem 定义卷用于格式化文件系统还是保持原始块状态</span></span><br><span class="line">	VolumeMode *PersistentVolumeMode <span class="string">`json:&quot;volumeMode,omitempty&quot; protobuf:&quot;bytes,8,opt,name=volumeMode,casttype=PersistentVolumeMode&quot;`</span></span><br><span class="line">	<span class="comment">// nodeAffinity defines constraints that limit what nodes this volume can be accessed from.</span></span><br><span class="line">	<span class="comment">// This field influences the scheduling of pods that use this volume.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 定义可以从哪些节点访问卷的约束限制</span></span><br><span class="line">	NodeAffinity *VolumeNodeAffinity <span class="string">`json:&quot;nodeAffinity,omitempty&quot; protobuf:&quot;bytes,9,opt,name=nodeAffinity&quot;`</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="PersistentVolumeClaimSpec"><a href="#PersistentVolumeClaimSpec" class="headerlink" title="PersistentVolumeClaimSpec"></a>PersistentVolumeClaimSpec</h3><ul>
+<li><p>Ref：<a target="_blank" rel="noopener" href="https://github.com/kubernetes/api/blob/f7b7ea4f0fcc6cb8c8dd42eb46a94c7e163d1b9d/core/v1/types.go#L469">https://github.com/kubernetes/api/blob/f7b7ea4f0fcc6cb8c8dd42eb46a94c7e163d1b9d/core/v1/types.go#L469</a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// PersistentVolumeClaimSpec describes the common attributes of storage devices</span></span><br><span class="line"><span class="comment">// and allows a Source for provider-specific attributes</span></span><br><span class="line"><span class="keyword">type</span> PersistentVolumeClaimSpec <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// accessModes contains the desired access modes the volume should have.</span></span><br><span class="line">	<span class="comment">// More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#access-modes-1</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 访问模式</span></span><br><span class="line">	AccessModes []PersistentVolumeAccessMode <span class="string">`json:&quot;accessModes,omitempty&quot; protobuf:&quot;bytes,1,rep,name=accessModes,casttype=PersistentVolumeAccessMode&quot;`</span></span><br><span class="line">	<span class="comment">// selector is a label query over volumes to consider for binding.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 选择绑定的卷</span></span><br><span class="line">	Selector *metav1.LabelSelector <span class="string">`json:&quot;selector,omitempty&quot; protobuf:&quot;bytes,4,opt,name=selector&quot;`</span></span><br><span class="line">	<span class="comment">// resources represents the minimum resources the volume should have.</span></span><br><span class="line">	<span class="comment">// If RecoverVolumeExpansionFailure feature is enabled users are allowed to specify resource requirements</span></span><br><span class="line">	<span class="comment">// that are lower than previous value but must still be higher than capacity recorded in the</span></span><br><span class="line">	<span class="comment">// status field of the claim.</span></span><br><span class="line">	<span class="comment">// More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#resources</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 最小资源配置</span></span><br><span class="line">	Resources ResourceRequirements <span class="string">`json:&quot;resources,omitempty&quot; protobuf:&quot;bytes,2,opt,name=resources&quot;`</span></span><br><span class="line">	<span class="comment">// volumeName is the binding reference to the PersistentVolume backing this claim.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 与PVC绑定的PV名称</span></span><br><span class="line">	VolumeName <span class="type">string</span> <span class="string">`json:&quot;volumeName,omitempty&quot; protobuf:&quot;bytes,3,opt,name=volumeName&quot;`</span></span><br><span class="line">	<span class="comment">// storageClassName is the name of the StorageClass required by the claim.</span></span><br><span class="line">	<span class="comment">// More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#class-1</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// StorageClass名称</span></span><br><span class="line">	StorageClassName *<span class="type">string</span> <span class="string">`json:&quot;storageClassName,omitempty&quot; protobuf:&quot;bytes,5,opt,name=storageClassName&quot;`</span></span><br><span class="line">	<span class="comment">// volumeMode defines what type of volume is required by the claim.</span></span><br><span class="line">	<span class="comment">// Value of Filesystem is implied when not included in claim spec.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 同PV的VolumeMode</span></span><br><span class="line">	VolumeMode *PersistentVolumeMode <span class="string">`json:&quot;volumeMode,omitempty&quot; protobuf:&quot;bytes,6,opt,name=volumeMode,casttype=PersistentVolumeMode&quot;`</span></span><br><span class="line">	<span class="comment">// dataSource field can be used to specify either:</span></span><br><span class="line">	<span class="comment">// * An existing VolumeSnapshot object (snapshot.storage.k8s.io/VolumeSnapshot)</span></span><br><span class="line">	<span class="comment">// * An existing PVC (PersistentVolumeClaim)</span></span><br><span class="line">	<span class="comment">// If the provisioner or an external controller can support the specified data source,</span></span><br><span class="line">	<span class="comment">// it will create a new volume based on the contents of the specified data source.</span></span><br><span class="line">	<span class="comment">// If the AnyVolumeDataSource feature gate is enabled, this field will always have</span></span><br><span class="line">	<span class="comment">// the same contents as the DataSourceRef field.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 用于实现存储快照</span></span><br><span class="line">  <span class="comment">// 只用CSI支持配置</span></span><br><span class="line">	DataSource *TypedLocalObjectReference <span class="string">`json:&quot;dataSource,omitempty&quot; protobuf:&quot;bytes,7,opt,name=dataSource&quot;`</span></span><br><span class="line">	<span class="comment">// dataSourceRef specifies the object from which to populate the volume with data, if a non-empty</span></span><br><span class="line">	<span class="comment">// volume is desired. This may be any local object from a non-empty API group (non</span></span><br><span class="line">	<span class="comment">// core object) or a PersistentVolumeClaim object.</span></span><br><span class="line">	<span class="comment">// When this field is specified, volume binding will only succeed if the type of</span></span><br><span class="line">	<span class="comment">// the specified object matches some installed volume populator or dynamic</span></span><br><span class="line">	<span class="comment">// provisioner.</span></span><br><span class="line">	<span class="comment">// This field will replace the functionality of the DataSource field and as such</span></span><br><span class="line">	<span class="comment">// if both fields are non-empty, they must have the same value. For backwards</span></span><br><span class="line">	<span class="comment">// compatibility, both fields (DataSource and DataSourceRef) will be set to the same</span></span><br><span class="line">	<span class="comment">// value automatically if one of them is empty and the other is non-empty.</span></span><br><span class="line">	<span class="comment">// There are two important differences between DataSource and DataSourceRef:</span></span><br><span class="line">	<span class="comment">// * While DataSource only allows two specific types of objects, DataSourceRef</span></span><br><span class="line">	<span class="comment">//   allows any non-core object, as well as PersistentVolumeClaim objects.</span></span><br><span class="line">	<span class="comment">// * While DataSource ignores disallowed values (dropping them), DataSourceRef</span></span><br><span class="line">	<span class="comment">//   preserves all values, and generates an error if a disallowed value is</span></span><br><span class="line">	<span class="comment">//   specified.</span></span><br><span class="line">	<span class="comment">// (Beta) Using this field requires the AnyVolumeDataSource feature gate to be enabled.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 指定数据源对象引用</span></span><br><span class="line">	DataSourceRef *TypedLocalObjectReference <span class="string">`json:&quot;dataSourceRef,omitempty&quot; protobuf:&quot;bytes,8,opt,name=dataSourceRef&quot;`</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="PV类型"><a href="#PV类型" class="headerlink" title="PV类型"></a>PV类型</h3><p>PV使用插件实现，下面是K8s集中常见的实现：</p>
+<ul>
+<li>cephfs：cephfs卷</li>
+<li>csi：容器存储实现接口</li>
+<li>fc：Fibre Channel实现</li>
+<li>hostPath：hostPath单节点使用</li>
+<li>iscsi：iSCSI实现</li>
+<li>local：节点上挂着本地存储设备</li>
+<li>nfs：网络文件系统NFS实现</li>
+<li>rbd：Rados块设备实现</li>
+</ul>
+</li>
+</ul>
+<h3 id="PV访问模式"><a href="#PV访问模式" class="headerlink" title="PV访问模式"></a>PV访问模式</h3><p>PV可以使用资源提供者所支持的任何方式到宿主系统上</p>
+<p>访问模式有以下几种：</p>
+<ul>
+<li>ReadWriteOnce：卷可以被一个节点以只读方式挂载<ul>
+<li>也允许运行在同一个节点的多个Pod访问卷</li>
+</ul>
+</li>
+<li>ReadOnlyMany：卷可以被多个节点以只读方式挂载</li>
+<li>ReadWriteMany：卷可以被多个节点以只读方式挂载</li>
+<li>ReadWriteOncePod：卷可以被单个节点以读写的方式挂载<ul>
+<li>确保整个集群只有一个Pod读写该PV（在K8s 1.22b版本以上）</li>
+</ul>
+</li>
+</ul>
+<h3 id="PV回收策略"><a href="#PV回收策略" class="headerlink" title="PV回收策略"></a>PV回收策略</h3><ul>
+<li>Retain（默认策略）:手动回收</li>
+<li>Recycle:废弃，不再推荐使用</li>
+<li>Delete：直接删除， 需要插件支持</li>
+</ul>
+<p>reclaim.Volume函数负责实现<code>volume.Spec.PersistentVolumeReclaimPolicy</code>并启动适当的回收操作，具体流程如下：</p>
+<ol>
+<li><p>如果PV有<code>pv.kubernetes.io/migrated.io</code>注解，表示PV已经迁移，PV控制器停止，外部的CSI处理这个PV</p>
+</li>
+<li><p>获取&#96;volume.Spec.PersistentVolumeReclaimPolicy处理PV</p>
+<ul>
+<li><p>Retain策略：打印日志，不做处理</p>
+</li>
+<li><p>Recycle策略：调用<code>recycleVolumeOperation</code>处理，内部调用<code>RecyclableVolumePlugin</code>的Recycle方法</p>
+</li>
+<li><p>Delete策略，调用<code>deleteVolumeOperation</code>处理，内部调用<code>DeleteVolumePlugin</code>方法</p>
+</li>
+</ul>
+</li>
+</ol>
+<ul>
+<li>Ref：<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/controller/volume/persistentvolume/pv_controller.go#L1140">https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/controller/volume/persistentvolume/pv_controller.go#L1140</a></li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// reclaimVolume implements volume.Spec.PersistentVolumeReclaimPolicy and</span></span><br><span class="line"><span class="comment">// starts appropriate reclaim action.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(ctrl *PersistentVolumeController)</span></span> reclaimVolume(volume *v1.PersistentVolume) <span class="type">error</span> &#123;</span><br><span class="line">	<span class="keyword">if</span> migrated := volume.Annotations[storagehelpers.AnnMigratedTo]; <span class="built_in">len</span>(migrated) &gt; <span class="number">0</span> &#123;</span><br><span class="line">		<span class="comment">// PV is Migrated. The PV controller should stand down and the external</span></span><br><span class="line">		<span class="comment">// provisioner will handle this PV</span></span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">switch</span> volume.Spec.PersistentVolumeReclaimPolicy &#123;</span><br><span class="line">    <span class="comment">// Retain策略</span></span><br><span class="line">	<span class="keyword">case</span> v1.PersistentVolumeReclaimRetain:</span><br><span class="line">		klog.V(<span class="number">4</span>).Infof(<span class="string">&quot;reclaimVolume[%s]: policy is Retain, nothing to do&quot;</span>, volume.Name)</span><br><span class="line">   <span class="comment">// Recycle策略</span></span><br><span class="line">	<span class="keyword">case</span> v1.PersistentVolumeReclaimRecycle:</span><br><span class="line">		klog.V(<span class="number">4</span>).Infof(<span class="string">&quot;reclaimVolume[%s]: policy is Recycle&quot;</span>, volume.Name)</span><br><span class="line">		opName := fmt.Sprintf(<span class="string">&quot;recycle-%s[%s]&quot;</span>, volume.Name, <span class="type">string</span>(volume.UID))</span><br><span class="line">		ctrl.scheduleOperation(opName, <span class="function"><span class="keyword">func</span><span class="params">()</span></span> <span class="type">error</span> &#123;</span><br><span class="line">			ctrl.recycleVolumeOperation(volume)</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">		&#125;)</span><br><span class="line">	<span class="comment">// Delete策略</span></span><br><span class="line">	<span class="keyword">case</span> v1.PersistentVolumeReclaimDelete:</span><br><span class="line">		klog.V(<span class="number">4</span>).Infof(<span class="string">&quot;reclaimVolume[%s]: policy is Delete&quot;</span>, volume.Name)</span><br><span class="line">		opName := fmt.Sprintf(<span class="string">&quot;delete-%s[%s]&quot;</span>, volume.Name, <span class="type">string</span>(volume.UID))</span><br><span class="line">		<span class="comment">// create a start timestamp entry in cache for deletion operation if no one exists with</span></span><br><span class="line">		<span class="comment">// key = volume.Name, pluginName = provisionerName, operation = &quot;delete&quot;</span></span><br><span class="line">		ctrl.operationTimestamps.AddIfNotExist(volume.Name, ctrl.getProvisionerNameFromVolume(volume), <span class="string">&quot;delete&quot;</span>)</span><br><span class="line">		ctrl.scheduleOperation(opName, <span class="function"><span class="keyword">func</span><span class="params">()</span></span> <span class="type">error</span> &#123;</span><br><span class="line">			_, err := ctrl.deleteVolumeOperation(volume)</span><br><span class="line">			<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">				<span class="comment">// only report error count to &quot;volume_operation_total_errors&quot;</span></span><br><span class="line">				<span class="comment">// latency reporting will happen when the volume get finally</span></span><br><span class="line">				<span class="comment">// deleted and a volume deleted event is captured</span></span><br><span class="line">				metrics.RecordMetric(volume.Name, &amp;ctrl.operationTimestamps, err)</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">default</span>:</span><br><span class="line">		<span class="comment">// Unknown PersistentVolumeReclaimPolicy</span></span><br><span class="line">		<span class="keyword">if</span> _, err := ctrl.updateVolumePhaseWithEvent(volume, v1.VolumeFailed, v1.EventTypeWarning, <span class="string">&quot;VolumeUnknownReclaimPolicy&quot;</span>, <span class="string">&quot;Volume has unrecognized PersistentVolumeReclaimPolicy&quot;</span>); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="PV状态流转"><a href="#PV状态流转" class="headerlink" title="PV状态流转"></a>PV状态流转</h3><p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image202411042313755.png"></p>
+<ul>
+<li>Released状态的PV无法变成Available状态去绑定心的PVC</li>
+<li>需要复用PV有俩种方法<ul>
+<li>创建一个新的PV，把原有的PV信息赋值给新PV</li>
+<li>删除Pod，不删除PVC，下次直接复用PVC</li>
+</ul>
+</li>
+</ul>
+<h3 id="PVC和PV的匹配流程"><a href="#PVC和PV的匹配流程" class="headerlink" title="PVC和PV的匹配流程"></a>PVC和PV的匹配流程</h3><p>PV控制器使用<code>findBestMatchForCliam</code>实现PV和PVC匹配，内部调用findByClaim，具体流程如下：</p>
+<ol>
+<li>根据访问模式匹配</li>
+<li>过滤一些规则<ul>
+<li>已经绑定的排除</li>
+<li>PVC请求大于PV排除</li>
+<li>卷模式不同的排除</li>
+<li>标记删除的PV排除</li>
+<li>非Available状态PV排除</li>
+<li>PVC标签选择不匹配PV排除</li>
+<li>StroageClass不匹配的排除</li>
+<li>节点亲和不匹配的排除</li>
+</ul>
+</li>
+<li>匹配<code>pvc request storage</code>和<code>pv capacity</code>最匹配的</li>
+</ol>
+<ul>
+<li>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/controller/volume/persistentvolume/index.go#L73">https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/controller/volume/persistentvolume/index.go#L73</a></li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// find returns the nearest PV from the ordered list or nil if a match is not found</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(pvIndex *persistentVolumeOrderedIndex)</span></span> findByClaim(claim *v1.PersistentVolumeClaim, delayBinding <span class="type">bool</span>) (*v1.PersistentVolume, <span class="type">error</span>) &#123;</span><br><span class="line">	<span class="comment">// PVs are indexed by their access modes to allow easier searching.  Each</span></span><br><span class="line">	<span class="comment">// index is the string representation of a set of access modes. There is a</span></span><br><span class="line">	<span class="comment">// finite number of possible sets and PVs will only be indexed in one of</span></span><br><span class="line">	<span class="comment">// them (whichever index matches the PV&#x27;s modes).</span></span><br><span class="line">	<span class="comment">//</span></span><br><span class="line">	<span class="comment">// A request for resources will always specify its desired access modes.</span></span><br><span class="line">	<span class="comment">// Any matching PV must have at least that number of access modes, but it</span></span><br><span class="line">	<span class="comment">// can have more.  For example, a user asks for ReadWriteOnce but a GCEPD</span></span><br><span class="line">	<span class="comment">// is available, which is ReadWriteOnce+ReadOnlyMany.</span></span><br><span class="line">	<span class="comment">//</span></span><br><span class="line">	<span class="comment">// Searches are performed against a set of access modes, so we can attempt</span></span><br><span class="line">	<span class="comment">// not only the exact matching modes but also potential matches (the GCEPD</span></span><br><span class="line">	<span class="comment">// example above).</span></span><br><span class="line">	allPossibleModes := pvIndex.allPossibleMatchingAccessModes(claim.Spec.AccessModes)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> _, modes := <span class="keyword">range</span> allPossibleModes &#123;</span><br><span class="line">		volumes, err := pvIndex.listByAccessModes(modes)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		bestVol, err := volume.FindMatchingVolume(claim, volumes, <span class="literal">nil</span> <span class="comment">/* node for topology binding*/</span>, <span class="literal">nil</span> <span class="comment">/* exclusion map */</span>, delayBinding)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> bestVol != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> bestVol, <span class="literal">nil</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span>, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="StorageClass"><a href="#StorageClass" class="headerlink" title="StorageClass"></a>StorageClass</h2><p>StorageClass实现了动态创建PV，解决手动创建PV不方便的问题</p>
+<h3 id="StorageClass-1"><a href="#StorageClass-1" class="headerlink" title="StorageClass"></a>StorageClass</h3><ul>
+<li>Ref：<a target="_blank" rel="noopener" href="https://github.com/kubernetes/api/blob/6e61ea04c537767720172fb5a770236e6531ae53/storage/v1/types.go#L35C6-L35C18">https://github.com/kubernetes/api/blob/6e61ea04c537767720172fb5a770236e6531ae53/storage/v1/types.go#L35C6-L35C18</a></li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// StorageClass describes the parameters for a class of storage for</span></span><br><span class="line"><span class="comment">// which PersistentVolumes can be dynamically provisioned.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// StorageClasses are non-namespaced; the name of the storage class</span></span><br><span class="line"><span class="comment">// according to etcd is in ObjectMeta.Name.</span></span><br><span class="line"><span class="keyword">type</span> StorageClass <span class="keyword">struct</span> &#123;</span><br><span class="line">	metav1.TypeMeta <span class="string">`json:&quot;,inline&quot;`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// Standard object&#x27;s metadata.</span></span><br><span class="line">	<span class="comment">// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">	metav1.ObjectMeta <span class="string">`json:&quot;metadata,omitempty&quot; protobuf:&quot;bytes,1,opt,name=metadata&quot;`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// provisioner indicates the type of the provisioner.</span></span><br><span class="line">  <span class="comment">// 每个StorageClass只有一个制备器</span></span><br><span class="line">	Provisioner <span class="type">string</span> <span class="string">`json:&quot;provisioner&quot; protobuf:&quot;bytes,2,opt,name=provisioner&quot;`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// parameters holds the parameters for the provisioner that should</span></span><br><span class="line">	<span class="comment">// create volumes of this storage class.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">//描述了存储类的卷</span></span><br><span class="line">	Parameters <span class="keyword">map</span>[<span class="type">string</span>]<span class="type">string</span> <span class="string">`json:&quot;parameters,omitempty&quot; protobuf:&quot;bytes,3,rep,name=parameters&quot;`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// reclaimPolicy controls the reclaimPolicy for dynamically provisioned PersistentVolumes of this storage class.</span></span><br><span class="line">	<span class="comment">// Defaults to Delete.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 删除策略，默认Delete</span></span><br><span class="line">	ReclaimPolicy *v1.PersistentVolumeReclaimPolicy <span class="string">`json:&quot;reclaimPolicy,omitempty&quot; protobuf:&quot;bytes,4,opt,name=reclaimPolicy,casttype=k8s.io/api/core/v1.PersistentVolumeReclaimPolicy&quot;`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// mountOptions controls the mountOptions for dynamically provisioned PersistentVolumes of this storage class.</span></span><br><span class="line">	<span class="comment">// e.g. [&quot;ro&quot;, &quot;soft&quot;]. Not validated -</span></span><br><span class="line">	<span class="comment">// mount of the PVs will simply fail if one is invalid.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">	<span class="comment">// +listType=atomic</span></span><br><span class="line">  <span class="comment">//  创建PV的挂载选项</span></span><br><span class="line">	MountOptions []<span class="type">string</span> <span class="string">`json:&quot;mountOptions,omitempty&quot; protobuf:&quot;bytes,5,opt,name=mountOptions&quot;`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// allowVolumeExpansion shows whether the storage class allow volume expand.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 是否允许拓展</span></span><br><span class="line">  <span class="comment">// 只可拓展，不允许缩小</span></span><br><span class="line">	AllowVolumeExpansion *<span class="type">bool</span> <span class="string">`json:&quot;allowVolumeExpansion,omitempty&quot; protobuf:&quot;varint,6,opt,name=allowVolumeExpansion&quot;`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// volumeBindingMode indicates how PersistentVolumeClaims should be</span></span><br><span class="line">	<span class="comment">// provisioned and bound.  When unset, VolumeBindingImmediate is used.</span></span><br><span class="line">	<span class="comment">// This field is only honored by servers that enable the VolumeScheduling feature.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 设置卷绑定和动态制备的时机</span></span><br><span class="line">  <span class="comment">// 不设置，默认Immediate：一旦创建完成绑定</span></span><br><span class="line">	VolumeBindingMode *VolumeBindingMode <span class="string">`json:&quot;volumeBindingMode,omitempty&quot; protobuf:&quot;bytes,7,opt,name=volumeBindingMode&quot;`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// allowedTopologies restrict the node topologies where volumes can be dynamically provisioned.</span></span><br><span class="line">	<span class="comment">// Each volume plugin defines its own supported topology specifications.</span></span><br><span class="line">	<span class="comment">// An empty TopologySelectorTerm list means there is no topology restriction.</span></span><br><span class="line">	<span class="comment">// This field is only honored by servers that enable the VolumeScheduling feature.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">	<span class="comment">// +listType=atomic</span></span><br><span class="line">  <span class="comment">// 限制可以动态配置的卷的拓扑、描述了如何将制备卷的拓扑限制在特定的区域</span></span><br><span class="line">  <span class="comment">// 空带代表没有限制 需要开启VolumeScheding</span></span><br><span class="line">	AllowedTopologies []v1.TopologySelectorTerm <span class="string">`json:&quot;allowedTopologies,omitempty&quot; protobuf:&quot;bytes,8,rep,name=allowedTopologies&quot;`</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="Provisioner"><a href="#Provisioner" class="headerlink" title="Provisioner"></a>Provisioner</h3><p>一些常见的Provisioner</p>
+<ul>
+<li>CephFS：开源Ceph文件存储</li>
+<li>Cinder：OpenStack存储</li>
+<li>NFS：开源分布式存储</li>
+<li>RBD：开源Ceph块存储</li>
+<li>Locla：本地卷还不支持动态制备，需要创建StorageClass</li>
+</ul>
+<h3 id="PV、PVC、StorageClas的关系"><a href="#PV、PVC、StorageClas的关系" class="headerlink" title="PV、PVC、StorageClas的关系"></a>PV、PVC、StorageClas的关系</h3><ul>
+<li>PVC控制器监听PV和PVC的创建</li>
+<li>PV控制器监听到PVC创建，根据信息的StorageClass信息，组合完整的PV</li>
+<li>调用Client-go中，把PV保存到K8s</li>
+<li>PV控制器监听到PV创建，根据配置的存储实现参数真正创建存储卷并且挂载</li>
+</ul>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2024/11/05/cloud/k8s/storage/K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-%E9%85%8D%E7%BD%AE%E5%92%8C%E5%AD%98%E5%82%A8%E8%B5%84%E6%BA%90/">https://piwriw.github.io/2024/11/05/cloud/k8s/storage/K8s核心资源对象-配置和存储资源/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a><a class="post-meta__tags" href="/tags/cloud/">cloud</a><a class="post-meta__tags" href="/tags/storage/">storage</a><a class="post-meta__tags" href="/tags/K8s%E6%BA%90%E7%A0%81/">K8s源码</a></div><div class="post-share"><div class="social-share" data-image="/img/k8sLogo.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2024/11/06/cloud/k8s/crd/K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-CRD/" title="K8s核心资源对象-CRD"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">K8s核心资源对象-CRD</div></div><div class="info-2"><div class="info-item-1">K8s核心资源对象-CRD 基于1.25  什么是CRDK8s的拓展主要通过几类实现：  客户端拓展：实现kubectl插件 API拓展：包含使用CRD API访问拓展：在请求到达kube-apiserver之前，经过的认证、授权、动态准入都可以拓展 基础设施拓展：设备拓展啊发现新的节点资源、存储插件、网络插件  最广泛使用的目前还是从1.7版本出现的CRD，属于资源组apiextension.k8s.io  Ref:https://github.com/kubernetes/apiextensions-apiserver/blob/cb213f096359711547f69316aeac67982b626b07/pkg/apis/apiextensions/v1/types.go#L390  1234567891011121314151617181920// +genclient// +genclient:nonNamespaced// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object// +...</div></div></div></a><a class="pagination-related" href="/2024/11/03/cloud/k8s/netwotk/K8s%E5%8F%91%E7%8E%B0%E5%92%8C%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1-NetworkPolicy/" title="K8s发现和负载均衡-NetworkPolicy"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">K8s发现和负载均衡-NetworkPolicy</div></div><div class="info-2"><div class="info-item-1">K8s发现和负载均衡-NetworkPolicy 基于1.25  什么是NetworkPolicyK8s的网络模型和各种网络方法关心是容器之间的联通，而NetworkPolicy负责网络隔离  NetworkPolicy网络隔离，在多租户和安全性要求比较高的情况下使用 NetworkPolicy使用在一端或者俩端于Pod的连接 NetworkPolicy的作用范围：Pod、命名空间、Ingress、Egress流量等 NetworkPolicy作为在L3&#x2F;4层，目的是限制IP地址和端口的访问，如果需要对应用层访问限制，需要使用Istio这类的Service Mesh NetworkPolicy对象 需要NetworkPolicy控制器才能生效  Pod的隔离类型Pod有俩种隔离类型：出口隔离和入口隔离  默认情况下，没有出口隔离 通过设置NetworkPolicy在PolicyType设置为Egress，进行出口隔离   默认情况下，没有入口隔离 通过设置NetworkPolicy在PolicyType设置为Igress，进行入口隔离   网络策略是相加的  Netwo...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2025/03/15/cloud/k8s/job/K8sController-Job(%E6%89%B9%E5%A4%84%E7%90%86%E4%BB%BB%E5%8A%A1)/" title="K8sController-Job(批处理任务)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-03-15</div><div class="info-item-2">K8sController-Job(批处理任务)</div></div><div class="info-2"><div class="info-item-1">K8sController-Job(批处理任务) 基于K8s 1.31  主要配置和工作机制123456789101112131415161718192021222324252627282930313233343536apiVersion: batch/v1kind: Jobmetadata:  name: hellospec:  # 可以并行任务数量，默认1  parallelism: 3  completions: 3  # Pod完成模式，NonIndexed（数量达到completions推出，默认），Indexed  # Indexed模式：会被设置为Pod服务名  # - 设置Pod名称：&lt;Job Name&gt;-&lt;索引序号&gt;-&lt;随机字符串&gt;  # - 设置Annotation &quot;batch.kubernetes.io/job-completion-index&quot;: &lt;索引序号&gt;  # - 设置Label &quot;batch.kubernetes.io/job-completion-index&quot...</div></div></div></a><a class="pagination-related" href="/2024/12/16/cloud/k8s/kubelet/K8s-kubelet(HTTP%E6%9C%8D%E5%8A%A1%E6%8E%A5%E5%8F%A3)/" title="K8s-kubelet(HTTP服务接口)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-16</div><div class="info-item-2">K8s-kubelet(HTTP服务接口)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(HTTP服务接口) 基于1.25  kubelet通过HTTP Server对外暴露API，为了确保接口安全，kubelet按照安全等级从低到高顺序支持3种HTTP Server，分别是healthz server、readonly server和kubelet core server    一级类目 二级类目 Path路径 描述    Default Handlerers healthz &#x2F;healthz 检查kubelet是否健康，重点检查syncLoop是否持续在规定时间内完成。检查syncLoop四因为其他组件故障会间接导致syncLoop不能执行成功   Default Handlerers pods &#x2F;pods 读取当前节点运行的Pod列表（通过PodManager获取）   Default Handlerers stats &#x2F;stats&#x2F;summary 读取资源使用状态   Default Handlerers metrics &#x2F;metrics 读取kubelet监控指标数据   Defaul...</div></div></div></a><a class="pagination-related" href="/2024/12/15/cloud/k8s/kubelet/K8s-kubelet(PLEG%E6%A0%B8%E5%BF%83%E5%8E%9F%E7%90%86)/" title="K8s-kubelet(PLEG核心原理)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-15</div><div class="info-item-2">K8s-kubelet(PLEG核心原理)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(PLEG核心原理) 基于1.25  PLEG是kubelet的一个重要组件，负责监控kubelet管理的节点运行的Pod的生命周期，并生成于生命周期相关的事件 PLEG产生原因在K8s中，kubelet负责维护和管理每个节点上的Pod，不断的调谐Pod的状态以使得符合Spec。  为了实现这个目标，kubelet同时需要支持对Pod Spec和Container Status 的事件监听。对于前者kubelet通过watch不同源的对PodSpec事件实现，对于后者，PLEG之前，不断需要Pod处理协程不断的周期性拉取最新状态，尝试了大量轮询压力。 在kubeletv1.2.0版本引入了PLEG，目标是改善kubelet的可拓展性 减少不必要的处理操作（当状态为发生变化时，不执行无效的调谐操作） 减少对底层容器运行的并发请求，以减轻容器运行时的压力    PLEG架构设计PLEG主要包含俩个核心工作，一是感受容器变化，生成Pod事件，俩是维持一份最新的Pod Status Cache数据供其他组件读取。   kubelet同时接收俩个方向的事件，Pod S...</div></div></div></a><a class="pagination-related" href="/2024/12/14/cloud/k8s/kubelet/K8s-kubelet(Cgroup%E8%B5%84%E6%BA%90%E9%9A%94%E7%A6%BB%E4%BB%A5%E5%8F%8A%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E5%8E%9F%E7%90%86)/" title="K8s-kubelet(Cgroup资源隔离以及垃圾回收原理)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-14</div><div class="info-item-2">K8s-kubelet(Cgroup资源隔离以及垃圾回收原理)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(Cgroup资源隔离以及垃圾回收原理) 基于1.25  什么是Cgroup资源隔离kubelet基于cgroup限制Pod资源使用。cgroup是Linux内核的一个重要功能，用来限制、控制和分离一个进程组的资源（CPU、内存、磁盘I&#x2F;O） kubelet在创建Pod时，会将其配置的cgroups parent目录传递给容器运行时，使容器运行时创建的进程都会限制到kubelet配置父级cgroup之下。  kubelet负责维护Pod、QoS、Node级别的cgroup配置 Container级别的cgroup直接交给容器运行时实现  cgroup的层级结构 kubelet采用了四级cgroups层级架构存储  Node Level cgroup 为了保证系统运行的稳定性，kubelet支持为系统守护进程预留资源，避免Pod占用整个系统资源，造成系统卡死或者崩溃。  默认情况下，kube-reserved和system-reserved不会启用。 但是启用之后，需要注意守护进程添加了cgroup之后，可能导致配置的上限太小，导致守护进程资源不足退...</div></div></div></a><a class="pagination-related" href="/2024/12/13/cloud/k8s/kubelet/K8s-kubelet(Pod%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F%E7%AE%A1%E7%90%86)/" title="K8s-kubelet(Pod生命周期管理)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-13</div><div class="info-item-2">K8s-kubelet(Pod生命周期管理)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(Pod生命周期管理) 基于1.25  kubelet以Pod为基本处理单元，负责Pod从创建到消亡的整个生命周期   在1.21中Unknown状态已经被标记为弃用。  CRIkubelet通过CRI RPC管理容器的生命周期，执行容器的lifecycle hook和 startup&#x2F;liveness&#x2F;readiness的健康检查，同时根据Pod的重启策略在容器失败退出后自动重启容器，CRI是kubelet管理Pod和容器的基础   Ref:https://github.com/kubernetes/cri-api/blob/2c8d015e0d408208ca8843c1d6e2e2fce1e5dd94/pkg/apis/runtime/v1/api.proto#L34 12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849505152535455565758596061626364656667686970717...</div></div></div></a><a class="pagination-related" href="/2024/12/13/cloud/k8s/kubelet/K8s-kubelet(%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B)/" title="K8s-kubelet(Overview)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-13</div><div class="info-item-2">K8s-kubelet(Overview)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(Overview) 基于1.25  kubelete的启动流程主要分为5个步骤：  Cobra命令参数解析 运行环境检测和设置 Kubelet对象实例化 启动kubelet主服务 启动HTTP Server服务和gRPC Server   Cobra命令行参数解析 Ref:https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/cmd/kubelet/app/server.go#L123 12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849505152535455565758596061626364656667686970717273747576777879808182838485868788899091929394959697989910010110210310410510610710810911011111211...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-%E9%85%8D%E7%BD%AE%E5%92%8C%E5%AD%98%E5%82%A8%E8%B5%84%E6%BA%90"><span class="toc-number">1.</span> <span class="toc-text">K8s核心资源对象-配置和存储资源</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8D%B7"><span class="toc-number">1.1.</span> <span class="toc-text">卷</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF%E5%8D%B7"><span class="toc-number">1.1.1.</span> <span class="toc-text">什么是卷</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8D%B7%E7%9A%84%E7%B1%BB%E5%9E%8B"><span class="toc-number">1.1.2.</span> <span class="toc-text">卷的类型</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#emptyDir%E5%8D%B7"><span class="toc-number">1.1.2.1.</span> <span class="toc-text">emptyDir卷</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#hostPath%E5%8D%B7"><span class="toc-number">1.1.2.2.</span> <span class="toc-text">hostPath卷</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#configMap%E5%8D%B7"><span class="toc-number">1.1.2.3.</span> <span class="toc-text">configMap卷</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#downwardAPI%E5%8D%B7"><span class="toc-number">1.1.2.4.</span> <span class="toc-text">downwardAPI卷</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#secret%E5%8D%B7"><span class="toc-number">1.1.2.5.</span> <span class="toc-text">secret卷</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#nfs%E5%8D%B7"><span class="toc-number">1.1.2.6.</span> <span class="toc-text">nfs卷</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#cephfs%E5%8D%B7"><span class="toc-number">1.1.2.7.</span> <span class="toc-text">cephfs卷</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#persistentVolumeCliam%E5%8D%B7"><span class="toc-number">1.1.2.8.</span> <span class="toc-text">persistentVolumeCliam卷</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8D%B7%E7%9A%84%E7%8A%B6%E6%80%81"><span class="toc-number">1.1.3.</span> <span class="toc-text">卷的状态</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#PV%E5%92%8CPVC"><span class="toc-number">1.2.</span> <span class="toc-text">PV和PVC</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BB%80%E4%B9%88%E6%98%AFPV%E5%92%8CPVC"><span class="toc-number">1.2.1.</span> <span class="toc-text">什么是PV和PVC</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#PersistentVolumeSpec"><span class="toc-number">1.2.2.</span> <span class="toc-text">PersistentVolumeSpec</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#PersistentVolumeClaimSpec"><span class="toc-number">1.2.3.</span> <span class="toc-text">PersistentVolumeClaimSpec</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#PV%E7%B1%BB%E5%9E%8B"><span class="toc-number">1.2.4.</span> <span class="toc-text">PV类型</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#PV%E8%AE%BF%E9%97%AE%E6%A8%A1%E5%BC%8F"><span class="toc-number">1.2.5.</span> <span class="toc-text">PV访问模式</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#PV%E5%9B%9E%E6%94%B6%E7%AD%96%E7%95%A5"><span class="toc-number">1.2.6.</span> <span class="toc-text">PV回收策略</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#PV%E7%8A%B6%E6%80%81%E6%B5%81%E8%BD%AC"><span class="toc-number">1.2.7.</span> <span class="toc-text">PV状态流转</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#PVC%E5%92%8CPV%E7%9A%84%E5%8C%B9%E9%85%8D%E6%B5%81%E7%A8%8B"><span class="toc-number">1.2.8.</span> <span class="toc-text">PVC和PV的匹配流程</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#StorageClass"><span class="toc-number">1.3.</span> <span class="toc-text">StorageClass</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#StorageClass-1"><span class="toc-number">1.3.1.</span> <span class="toc-text">StorageClass</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Provisioner"><span class="toc-number">1.3.2.</span> <span class="toc-text">Provisioner</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#PV%E3%80%81PVC%E3%80%81StorageClas%E7%9A%84%E5%85%B3%E7%B3%BB"><span class="toc-number">1.3.3.</span> <span class="toc-text">PV、PVC、StorageClas的关系</span></a></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-日志系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明">Gorm-日志系统模块原理说明</a><time datetime="2026-01-11T11:56:27.000Z" title="发表于 2026-01-11 19:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-迁移功能模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明">Gorm-迁移功能模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-插件系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明">Gorm-插件系统模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-事务处理模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明">Gorm-事务处理模块原理说明</a><time datetime="2026-01-11T09:56:27.000Z" title="发表于 2026-01-11 17:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-关联关系模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明">Gorm-关联关系模块原理说明</a><time datetime="2026-01-11T08:56:27.000Z" title="发表于 2026-01-11 16:56:27">2026-01-11</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

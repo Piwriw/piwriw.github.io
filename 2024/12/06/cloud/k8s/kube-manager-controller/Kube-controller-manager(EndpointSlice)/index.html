@@ -1,0 +1,344 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Kube-controller-manager(EndpointSlice) | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="Kube-controller-manager(EndpointSlice) 基于1.25  EndpointSlice Controller可以把巨大的Endpoints资源对象拆分成多个EndpointSlice，为了解决Endpoints资源对象  一个Service资源对象关联的所有POd地址存储在一个或者多个EndpoineSlice中  控制器初始化 Service EndpointS">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Kube-controller-manager(EndpointSlice)">
+<meta property="og:url" content="https://piwriw.github.io/2024/12/06/cloud/k8s/kube-manager-controller/Kube-controller-manager(EndpointSlice)/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="Kube-controller-manager(EndpointSlice) 基于1.25  EndpointSlice Controller可以把巨大的Endpoints资源对象拆分成多个EndpointSlice，为了解决Endpoints资源对象  一个Service资源对象关联的所有POd地址存储在一个或者多个EndpoineSlice中  控制器初始化 Service EndpointS">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/k8sLogo.png">
+<meta property="article:published_time" content="2024-12-06T05:30:55.000Z">
+<meta property="article:modified_time" content="2026-02-28T13:29:12.667Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="k8s">
+<meta property="article:tag" content="cloud">
+<meta property="article:tag" content="K8s源码">
+<meta property="article:tag" content=" Kube-controller-manager">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/k8sLogo.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Kube-controller-manager(EndpointSlice)",
+  "url": "https://piwriw.github.io/2024/12/06/cloud/k8s/kube-manager-controller/Kube-controller-manager(EndpointSlice)/",
+  "image": "https://piwriw.github.io/img/k8sLogo.png",
+  "datePublished": "2024-12-06T05:30:55.000Z",
+  "dateModified": "2026-02-28T13:29:12.667Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2024/12/06/cloud/k8s/kube-manager-controller/Kube-controller-manager(EndpointSlice)/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Kube-controller-manager(EndpointSlice)',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/k8sLogo.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">Kube-controller-manager(EndpointSlice)</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">Kube-controller-manager(EndpointSlice)</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2024-12-06T05:30:55.000Z" title="发表于 2024-12-06 13:30:55">2024-12-06</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-02-28T13:29:12.667Z" title="更新于 2026-02-28 21:29:12">2026-02-28</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/">k8s</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/Kube-controller-manager/">Kube-controller-manager</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">783</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>3分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-02-28 21:29:12&quot;}" hidden></div><h1 id="Kube-controller-manager-EndpointSlice"><a href="#Kube-controller-manager-EndpointSlice" class="headerlink" title="Kube-controller-manager(EndpointSlice)"></a>Kube-controller-manager(EndpointSlice)</h1><blockquote>
+<p>基于1.25</p>
+</blockquote>
+<p>EndpointSlice Controller可以把巨大的Endpoints资源对象拆分成多个EndpointSlice，为了解决Endpoints资源对象</p>
+<ul>
+<li>一个Service资源对象关联的所有POd地址存储在一个或者多个EndpoineSlice中</li>
+</ul>
+<h2 id="控制器初始化"><a href="#控制器初始化" class="headerlink" title="控制器初始化"></a>控制器初始化</h2><ul>
+<li>Service</li>
+<li>EndpointSlice</li>
+<li>Pod</li>
+</ul>
+<h2 id="主要执行逻辑"><a href="#主要执行逻辑" class="headerlink" title="主要执行逻辑"></a>主要执行逻辑</h2><p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image202412062346351.png"></p>
+<ol>
+<li><p>c.serviceLister.Services</p>
+<p>获取Service资源对象</p>
+</li>
+<li><p>c.podLister.Pods</p>
+<p>获取Service的关联Pod</p>
+</li>
+<li><p>c.endpintSliceLister.EndpointSlice</p>
+<p>获取Service关联的EndpointSlice</p>
+</li>
+<li><p>dropEndpointSlicesPendingDeletion</p>
+<p>过滤删除中的EndpointSlice</p>
+</li>
+<li><p>c.reconclier.reconclie</p>
+<p>计算和更新各个EndppintSlice</p>
+<p>reconcile步骤如下：</p>
+<ol>
+<li><p>geAddressTypesForService</p>
+<p>获取Service支持的IP地址类型（IPV4、IPV6或者双栈-&gt;通过Service的Spec.IPFamiles</p>
+</li>
+<li><p>serviceSupportedAddressTypes</p>
+<p>找出IP地址类型不符合Service的EndpointSlice</p>
+</li>
+<li><p>reconcileByAddressType</p>
+<p>为每个IP地址类型计算和更新EndpointSLice</p>
+</li>
+</ol>
+</li>
+<li><p>For _,sliceToDelete:&#x3D; range slicetoDelete</p>
+<p>删除IP地址不匹配的EndpointSlice</p>
+</li>
+</ol>
+<h2 id="EndpointSlice控制器的计算与填充"><a href="#EndpointSlice控制器的计算与填充" class="headerlink" title="EndpointSlice控制器的计算与填充"></a>EndpointSlice控制器的计算与填充</h2><p>EndpointSlice Controller的计算和填充的执行逻辑的reconcileByAddressType func中，主要分为俩个部分：</p>
+<ol>
+<li>计算&lt;Service端口号集:Pod IP地址集合&gt;的N：M对应关系</li>
+<li>填充EndpointSlice</li>
+</ol>
+<h3 id="计算的N：M对应关系"><a href="#计算的N：M对应关系" class="headerlink" title="计算&lt;Service端口号集:Pod IP地址集合&gt;的N：M对应关系"></a>计算&lt;Service端口号集:Pod IP地址集合&gt;的N：M对应关系</h3><ol>
+<li><p>EndpointSlice Controller 遍历每个Pod</p>
+<p>对于每个Pod，通过getEndpointPorts方法得到这个Pod使用的目标端口集合</p>
+<p>getEndpointPorts：EndpointSlice Controller通过遍历Service的每个Pod，然后找到该Port上的Pod的目标端口号</p>
+</li>
+<li><p>EndpointSlice Controller 计算目标端口号集合的Hash值，在desiredMetaByPortMap映射中将Hash记录到实际目标端口号集合的映射</p>
+</li>
+<li><p>EndpointSlice Controller 调用podToEndpoint func得到记录Pod IP地址的数据结构</p>
+</li>
+<li><p>EndpointSlice Controller 根据目标端口号的Hash值，把记录的PodIP插入到desireEndpointsByPortMap</p>
+</li>
+</ol>
+<ul>
+<li><p>Ref：<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/controller/endpointslice/reconciler.go#L156">https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/controller/endpointslice/reconciler.go#L156</a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Build data structures for desired state.</span></span><br><span class="line">	desiredMetaByPortMap := <span class="keyword">map</span>[endpointutil.PortMapKey]*endpointMeta&#123;&#125;</span><br><span class="line">	desiredEndpointsByPortMap := <span class="keyword">map</span>[endpointutil.PortMapKey]endpointsliceutil.EndpointSet&#123;&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> _, pod := <span class="keyword">range</span> pods &#123;</span><br><span class="line">		includeTerminating := service.Spec.PublishNotReadyAddresses || utilfeature.DefaultFeatureGate.Enabled(features.EndpointSliceTerminatingCondition)</span><br><span class="line">		<span class="keyword">if</span> !endpointutil.ShouldPodBeInEndpoints(pod, includeTerminating) &#123;</span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		endpointPorts := getEndpointPorts(service, pod)</span><br><span class="line">		epHash := endpointutil.NewPortMapKey(endpointPorts)</span><br><span class="line">		<span class="keyword">if</span> _, ok := desiredEndpointsByPortMap[epHash]; !ok &#123;</span><br><span class="line">			desiredEndpointsByPortMap[epHash] = endpointsliceutil.EndpointSet&#123;&#125;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> _, ok := desiredMetaByPortMap[epHash]; !ok &#123;</span><br><span class="line">			desiredMetaByPortMap[epHash] = &amp;endpointMeta&#123;</span><br><span class="line">				AddressType: addressType,</span><br><span class="line">				Ports:       endpointPorts,</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		node, err := r.nodeLister.Get(pod.Spec.NodeName)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="comment">// we are getting the information from the local informer,</span></span><br><span class="line">			<span class="comment">// an error different than IsNotFound should not happen</span></span><br><span class="line">			<span class="keyword">if</span> !errors.IsNotFound(err) &#123;</span><br><span class="line">				<span class="keyword">return</span> err</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="comment">// If the Node specified by the Pod doesn&#x27;t exist we want to requeue the Service so we</span></span><br><span class="line">			<span class="comment">// retry later, but also update the EndpointSlice without the problematic Pod.</span></span><br><span class="line">			<span class="comment">// Theoretically, the pod Garbage Collector will remove the Pod, but we want to avoid</span></span><br><span class="line">			<span class="comment">// situations where a reference from a Pod to a missing node can leave the EndpointSlice</span></span><br><span class="line">			<span class="comment">// stuck forever.</span></span><br><span class="line">			<span class="comment">// On the other side, if the service.Spec.PublishNotReadyAddresses is set we just add the</span></span><br><span class="line">			<span class="comment">// Pod, since the user is explicitly indicating that the Pod address should be published.</span></span><br><span class="line">			<span class="keyword">if</span> !service.Spec.PublishNotReadyAddresses &#123;</span><br><span class="line">				klog.Warningf(<span class="string">&quot;skipping Pod %s for Service %s/%s: Node %s Not Found&quot;</span>, pod.Name, service.Namespace, service.Name, pod.Spec.NodeName)</span><br><span class="line">				errs = <span class="built_in">append</span>(errs, fmt.Errorf(<span class="string">&quot;skipping Pod %s for Service %s/%s: Node %s Not Found&quot;</span>, pod.Name, service.Namespace, service.Name, pod.Spec.NodeName))</span><br><span class="line">				<span class="keyword">continue</span></span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		endpoint := podToEndpoint(pod, node, service, addressType)</span><br><span class="line">		<span class="keyword">if</span> <span class="built_in">len</span>(endpoint.Addresses) &gt; <span class="number">0</span> &#123;</span><br><span class="line">			desiredEndpointsByPortMap[epHash].Insert(&amp;endpoint)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h3 id="填充EndpointSlice资源对象"><a href="#填充EndpointSlice资源对象" class="headerlink" title="填充EndpointSlice资源对象"></a>填充EndpointSlice资源对象</h3><ul>
+<li><p>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/controller/endpointslice/reconciler.go#L206">https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/controller/endpointslice/reconciler.go#L206</a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> portMap, desiredEndpoints := <span class="keyword">range</span> desiredEndpointsByPortMap &#123;</span><br><span class="line">	numEndpoints := <span class="built_in">len</span>(desiredEndpoints)</span><br><span class="line">	pmSlicesToCreate, pmSlicesToUpdate, pmSlicesToDelete, added, removed := r.reconcileByPortMapping(</span><br><span class="line">		service, existingSlicesByPortMap[portMap], desiredEndpoints, desiredMetaByPortMap[portMap])</span><br><span class="line">  </span><br><span class="line">	totalAdded += added</span><br><span class="line">	totalRemoved += removed</span><br><span class="line">  </span><br><span class="line">	spMetrics.Set(portMap, metrics.EfficiencyInfo&#123;</span><br><span class="line">		Endpoints: numEndpoints,</span><br><span class="line">		Slices:    <span class="built_in">len</span>(existingSlicesByPortMap[portMap]) + <span class="built_in">len</span>(pmSlicesToCreate) - <span class="built_in">len</span>(pmSlicesToDelete),</span><br><span class="line">	&#125;)</span><br><span class="line">  </span><br><span class="line">	slicesToCreate = <span class="built_in">append</span>(slicesToCreate, pmSlicesToCreate...)</span><br><span class="line">	slicesToUpdate = <span class="built_in">append</span>(slicesToUpdate, pmSlicesToUpdate...)</span><br><span class="line">	slicesToDelete = <span class="built_in">append</span>(slicesToDelete, pmSlicesToDelete...)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<p>TODO:更多补充…</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2024/12/06/cloud/k8s/kube-manager-controller/Kube-controller-manager(EndpointSlice)/">https://piwriw.github.io/2024/12/06/cloud/k8s/kube-manager-controller/Kube-controller-manager(EndpointSlice)/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a><a class="post-meta__tags" href="/tags/cloud/">cloud</a><a class="post-meta__tags" href="/tags/K8s%E6%BA%90%E7%A0%81/">K8s源码</a><a class="post-meta__tags" href="/tags/Kube-controller-manager/"> Kube-controller-manager</a></div><div class="post-share"><div class="social-share" data-image="/img/k8sLogo.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2024/12/06/cloud/k8s/kube-manager-controller/Kube-controller-manager(GarbageController)/" title="Kube-controller-manager(GarbageController)"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">Kube-controller-manager(GarbageController)</div></div><div class="info-2"><div class="info-item-1">Kube-controller-manager(GarbageController) 基于1.25  GarbageController负责资源对象的级联删除（GC）  K8s中，主要通过OwnerReference来记录资源的级联关系  OwnerReference结构定义：  UID：资源对象父级资源的UID  BlockOwnerDeletion：true表示父级资源在以Foregroud删除策略执行删除（在删除这个资源之前，不可删除父资源）  GC Controller支持三种删除策略  Orphan（孤儿删除）：仅删除当前资源对象，不级联删除当前资源对象的子级资源对象 Foreground（前台删除）：先删除当前资源对象子对象，再删除这个对象 Backgroud（后台删除）：先删除当前资源对象，再级联删除这个资源的子级对象 使用Orphan和Foreground，资源对象会被加上Finalizer，并且在删除中由GC Controller负责移除   Ref：https://github.com/kubernetes/apimachinery/blob/fdcfc272...</div></div></div></a><a class="pagination-related" href="/2024/12/05/cloud/k8s/kube-manager-controller/Kube-controller-manager(Endpoint)/" title="Kube-controller-manager(Endpoint)"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">Kube-controller-manager(Endpoint)</div></div><div class="info-2"><div class="info-item-1">Kube-controller-manager(Endpoint) 基于1.25  Endpoint Controller主要控制Endpoint资源  Endpoints资源对象主要包含Subsets属性，用于存储同命名空间内同名称的Service资源对象关联的Pod的IP地址和端口号 Endpoints Controller为每一个Service资源对象创建一个与命名空间相同的Endpoints对象，并且在Service和Pod变化的时候，重新统计对应Service关联的Pod的IP地址和端口号，更新到Endpoints的Subsets属性中 这些地址和端口被各个节点的kube-proxy用于更新本机的iptables或ipvs  控制器初始化 Service Endpoints Pod  主要执行逻辑  e.serviceLister.Sevice 获取Service  e.podLister.Pods 获取Service资源对象关联的POd  For _,pod:&#x3D;range pods 遍历Pod统计所有的IP地址和端口号 Endpoint Controller...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2024/12/06/cloud/k8s/kube-manager-controller/Kube-controller-manager(NodeLifecycleController)/" title="Kube-controller-manager(NodeLifecycleController)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-06</div><div class="info-item-2">Kube-controller-manager(NodeLifecycleController)</div></div><div class="info-2"><div class="info-item-1">Kube-controller-manager(NodeLifecycleController) 基于1.25  K8s的Pod分配到某个Node中运行。当Node出现异常，集群需要把Node状态更新为异常，并且驱逐上面的Pod到其他Node上运行。  NodeLifecycle Controller负责监视Node状态，根据状态调整Node的Taint  NodeLifecycle Controller有一个--enable-taint-manager启动参数，默认为启用状态，在1.27中移除  如果为true：则NodeLifecycle Controller在node异常的时候，通过在node上添加NoExecute Taint来驱逐Node上的Pod 如果是false：则NodeLifecycle Controller，在node异常的时候，会直接驱逐Pod，不会添加Taint  控制器初始化 Ref:https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d...</div></div></div></a><a class="pagination-related" href="/2024/12/06/cloud/k8s/kube-manager-controller/Kube-controller-manager(GarbageController)/" title="Kube-controller-manager(GarbageController)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-06</div><div class="info-item-2">Kube-controller-manager(GarbageController)</div></div><div class="info-2"><div class="info-item-1">Kube-controller-manager(GarbageController) 基于1.25  GarbageController负责资源对象的级联删除（GC）  K8s中，主要通过OwnerReference来记录资源的级联关系  OwnerReference结构定义：  UID：资源对象父级资源的UID  BlockOwnerDeletion：true表示父级资源在以Foregroud删除策略执行删除（在删除这个资源之前，不可删除父资源）  GC Controller支持三种删除策略  Orphan（孤儿删除）：仅删除当前资源对象，不级联删除当前资源对象的子级资源对象 Foreground（前台删除）：先删除当前资源对象子对象，再删除这个对象 Backgroud（后台删除）：先删除当前资源对象，再级联删除这个资源的子级对象 使用Orphan和Foreground，资源对象会被加上Finalizer，并且在删除中由GC Controller负责移除   Ref：https://github.com/kubernetes/apimachinery/blob/fdcfc272...</div></div></div></a><a class="pagination-related" href="/2024/12/05/cloud/k8s/kube-manager-controller/Kube-controller-manager(Endpoint)/" title="Kube-controller-manager(Endpoint)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-05</div><div class="info-item-2">Kube-controller-manager(Endpoint)</div></div><div class="info-2"><div class="info-item-1">Kube-controller-manager(Endpoint) 基于1.25  Endpoint Controller主要控制Endpoint资源  Endpoints资源对象主要包含Subsets属性，用于存储同命名空间内同名称的Service资源对象关联的Pod的IP地址和端口号 Endpoints Controller为每一个Service资源对象创建一个与命名空间相同的Endpoints对象，并且在Service和Pod变化的时候，重新统计对应Service关联的Pod的IP地址和端口号，更新到Endpoints的Subsets属性中 这些地址和端口被各个节点的kube-proxy用于更新本机的iptables或ipvs  控制器初始化 Service Endpoints Pod  主要执行逻辑  e.serviceLister.Sevice 获取Service  e.podLister.Pods 获取Service资源对象关联的POd  For _,pod:&#x3D;range pods 遍历Pod统计所有的IP地址和端口号 Endpoint Controller...</div></div></div></a><a class="pagination-related" href="/2024/12/05/cloud/k8s/kube-manager-controller/Kube-controller-manager(CronJob)/" title="Kube-controller-manager(CronJob)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-05</div><div class="info-item-2">Kube-controller-manager(CronJob)</div></div><div class="info-2"><div class="info-item-1">Kube-controller-manager(CronJob) 基于1.25  CronJob Controller 操作控制CronJob CronJob资源主要包含Job模版（Spec.JobTemplate)和计划表（Spec.Schedule)  CronJob 控制器通过资源对象的计划配置，到达预定时间后，创建新的Job对象，并且清理过去成功或者失败的Job资源对象 Spec.Schedule字段定义和Linux终端crontab一致  控制器初始化 Job资源对象 CronJob资源对象  主要执行逻辑  jm.cronJobLister.CronJobs     获取CronJob对象  getJobsToBeReconciled     获取关联的Job对象  syncCronJob     计算Job的启动时间并启动新的Job  获取当前的CronJob对象关联的Job资源对象，更新Status.Active字段，从中去掉已经执行结束的Job，加入正在执行的Job，确保Status.Active都是正在执行的Job 判断CronJob资源对象的状态。如果是删除...</div></div></div></a><a class="pagination-related" href="/2024/12/05/cloud/k8s/kube-manager-controller/Kube-controller-manager(Job)/" title="Kube-controller-manager(Job)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-05</div><div class="info-item-2">Kube-controller-manager(Job)</div></div><div class="info-2"><div class="info-item-1">Kube-controller-manager(Job) 基于1.25  Job Controller是job的控制器 Job Controller会根据Job的并发（Spec.Parallelism)和完成（Spec.Completions)字段，此间一个或者多个Pod。在指定数量（Spec.Completions)的Pod执行成功之后，宣告Job成功，Job默认采用Orphan删除策略，删除Job不会主动删除其关联的Pod 控制器初始化 Job资源 Pod资源  主要执行逻辑  jm.jobLister.Jobs 获取Job资源对象  IsJobFinished 判断Job是否已经执行完成。 Job Controller检查Job.Status.Conditions状态，如果存在Complete或Failed类型的状态且值为true，则Job已经执行完成  Ref:https://github.com/kubernetes/kubernetes/blob/1504f10e7946f95a8b1da35e28e4c7453ff62775/pkg/controller/job/u...</div></div></div></a><a class="pagination-related" href="/2024/12/04/cloud/k8s/kube-manager-controller/Kube-controller-manager(StatefulSet)/" title="Kube-controller-manager(StatefulSet)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-04</div><div class="info-item-2">Kube-controller-manager(StatefulSet)</div></div><div class="info-2"><div class="info-item-1">Kube-controller-manager(StatefulSet) 基于1.25  StatefulSet Controller控制器主要控制StatefulSet资源 StatefulSet资源主要包含Pod模版、副本数量（Spec.Replicas)、更新策略、管理策略等部分  StatefulSet在每个关联的Pod的Name会添加一个序号后缀 创建、删除Pod按照固定的顺序操作 当Pod超出期望的副本数量，或以执行滚动更新策略更新，控制器顺序按顺序从高到低依次删除Pod；反之，如果Pod数量低于期望副本数量，控制器低序号到高序号删除Pod  控制器初始化 StatefulSet资源对象：监听Add、Uodtaed、Delete事件 Pod资源对象  主要执行逻辑  ssc.setLister.StatefulSets     获取完整的STS对象  ssc.getPodsForStatefulSet     获取关联的Pod  syncStatefulSet     调谐StatefulSet。调用syncStatefulSet func实现STS调谐。内部主要调用...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Kube-controller-manager-EndpointSlice"><span class="toc-number">1.</span> <span class="toc-text">Kube-controller-manager(EndpointSlice)</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%8E%A7%E5%88%B6%E5%99%A8%E5%88%9D%E5%A7%8B%E5%8C%96"><span class="toc-number">1.1.</span> <span class="toc-text">控制器初始化</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%BB%E8%A6%81%E6%89%A7%E8%A1%8C%E9%80%BB%E8%BE%91"><span class="toc-number">1.2.</span> <span class="toc-text">主要执行逻辑</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#EndpointSlice%E6%8E%A7%E5%88%B6%E5%99%A8%E7%9A%84%E8%AE%A1%E7%AE%97%E4%B8%8E%E5%A1%AB%E5%85%85"><span class="toc-number">1.3.</span> <span class="toc-text">EndpointSlice控制器的计算与填充</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%AE%A1%E7%AE%97%E7%9A%84N%EF%BC%9AM%E5%AF%B9%E5%BA%94%E5%85%B3%E7%B3%BB"><span class="toc-number">1.3.1.</span> <span class="toc-text">计算&lt;Service端口号集:Pod IP地址集合&gt;的N：M对应关系</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%A1%AB%E5%85%85EndpointSlice%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1"><span class="toc-number">1.3.2.</span> <span class="toc-text">填充EndpointSlice资源对象</span></a></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-日志系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明">Gorm-日志系统模块原理说明</a><time datetime="2026-01-11T11:56:27.000Z" title="发表于 2026-01-11 19:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-迁移功能模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明">Gorm-迁移功能模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-插件系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明">Gorm-插件系统模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-事务处理模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明">Gorm-事务处理模块原理说明</a><time datetime="2026-01-11T09:56:27.000Z" title="发表于 2026-01-11 17:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-关联关系模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明">Gorm-关联关系模块原理说明</a><time datetime="2026-01-11T08:56:27.000Z" title="发表于 2026-01-11 16:56:27">2026-01-11</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

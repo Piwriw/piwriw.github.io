@@ -1,0 +1,636 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>K8s-kube-proxy(ipvs代理模式) | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="K8s-kube-proxy(ipvs代理模式) 基于1.25  在ipvs代理模式，kube-proxy主要通过宿主节点上配置的iptables规则、ipvs规则、IPSet内容、Dummy网卡等信息实现Service的功能，这些配置syncProxyRules func  与ipatbles代理模式，ipvs模式对于新增一个Service，只会在IPSet、ipvs规定上有新增内容，而不产生新">
+<meta property="og:type" content="article">
+<meta property="og:title" content="K8s-kube-proxy(ipvs代理模式)">
+<meta property="og:url" content="https://piwriw.github.io/2024/12/11/cloud/k8s/kube-proxy/K8s-kube-proxy(ipvs%E4%BB%A3%E7%90%86%E6%A8%A1%E5%BC%8F)/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="K8s-kube-proxy(ipvs代理模式) 基于1.25  在ipvs代理模式，kube-proxy主要通过宿主节点上配置的iptables规则、ipvs规则、IPSet内容、Dummy网卡等信息实现Service的功能，这些配置syncProxyRules func  与ipatbles代理模式，ipvs模式对于新增一个Service，只会在IPSet、ipvs规定上有新增内容，而不产生新">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/k8sLogo.png">
+<meta property="article:published_time" content="2024-12-11T15:22:55.000Z">
+<meta property="article:modified_time" content="2026-02-28T13:29:12.668Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="k8s">
+<meta property="article:tag" content="cloud">
+<meta property="article:tag" content="K8s源码">
+<meta property="article:tag" content="kube-proxy">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/k8sLogo.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "K8s-kube-proxy(ipvs代理模式)",
+  "url": "https://piwriw.github.io/2024/12/11/cloud/k8s/kube-proxy/K8s-kube-proxy(ipvs%E4%BB%A3%E7%90%86%E6%A8%A1%E5%BC%8F)/",
+  "image": "https://piwriw.github.io/img/k8sLogo.png",
+  "datePublished": "2024-12-11T15:22:55.000Z",
+  "dateModified": "2026-02-28T13:29:12.668Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2024/12/11/cloud/k8s/kube-proxy/K8s-kube-proxy(ipvs%E4%BB%A3%E7%90%86%E6%A8%A1%E5%BC%8F)/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'K8s-kube-proxy(ipvs代理模式)',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/k8sLogo.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">K8s-kube-proxy(ipvs代理模式)</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">K8s-kube-proxy(ipvs代理模式)</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2024-12-11T15:22:55.000Z" title="发表于 2024-12-11 23:22:55">2024-12-11</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-02-28T13:29:12.668Z" title="更新于 2026-02-28 21:29:12">2026-02-28</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/">k8s</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/kube-proxy/">kube-proxy</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">4.3k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>20分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-02-28 21:29:12&quot;}" hidden></div><h1 id="K8s-kube-proxy-ipvs代理模式"><a href="#K8s-kube-proxy-ipvs代理模式" class="headerlink" title="K8s-kube-proxy(ipvs代理模式)"></a>K8s-kube-proxy(ipvs代理模式)</h1><blockquote>
+<p>基于1.25</p>
+</blockquote>
+<p>在ipvs代理模式，kube-proxy主要通过宿主节点上配置的iptables规则、ipvs规则、IPSet内容、Dummy网卡等信息实现Service的功能，这些配置syncProxyRules func</p>
+<ul>
+<li>与ipatbles代理模式，ipvs模式对于新增一个Service，只会在IPSet、ipvs规定上有新增内容，而不产生新的iptables链和规则</li>
+<li>ipvs代理模式使用IPSet和ipvs实现IP地址匹配和DNAT操作，因此比iptables线性执行效率更高，更适合较大规模集群的场景</li>
+</ul>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image202412082114148.png"></p>
+<h2 id="统计Stale-Service和Stale-Endpoints"><a href="#统计Stale-Service和Stale-Endpoints" class="headerlink" title="统计Stale Service和Stale Endpoints"></a>统计Stale Service和Stale Endpoints</h2><p>在ipvs代理模式中，Stale Service和Stale Endpoints的判定逻辑与iptables代理模式相同</p>
+<h2 id="初始化iptables内容缓冲区"><a href="#初始化iptables内容缓冲区" class="headerlink" title="初始化iptables内容缓冲区"></a>初始化iptables内容缓冲区</h2><p>kube-proxy也涉及到一些iptables链和规则的创建，因此使用iptables-restore字节流的形成缓存和刷新iptables规则</p>
+<p>在kube-proxy同步开始阶段，会初始化四个内容缓冲区。</p>
+<ul>
+<li><p>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/proxy/iptables/proxier.go#L882">https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/proxy/iptables/proxier.go#L882</a></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">// Reset all buffers used later.</span><br><span class="line">	// This is to avoid memory reallocations and thus improve performance.</span><br><span class="line">	proxier.filterChains.Reset()</span><br><span class="line">	proxier.filterRules.Reset()</span><br><span class="line">	proxier.natChains.Reset()</span><br><span class="line">	proxier.natRules.Reset()</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h2 id="创建基础的iptables链和规则"><a href="#创建基础的iptables链和规则" class="headerlink" title="创建基础的iptables链和规则"></a>创建基础的iptables链和规则</h2><p>kube-proxy调用createAndLinkKubeChain func在iptables的nat表和filter表上创建基础iptables链，以及iptables原始链向这些KUBE链跳转的规则。</p>
+<ul>
+<li><p>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/proxy/ipvs/proxier.go#L1840">https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/proxy/ipvs/proxier.go#L1840</a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// createAndLinkKubeChain create all kube chains that ipvs proxier need and write basic link.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(proxier *Proxier)</span></span> createAndLinkKubeChain() &#123;</span><br><span class="line">	<span class="keyword">for</span> _, ch := <span class="keyword">range</span> iptablesChains &#123;</span><br><span class="line">		<span class="keyword">if</span> _, err := proxier.iptables.EnsureChain(ch.table, ch.chain); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			klog.ErrorS(err, <span class="string">&quot;Failed to ensure chain exists&quot;</span>, <span class="string">&quot;table&quot;</span>, ch.table, <span class="string">&quot;chain&quot;</span>, ch.chain)</span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> ch.table == utiliptables.TableNAT &#123;</span><br><span class="line">			proxier.natChains.Write(utiliptables.MakeChainLine(ch.chain))</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			proxier.filterChains.Write(utiliptables.MakeChainLine(ch.chain))</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> _, jc := <span class="keyword">range</span> iptablesJumpChain &#123;</span><br><span class="line">		args := []<span class="type">string</span>&#123;<span class="string">&quot;-m&quot;</span>, <span class="string">&quot;comment&quot;</span>, <span class="string">&quot;--comment&quot;</span>, jc.comment, <span class="string">&quot;-j&quot;</span>, <span class="type">string</span>(jc.to)&#125;</span><br><span class="line">		<span class="keyword">if</span> _, err := proxier.iptables.EnsureRule(utiliptables.Prepend, jc.table, jc.from, args...); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			klog.ErrorS(err, <span class="string">&quot;Failed to ensure chain jumps&quot;</span>, <span class="string">&quot;table&quot;</span>, jc.table, <span class="string">&quot;srcChain&quot;</span>, jc.from, <span class="string">&quot;dstChain&quot;</span>, jc.to)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<p>kube-porxy先调用iptables中的EnsureChain func创建集群的基础KUBE链</p>
+<p>iptablesChains的包含的链包含如下：</p>
+<table>
+<thead>
+<tr>
+<th align="center">属于表</th>
+<th align="center">链名称</th>
+<th align="center">功能</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">nat</td>
+<td align="center">KUBE-SERVICES</td>
+<td align="center">检查数据包的目的IP是否存在访问Service的某个IP地址。如果访问的目的IP地址是NodePort或者LoadBalancerIP，就会跳转到KUBE-NODE-PORT或者KUBE-LOAD-BALANCER</td>
+</tr>
+<tr>
+<td align="center">nat</td>
+<td align="center">KUBE-POSTROUTING</td>
+<td align="center">负责SNAT从当前节点流出的某些数据包，这些数据包带有MARK</td>
+</tr>
+<tr>
+<td align="center">nat</td>
+<td align="center">KUBE-NODE-PORT</td>
+<td align="center">检查数据包的目的地址是否在访问Service的某个NodePort</td>
+</tr>
+<tr>
+<td align="center">nat</td>
+<td align="center">KUBE-LOAD-BALANCER</td>
+<td align="center">检查数据包的目的地址是否访问Service的Statis字段中记录的LBIP</td>
+</tr>
+<tr>
+<td align="center">nat</td>
+<td align="center">KUBE-MARK-MASQ</td>
+<td align="center">为数据包添加MARK</td>
+</tr>
+<tr>
+<td align="center">filter</td>
+<td align="center">KUBE-FORWARD</td>
+<td align="center">根据数据包的MARK和Conntrack状态等记录放行或者拒绝某些数据包</td>
+</tr>
+<tr>
+<td align="center">filter</td>
+<td align="center">KUBE-NODE-PORT</td>
+<td align="center">检查数据包的目的地址是否在访问Service的某个NodePort</td>
+</tr>
+<tr>
+<td align="center">filter</td>
+<td align="center">KUBE-PROXY-FIREWALL</td>
+<td align="center">在配置spec.loadBalancerSourceRanges，拒绝不在白名单的数据包</td>
+</tr>
+<tr>
+<td align="center">filter</td>
+<td align="center">KUBE-SOURCE-RANGES-FIRWEWALL</td>
+<td align="center">在配置spec.loadBalancerSourceRanges，拒绝不在白名单的数据包</td>
+</tr>
+</tbody></table>
+<p>EnsureChain func涉及到的iptables命令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">iptables -N KUBE-SERVICES -t nat </span><br><span class="line">iptabels -N KUBE-POSTROUTING -t nat</span><br><span class="line">iptabels -N KUBE-NODE-PORT -t nat</span><br><span class="line">iptabels -N KUBE-LOAD-BALANCER -t nat</span><br><span class="line">iptabels -N KUBE-FORWARD -t filter</span><br><span class="line">iptabels -N KUBE-NODE-PORT -t filter</span><br><span class="line">iptabels -N KUBE-PROXY-FIREWALL -t filter</span><br><span class="line">iptabels -N KUBE-SOURCE-RANGES-FIRWEWALL -t filter</span><br></pre></td></tr></table></figure>
+
+<p>在创建基础KUBE链之后，kube-proxy继续调用EnsureRule Func，添加从iptables原始链向这些基础的KUBE链跳转的规则中，记载咋iptablesJumpChain中</p>
+<table>
+<thead>
+<tr>
+<th align="center">所属表</th>
+<th align="center">起始链</th>
+<th align="center">目的链</th>
+<th align="center">注释</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">nat</td>
+<td align="center">OUTPUT</td>
+<td align="center">KUBE-SEVICES</td>
+<td align="center">kubernetes service portals</td>
+</tr>
+<tr>
+<td align="center">nat</td>
+<td align="center">PREROUTING</td>
+<td align="center">KUBE-SERVICES</td>
+<td align="center">kubernetes service portals</td>
+</tr>
+<tr>
+<td align="center">nat</td>
+<td align="center">POSTROUTING</td>
+<td align="center">KUBE-POSTROUTING</td>
+<td align="center">kubernetes postrouting rules</td>
+</tr>
+<tr>
+<td align="center">filter</td>
+<td align="center">FORWARD</td>
+<td align="center">KUBE-FORWARD</td>
+<td align="center">kubernetes forwarding rules</td>
+</tr>
+<tr>
+<td align="center">filter</td>
+<td align="center">INPUT</td>
+<td align="center">KUBE-NODE-PORT</td>
+<td align="center">kubernetes health check rules</td>
+</tr>
+<tr>
+<td align="center">filter</td>
+<td align="center">INPUT</td>
+<td align="center">KUBE-PROXY-FIREWALL</td>
+<td align="center">kube-proxy firewall rules</td>
+</tr>
+<tr>
+<td align="center">filter</td>
+<td align="center">FORWALL</td>
+<td align="center">KUBE-PROXY-FIREWALL</td>
+<td align="center">kube-proxy firewall rules</td>
+</tr>
+</tbody></table>
+<h2 id="创建Dummy网卡"><a href="#创建Dummy网卡" class="headerlink" title="创建Dummy网卡"></a>创建Dummy网卡</h2><p>在ipvs模式汇总，需要把Service绑定到宿主节点上的本地网络设备，以便在iptables路由决策的时候让数据包进入INPUT链上，进而被ipvs处理，完成DNAT处理。为此，kube-proxy创建了一个虚拟网络设备，专用于绑定Service的IP，即Dummy网卡</p>
+<p>kube-proxy调用EnsureDummyDevice Func，使用NetLink套接字确保Dummy网卡存在</p>
+<ul>
+<li><p>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/proxy/ipvs/proxier.go#L1061">https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/proxy/ipvs/proxier.go#L1061</a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// make sure dummy interface exists in the system where ipvs Proxier will bind service address on it</span></span><br><span class="line">_, err := proxier.netlinkHandle.EnsureDummyDevice(defaultDummyDevice)</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">	klog.ErrorS(err, <span class="string">&quot;Failed to create dummy interface&quot;</span>, <span class="string">&quot;interface&quot;</span>, defaultDummyDevice)</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<p>该网卡称为Dummy，背后无真实网卡，只是辅助iptables，Dummy网卡名称为“kube-ipvs0”</p>
+<ul>
+<li><p>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/proxy/ipvs/proxier.go#L91">https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/proxy/ipvs/proxier.go#L91</a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// defaultDummyDevice is the default dummy interface which ipvs service address will bind to it.</span></span><br><span class="line">defaultDummyDevice = <span class="string">&quot;kube-ipvs0&quot;</span></span><br></pre></td></tr></table></figure></li>
+</ul>
+<h2 id="创建IPSet"><a href="#创建IPSet" class="headerlink" title="创建IPSet"></a>创建IPSet</h2><p>在ipvs模式中，iptables规则借助IPSet实现匹配IP地址和端口。</p>
+<ul>
+<li>IPSet使用Hash、Bitmap等方式匹配IP地址和端口，复杂度是常量级别，在大规模集群下有效提高性能</li>
+<li>kube-proxy会创建不同的IPSet匹配不同类型的Service IP</li>
+</ul>
+<p>在ipvs模式中kube-proxy创建的IPSet</p>
+<table>
+<thead>
+<tr>
+<th align="center">名称</th>
+<th align="center">类型</th>
+<th align="center">描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">KUBE-LOOP-BACK</td>
+<td align="center">Hash:ip, port,ip</td>
+<td align="center">Kubernetes endpoints dst ip:port,soure ip for solving hairpin purpose</td>
+</tr>
+<tr>
+<td align="center">KUBE-CLUSTER-IP</td>
+<td align="center">Hash:ip,port</td>
+<td align="center">Kubernetes service cluster ip + port  for masquerade purpose</td>
+</tr>
+<tr>
+<td align="center">KUBE-EXTERNAL-IP</td>
+<td align="center">Hash:ip,port</td>
+<td align="center">Kubernetes service external ip + port for masquerade and filter purpose</td>
+</tr>
+<tr>
+<td align="center">KUBE-EXTERNAL-IP-LOCAL</td>
+<td align="center">Hash:ip,port</td>
+<td align="center">Kubernetes service external ip + port with exterbalTraffic&#x3D;local</td>
+</tr>
+<tr>
+<td align="center">KUBE-LOAD-BALANCER</td>
+<td align="center">Hash:ip,port</td>
+<td align="center">Kubernetes service lb portal</td>
+</tr>
+<tr>
+<td align="center">KUBE-LOAD-BALANCER-LOCAL</td>
+<td align="center">Hash:ip,port</td>
+<td align="center">Kubernetes service load balancer ip + port with  exterbalTraffic&#x3D;local</td>
+</tr>
+<tr>
+<td align="center">KUBE-LOAD-BALANCER-FW</td>
+<td align="center">Hash:ip,port</td>
+<td align="center">Kubernetes service load balancer ip + port for load balancer with sourceRange</td>
+</tr>
+<tr>
+<td align="center">KUBE-LOAD-BALANCER-SOURCE-IP</td>
+<td align="center">Hash:ip,port</td>
+<td align="center">Kubernetes service load balancer ip + port for load filter purpose</td>
+</tr>
+<tr>
+<td align="center">KUBE-LOAD-BALANCER-SOURCE-CIDR</td>
+<td align="center">Hash:ip,port,net</td>
+<td align="center">Kubernetes service load balancer ip + port for load filter purpose</td>
+</tr>
+<tr>
+<td align="center">KUBE-NODE-PORT-TCP</td>
+<td align="center">bitmap:port</td>
+<td align="center">Kubernetes nodeport TCP port for masquerade purpose</td>
+</tr>
+<tr>
+<td align="center">KUBE-NODE-PORT-LOCAL-TCP</td>
+<td align="center">bitmap:port</td>
+<td align="center">Kubernetes nodeport TCP port with exterbalTraffic&#x3D;local</td>
+</tr>
+<tr>
+<td align="center">KUBEKUBE-NODE-PORT-UDP</td>
+<td align="center">bitmap:port</td>
+<td align="center">Kubernetes nodeport UDP port for masquerade purpose</td>
+</tr>
+<tr>
+<td align="center">KUBE-NODE-PORT-LOCAL-UDP</td>
+<td align="center">bitmap:port</td>
+<td align="center">Kubernetes nodeport UDP port with exterbalTraffic&#x3D;local</td>
+</tr>
+<tr>
+<td align="center">KUBE-NODE-PORT-SCTP-HASH</td>
+<td align="center">bitmap:port</td>
+<td align="center">Kubernetes nodeport SCTP port for masquerade purpose with type ‘hash ip:port’</td>
+</tr>
+<tr>
+<td align="center">KUBE-NODE-PORT-LOCAL-SCTP-HASH</td>
+<td align="center">Hash:ip,port</td>
+<td align="center">Kubernetes nodeport SCTP port  with exterbalTraffic&#x3D;local with type ‘hash ip:port’</td>
+</tr>
+<tr>
+<td align="center">KUBE-HEALTH-CHECK-NODE-PORT</td>
+<td align="center">bitmap:port</td>
+<td align="center">Kubernetes health check node por</td>
+</tr>
+</tbody></table>
+<h2 id="统计宿主节点的IP地址"><a href="#统计宿主节点的IP地址" class="headerlink" title="统计宿主节点的IP地址"></a>统计宿主节点的IP地址</h2><ul>
+<li><p>ipvs模式，最终使用nodeIPs设置ipvs规则，不同之处如下</p>
+<ul>
+<li>跳过了LoopBack，即以127开头的地址。原因是这会导致内核cross_local_route_boundary func进行路由合法检查时失败，进而导致数据包丢失，因此跳过127开头地址。iptables模式未跳过</li>
+<li>如果nodeAddSet结果包含零网段，则通过ipGetter.NodeIPs func获取所有非Dummy网卡设备的IP地址，作为宿主节点的主机IP地址返回。iptables模式之间使用整个零网段，不再统计各个网络设备的IP地址</li>
+</ul>
+</li>
+<li><p>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/proxy/ipvs/proxier.go#L1106">https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/proxy/ipvs/proxier.go#L1106</a></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">if hasNodePort &#123;</span><br><span class="line">	nodeAddrSet, err := utilproxy.GetNodeAddresses(proxier.nodePortAddresses, proxier.networkInterfacer)</span><br><span class="line">	if err != nil &#123;</span><br><span class="line">		klog.ErrorS(err, &quot;Failed to get node IP address matching nodeport cidr&quot;)</span><br><span class="line">	&#125; else &#123;</span><br><span class="line">		nodeAddresses = nodeAddrSet.List()</span><br><span class="line">		for _, address := range nodeAddresses &#123;</span><br><span class="line">			a := netutils.ParseIPSloppy(address)</span><br><span class="line">			if a.IsLoopback() &#123;</span><br><span class="line">				continue</span><br><span class="line">			&#125;</span><br><span class="line">			if utilproxy.IsZeroCIDR(address) &#123;</span><br><span class="line">				nodeIPs, err = proxier.ipGetter.NodeIPs()</span><br><span class="line">				if err != nil &#123;</span><br><span class="line">					klog.ErrorS(err, &quot;Failed to list all node IPs from host&quot;)</span><br><span class="line">				&#125;</span><br><span class="line">				break</span><br><span class="line">			&#125;</span><br><span class="line">			nodeIPs = append(nodeIPs, a)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h2 id="为每个Service配置规则"><a href="#为每个Service配置规则" class="headerlink" title="为每个Service配置规则"></a>为每个Service配置规则</h2><h3 id="配置LookBack-IP-Set"><a href="#配置LookBack-IP-Set" class="headerlink" title="配置LookBack IP Set"></a>配置LookBack IP Set</h3><p>遍历Service的后端Endpoints，如果Endpoints就在kube-proxy所在的宿主节点上，就把该Endpoints加入KUBE-LOOP-BACK IP Set中</p>
+<ul>
+<li><p>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/proxy/ipvs/proxier.go#L1172">https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/proxy/ipvs/proxier.go#L1172</a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">entry := &amp;utilipset.Entry&#123;</span><br><span class="line">				IP:       epIP,</span><br><span class="line">				Port:     epPort,</span><br><span class="line">				Protocol: protocol,</span><br><span class="line">				IP2:      epIP,</span><br><span class="line">				SetType:  utilipset.HashIPPortIP,</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">if</span> valid := proxier.ipsetList[kubeLoopBackIPSet].validateEntry(entry); !valid &#123;</span><br><span class="line">				klog.ErrorS(<span class="literal">nil</span>, <span class="string">&quot;Error adding entry to ipset&quot;</span>, <span class="string">&quot;entry&quot;</span>, entry, <span class="string">&quot;ipset&quot;</span>, proxier.ipsetList[kubeLoopBackIPSet].Name)</span><br><span class="line">				<span class="keyword">continue</span></span><br><span class="line">			&#125;</span><br><span class="line">			proxier.ipsetList[kubeLoopBackIPSet].activeEntries.Insert(entry.String())</span><br><span class="line">		&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h3 id="配置ClusterIP的IP-Set和ipvs规则"><a href="#配置ClusterIP的IP-Set和ipvs规则" class="headerlink" title="配置ClusterIP的IP Set和ipvs规则"></a>配置ClusterIP的IP Set和ipvs规则</h3><p>Service的ClusterIP和Port添加到KUBE-CLUSTER- IP IPSet中</p>
+<ul>
+<li><p>Ref：<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/proxy/ipvs/proxier.go#L1188">https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/proxy/ipvs/proxier.go#L1188</a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Capture the clusterIP.</span></span><br><span class="line">	<span class="comment">// ipset call</span></span><br><span class="line">	entry := &amp;utilipset.Entry&#123;</span><br><span class="line">		IP:       svcInfo.ClusterIP().String(),</span><br><span class="line">		Port:     svcInfo.Port(),</span><br><span class="line">		Protocol: protocol,</span><br><span class="line">		SetType:  utilipset.HashIPPort,</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// add service Cluster IP:Port to kubeServiceAccess ip set for the purpose of solving hairpin.</span></span><br><span class="line">	<span class="comment">// proxier.kubeServiceAccessSet.activeEntries.Insert(entry.String())</span></span><br><span class="line">	<span class="keyword">if</span> valid := proxier.ipsetList[kubeClusterIPSet].validateEntry(entry); !valid &#123;</span><br><span class="line">		klog.ErrorS(<span class="literal">nil</span>, <span class="string">&quot;Error adding entry to ipset&quot;</span>, <span class="string">&quot;entry&quot;</span>, entry, <span class="string">&quot;ipset&quot;</span>, proxier.ipsetList[kubeClusterIPSet].Name)</span><br><span class="line">		<span class="keyword">continue</span></span><br><span class="line">	&#125;</span><br><span class="line">	proxier.ipsetList[kubeClusterIPSet].activeEntries.Insert(entry.String())</span><br></pre></td></tr></table></figure></li>
+</ul>
+<p>为ClusterIP和Port配置ipvs的VirtualServer与RealServer，这是使用ipvs实现DNAT的必要步骤</p>
+<ul>
+<li><p>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/proxy/ipvs/proxier.go#L1214">https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/proxy/ipvs/proxier.go#L1214</a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// We need to bind ClusterIP to dummy interface, so set `bindAddr` parameter to `true` in syncService()</span></span><br><span class="line">	<span class="keyword">if</span> err := proxier.syncService(svcPortNameString, serv, <span class="literal">true</span>, bindedAddresses); err == <span class="literal">nil</span> &#123;</span><br><span class="line">		activeIPVSServices[serv.String()] = <span class="literal">true</span></span><br><span class="line">		activeBindAddrs[serv.Address.String()] = <span class="literal">true</span></span><br><span class="line">		<span class="comment">// ExternalTrafficPolicy only works for NodePort and external LB traffic, does not affect ClusterIP</span></span><br><span class="line">		<span class="comment">// So we still need clusterIP rules in onlyNodeLocalEndpoints mode.</span></span><br><span class="line">		internalNodeLocal := <span class="literal">false</span></span><br><span class="line">		<span class="keyword">if</span> utilfeature.DefaultFeatureGate.Enabled(features.ServiceInternalTrafficPolicy) &amp;&amp; svcInfo.InternalPolicyLocal() &#123;</span><br><span class="line">			internalNodeLocal = <span class="literal">true</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> err := proxier.syncEndpoint(svcPortName, internalNodeLocal, serv); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			klog.ErrorS(err, <span class="string">&quot;Failed to sync endpoint for service&quot;</span>, <span class="string">&quot;servicePortName&quot;</span>, svcPortName, <span class="string">&quot;virtualServer&quot;</span>, serv)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		klog.ErrorS(err, <span class="string">&quot;Failed to sync service&quot;</span>, <span class="string">&quot;servicePortName&quot;</span>, svcPortName, <span class="string">&quot;virtualServer&quot;</span>, serv)</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+
+<p>syncService func中，直接为ClusterIP和Port创建ipvs VirtualServer，并且将ClusterIP绑定Dummy网卡上，然后根据Endpoints，为ClusterIP的ipvs 的VirtualServer创建对应的RealServer</p>
+<ul>
+<li>如果Service的内部流量策略为Cluster，则Service的所有Endpoints都会被加入到RealServer</li>
+<li>如果Service的内部流量策略为Local，则分为俩种情况<ul>
+<li>如果当前宿主节点上运行Service的Endpoints，则仅将宿主节点上的Endpoints加入到RealServer</li>
+<li>如果当前宿主节点上没有运行Service的Endpoints，则Service的所有Endpoints都会被加入RealServer</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="配置ExternalIP的IP-Set和ipvs规则"><a href="#配置ExternalIP的IP-Set和ipvs规则" class="headerlink" title="配置ExternalIP的IP Set和ipvs规则"></a>配置ExternalIP的IP Set和ipvs规则</h3><p>为Service的External IP和Port配置规则。对于每个External IP，需要将其添加到IP Set中</p>
+<ul>
+<li><p>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/proxy/ipvs/proxier.go#L1231">https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/proxy/ipvs/proxier.go#L1231</a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Capture externalIPs.</span></span><br><span class="line">	<span class="keyword">for</span> _, externalIP := <span class="keyword">range</span> svcInfo.ExternalIPStrings() &#123;</span><br><span class="line">		<span class="comment">// ipset call</span></span><br><span class="line">		entry := &amp;utilipset.Entry&#123;</span><br><span class="line">			IP:       externalIP,</span><br><span class="line">			Port:     svcInfo.Port(),</span><br><span class="line">			Protocol: protocol,</span><br><span class="line">			SetType:  utilipset.HashIPPort,</span><br><span class="line">		&#125;</span><br><span class="line">  </span><br><span class="line">		<span class="keyword">if</span> svcInfo.ExternalPolicyLocal() &#123;</span><br><span class="line">			<span class="keyword">if</span> valid := proxier.ipsetList[kubeExternalIPLocalSet].validateEntry(entry); !valid &#123;</span><br><span class="line">				klog.ErrorS(<span class="literal">nil</span>, <span class="string">&quot;Error adding entry to ipset&quot;</span>, <span class="string">&quot;entry&quot;</span>, entry, <span class="string">&quot;ipset&quot;</span>, proxier.ipsetList[kubeExternalIPLocalSet].Name)</span><br><span class="line">				<span class="keyword">continue</span></span><br><span class="line">			&#125;</span><br><span class="line">			proxier.ipsetList[kubeExternalIPLocalSet].activeEntries.Insert(entry.String())</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			<span class="comment">// We have to SNAT packets to external IPs.</span></span><br><span class="line">			<span class="keyword">if</span> valid := proxier.ipsetList[kubeExternalIPSet].validateEntry(entry); !valid &#123;</span><br><span class="line">				klog.ErrorS(<span class="literal">nil</span>, <span class="string">&quot;Error adding entry to ipset&quot;</span>, <span class="string">&quot;entry&quot;</span>, entry, <span class="string">&quot;ipset&quot;</span>, proxier.ipsetList[kubeExternalIPSet].Name)</span><br><span class="line">				<span class="keyword">continue</span></span><br><span class="line">			&#125;</span><br><span class="line">			proxier.ipsetList[kubeExternalIPSet].activeEntries.Insert(entry.String())</span><br><span class="line">		&#125;</span><br><span class="line">  </span><br></pre></td></tr></table></figure></li>
+</ul>
+<p>如果Service的外部流量策略为Local，则会被添加到KUBE-EXTERNAL-IP-LOCAL IP Set中；否则，会被添加到KUBE-EXTERNAL-IP Set中</p>
+<p>配置RealServer注意点：</p>
+<ul>
+<li><p>如果Service的外部流量策略均为Cluster，则Service的所有的Endpoints都会被加入到RealServer</p>
+</li>
+<li><p>如果Service的外部流量策略为Local，则分为俩种情况</p>
+<ul>
+<li>如果当前宿主节点上运行Service的Endpoints，则仅将宿主节点上的Endpoints加入RealServer</li>
+<li>如果当前宿主节点上没有运行Service的Endpoints，则Service的所有Endpoint都加入到RealServer</li>
+</ul>
+<blockquote>
+<p>对于集群内部的访问，上述机制总是确保能访问到Service的Pod</p>
+<p>对于集群外的访问，由于Local模式下kube-proxy设置的iptables规则不会跳转到其他节点的Pod包执行SNTA操作，因此导致响应数据包会以源IP为PodIO地址从目的Pod直接返回客户端，导致客户端与Pod无法连接，达到了在Local模式下，宿主节点无Pod时集群外部无法访问的效果</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="配置Load-BalancerIP的IP-Set和ipvs规则"><a href="#配置Load-BalancerIP的IP-Set和ipvs规则" class="headerlink" title="配置Load BalancerIP的IP Set和ipvs规则"></a>配置Load BalancerIP的IP Set和ipvs规则</h3><p>为LoadBalancer IO和Port的配置规则。</p>
+<ul>
+<li><p>Ref：<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/proxy/ipvs/proxier.go#L1279">https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/proxy/ipvs/proxier.go#L1279</a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> _, ingress := <span class="keyword">range</span> svcInfo.LoadBalancerIPStrings() &#123;</span><br><span class="line">		<span class="comment">// ipset call</span></span><br><span class="line">		entry = &amp;utilipset.Entry&#123;</span><br><span class="line">			IP:       ingress,</span><br><span class="line">			Port:     svcInfo.Port(),</span><br><span class="line">			Protocol: protocol,</span><br><span class="line">			SetType:  utilipset.HashIPPort,</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// add service load balancer ingressIP:Port to kubeServiceAccess ip set for the purpose of solving hairpin.</span></span><br><span class="line">		<span class="comment">// proxier.kubeServiceAccessSet.activeEntries.Insert(entry.String())</span></span><br><span class="line">		<span class="comment">// If we are proxying globally, we need to masquerade in case we cross nodes.</span></span><br><span class="line">		<span class="comment">// If we are proxying only locally, we can retain the source IP.</span></span><br><span class="line">		<span class="keyword">if</span> valid := proxier.ipsetList[kubeLoadBalancerSet].validateEntry(entry); !valid &#123;</span><br><span class="line">			klog.ErrorS(<span class="literal">nil</span>, <span class="string">&quot;Error adding entry to ipset&quot;</span>, <span class="string">&quot;entry&quot;</span>, entry, <span class="string">&quot;ipset&quot;</span>, proxier.ipsetList[kubeLoadBalancerSet].Name)</span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		&#125;</span><br><span class="line">		proxier.ipsetList[kubeLoadBalancerSet].activeEntries.Insert(entry.String())</span><br><span class="line">		<span class="comment">// insert loadbalancer entry to lbIngressLocalSet if service externaltrafficpolicy=local</span></span><br><span class="line">		<span class="keyword">if</span> svcInfo.ExternalPolicyLocal() &#123;</span><br><span class="line">			<span class="keyword">if</span> valid := proxier.ipsetList[kubeLoadBalancerLocalSet].validateEntry(entry); !valid &#123;</span><br><span class="line">				klog.ErrorS(<span class="literal">nil</span>, <span class="string">&quot;Error adding entry to ipset&quot;</span>, <span class="string">&quot;entry&quot;</span>, entry, <span class="string">&quot;ipset&quot;</span>, proxier.ipsetList[kubeLoadBalancerLocalSet].Name)</span><br><span class="line">				<span class="keyword">continue</span></span><br><span class="line">			&#125;</span><br><span class="line">			proxier.ipsetList[kubeLoadBalancerLocalSet].activeEntries.Insert(entry.String())</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> <span class="built_in">len</span>(svcInfo.LoadBalancerSourceRanges()) != <span class="number">0</span> &#123;</span><br><span class="line">			<span class="comment">// The service firewall rules are created based on ServiceSpec.loadBalancerSourceRanges field.</span></span><br><span class="line">			<span class="comment">// This currently works for loadbalancers that preserves source ips.</span></span><br><span class="line">			<span class="comment">// For loadbalancers which direct traffic to service NodePort, the firewall rules will not apply.</span></span><br><span class="line">			<span class="keyword">if</span> valid := proxier.ipsetList[kubeLoadBalancerFWSet].validateEntry(entry); !valid &#123;</span><br><span class="line">				klog.ErrorS(<span class="literal">nil</span>, <span class="string">&quot;Error adding entry to ipset&quot;</span>, <span class="string">&quot;entry&quot;</span>, entry, <span class="string">&quot;ipset&quot;</span>, proxier.ipsetList[kubeLoadBalancerFWSet].Name)</span><br><span class="line">				<span class="keyword">continue</span></span><br><span class="line">			&#125;</span><br><span class="line">			proxier.ipsetList[kubeLoadBalancerFWSet].activeEntries.Insert(entry.String())</span><br><span class="line">			allowFromNode := <span class="literal">false</span></span><br><span class="line">			<span class="keyword">for</span> _, src := <span class="keyword">range</span> svcInfo.LoadBalancerSourceRanges() &#123;</span><br><span class="line">				<span class="comment">// ipset call</span></span><br><span class="line">				entry = &amp;utilipset.Entry&#123;</span><br><span class="line">					IP:       ingress,</span><br><span class="line">					Port:     svcInfo.Port(),</span><br><span class="line">					Protocol: protocol,</span><br><span class="line">					Net:      src,</span><br><span class="line">					SetType:  utilipset.HashIPPortNet,</span><br><span class="line">				&#125;</span><br><span class="line">				<span class="comment">// enumerate all white list source cidr</span></span><br><span class="line">				<span class="keyword">if</span> valid := proxier.ipsetList[kubeLoadBalancerSourceCIDRSet].validateEntry(entry); !valid &#123;</span><br><span class="line">					klog.ErrorS(<span class="literal">nil</span>, <span class="string">&quot;Error adding entry to ipset&quot;</span>, <span class="string">&quot;entry&quot;</span>, entry, <span class="string">&quot;ipset&quot;</span>, proxier.ipsetList[kubeLoadBalancerSourceCIDRSet].Name)</span><br><span class="line">					<span class="keyword">continue</span></span><br><span class="line">				&#125;</span><br><span class="line">				proxier.ipsetList[kubeLoadBalancerSourceCIDRSet].activeEntries.Insert(entry.String())</span><br><span class="line">  </span><br><span class="line">				<span class="comment">// ignore error because it has been validated</span></span><br><span class="line">				_, cidr, _ := netutils.ParseCIDRSloppy(src)</span><br><span class="line">				<span class="keyword">if</span> cidr.Contains(proxier.nodeIP) &#123;</span><br><span class="line">					allowFromNode = <span class="literal">true</span></span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="comment">// generally, ip route rule was added to intercept request to loadbalancer vip from the</span></span><br><span class="line">			<span class="comment">// loadbalancer&#x27;s backend hosts. In this case, request will not hit the loadbalancer but loop back directly.</span></span><br><span class="line">			<span class="comment">// Need to add the following rule to allow request on host.</span></span><br><span class="line">			<span class="keyword">if</span> allowFromNode &#123;</span><br><span class="line">				entry = &amp;utilipset.Entry&#123;</span><br><span class="line">					IP:       ingress,</span><br><span class="line">					Port:     svcInfo.Port(),</span><br><span class="line">					Protocol: protocol,</span><br><span class="line">					IP2:      ingress,</span><br><span class="line">					SetType:  utilipset.HashIPPortIP,</span><br><span class="line">				&#125;</span><br><span class="line">				<span class="comment">// enumerate all white list source ip</span></span><br><span class="line">				<span class="keyword">if</span> valid := proxier.ipsetList[kubeLoadBalancerSourceIPSet].validateEntry(entry); !valid &#123;</span><br><span class="line">					klog.ErrorS(<span class="literal">nil</span>, <span class="string">&quot;Error adding entry to ipset&quot;</span>, <span class="string">&quot;entry&quot;</span>, entry, <span class="string">&quot;ipset&quot;</span>, proxier.ipsetList[kubeLoadBalancerSourceIPSet].Name)</span><br><span class="line">					<span class="keyword">continue</span></span><br><span class="line">				&#125;</span><br><span class="line">				proxier.ipsetList[kubeLoadBalancerSourceIPSet].activeEntries.Insert(entry.String())</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h3 id="配置NodePort的IP-Set和ipvs规则"><a href="#配置NodePort的IP-Set和ipvs规则" class="headerlink" title="配置NodePort的IP Set和ipvs规则"></a>配置NodePort的IP Set和ipvs规则</h3><ol>
+<li><p>清除NodePort的UDP Conntrack记录</p>
+<ul>
+<li><p>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/proxy/ipvs/proxier.go#L1404">https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/proxy/ipvs/proxier.go#L1404</a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// For ports on node IPs, open the actual port and hold it.</span></span><br><span class="line">			<span class="keyword">for</span> _, lp := <span class="keyword">range</span> lps &#123;</span><br><span class="line">				<span class="keyword">if</span> svcInfo.Protocol() != v1.ProtocolSCTP &amp;&amp; lp.Protocol == netutils.UDP &#123;</span><br><span class="line">					conntrack.ClearEntriesForPort(proxier.exec, lp.Port, isIPv6, v1.ProtocolUDP)</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<p>调用ClearEntriesForPort func命令如下。NodePort字段就是当前处理的NodePort端口。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">conntrack -D -p UDP --dport &#123;NodePort&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️，在上述清理UDP Conntrack记录的过程中，无差别清理了所有的NodePort的UDP Conntrack记录，而不是仅仅Stale的UDP连接。这破坏了正常的UDP连接，因此这种方式是不好的， 尽管UPD就是不稳定的连接。</p>
+<p>v1.27kube-proxy解决了这个问题</p>
+</blockquote>
+</li>
+<li><p>根据ServicePort的协议类型，加入到KUBE-NODE-PORT-TCP IP Set或KUBE-NODE-PORT-UDP IP Set 或者KUBE-NODE-PORT-SCTP-HASH IP Set中。如果Service的外部流量策略为Local，则上述Entry还会进一步添加到KUBE-NODE-PORT-LOCAL-TCP IP Set、KUBE-NODE-PRORT-LOCAL-UDP IP Set、KUBE-NODE-PORT-LOCAL-SCTP-HASH  IP Set中</p>
+</li>
+<li><p>LoadBalacnerIP类型，为NodePort和nodeIPs创建ipvs VirtualServer，并且回调syncEndpoint func配置RealServer</p>
+</li>
+</ol>
+<h3 id="配置健康检查的IP-Set"><a href="#配置健康检查的IP-Set" class="headerlink" title="配置健康检查的IP Set"></a>配置健康检查的IP Set</h3><p>如果Service设置了HealthCheckNodePort，则将加入到KUBE-HEALTH-CHECK-NODE-PORT IP Set</p>
+<ul>
+<li><p>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/proxy/ipvs/proxier.go#L1521">https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/proxy/ipvs/proxier.go#L1521</a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> svcInfo.HealthCheckNodePort() != <span class="number">0</span> &#123;</span><br><span class="line">	nodePortSet := proxier.ipsetList[kubeHealthCheckNodePortSet]</span><br><span class="line">	entry := &amp;utilipset.Entry&#123;</span><br><span class="line">		<span class="comment">// No need to provide ip info</span></span><br><span class="line">		Port:     svcInfo.HealthCheckNodePort(),</span><br><span class="line">		Protocol: <span class="string">&quot;tcp&quot;</span>,</span><br><span class="line">		SetType:  utilipset.BitmapPort,</span><br><span class="line">	&#125;</span><br><span class="line">  </span><br><span class="line">	<span class="keyword">if</span> valid := nodePortSet.validateEntry(entry); !valid &#123;</span><br><span class="line">		klog.ErrorS(<span class="literal">nil</span>, <span class="string">&quot;Error adding entry to ipset&quot;</span>, <span class="string">&quot;entry&quot;</span>, entry, <span class="string">&quot;ipset&quot;</span>, nodePortSet.Name)</span><br><span class="line">		<span class="keyword">continue</span></span><br><span class="line">	&#125;</span><br><span class="line">	nodePortSet.activeEntries.Insert(entry.String())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h3 id="更新各个IP-Set的内容"><a href="#更新各个IP-Set的内容" class="headerlink" title="更新各个IP Set的内容"></a>更新各个IP Set的内容</h3><p>把前面的IP地址添加到IP Set中，并且从中删除掉不在目标IP地址范围的IP</p>
+<ul>
+<li><p>Ref：<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/proxy/ipvs/proxier.go#L1539">https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/proxy/ipvs/proxier.go#L1539</a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// sync ipset entries</span></span><br><span class="line"><span class="keyword">for</span> _, set := <span class="keyword">range</span> proxier.ipsetList &#123;</span><br><span class="line">	set.syncIPSetEntries()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h3 id="创建匹配的IP-Set的iptables规则"><a href="#创建匹配的IP-Set的iptables规则" class="headerlink" title="创建匹配的IP Set的iptables规则"></a>创建匹配的IP Set的iptables规则</h3><p>与iptabels模式不同的是，在ipvs模式中iptables并不负责执行DNAT操作，而仅仅是放行目的IP地址和某些ServiceIP地址匹配的数据包，这些数据包后续会由ipvs完成DNAT操作，路由的添加都在writeIptablesRules。func 完成</p>
+<h2 id="把iptables缓存区内容刷新到宿主机"><a href="#把iptables缓存区内容刷新到宿主机" class="headerlink" title="把iptables缓存区内容刷新到宿主机"></a>把iptables缓存区内容刷新到宿主机</h2><p>kube-proxy首先先把netChain、natRules、filterChains、filterRules 缓冲区前后拼接到iptablesData缓冲区。然后调用RestoreAll func存储</p>
+<ul>
+<li><p>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/proxy/ipvs/proxier.go#L1549">https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/proxy/ipvs/proxier.go#L1549</a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Sync iptables rules.</span></span><br><span class="line"><span class="comment">// <span class="doctag">NOTE:</span> NoFlushTables is used so we don&#x27;t flush non-kubernetes chains in the table.</span></span><br><span class="line">proxier.iptablesData.Reset()</span><br><span class="line">proxier.iptablesData.Write(proxier.natChains.Bytes())</span><br><span class="line">proxier.iptablesData.Write(proxier.natRules.Bytes())</span><br><span class="line">proxier.iptablesData.Write(proxier.filterChains.Bytes())</span><br><span class="line">proxier.iptablesData.Write(proxier.filterRules.Bytes())</span><br><span class="line">  </span><br><span class="line">klog.V(<span class="number">5</span>).InfoS(<span class="string">&quot;Restoring iptables&quot;</span>, <span class="string">&quot;rules&quot;</span>, <span class="type">string</span>(proxier.iptablesData.Bytes()))</span><br><span class="line">err = proxier.iptables.RestoreAll(proxier.iptablesData.Bytes(), utiliptables.NoFlushTables, utiliptables.RestoreCounters)</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">	<span class="keyword">if</span> pErr, ok := err.(utiliptables.ParseError); ok &#123;</span><br><span class="line">		lines := utiliptables.ExtractLines(proxier.iptablesData.Bytes(), pErr.Line(), <span class="number">3</span>)</span><br><span class="line">		klog.ErrorS(pErr, <span class="string">&quot;Failed to execute iptables-restore&quot;</span>, <span class="string">&quot;rules&quot;</span>, lines)</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		klog.ErrorS(err, <span class="string">&quot;Failed to execute iptables-restore&quot;</span>, <span class="string">&quot;rules&quot;</span>, <span class="type">string</span>(proxier.iptablesData.Bytes()))</span><br><span class="line">	&#125;</span><br><span class="line">	metrics.IptablesRestoreFailuresTotal.Inc()</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>RestoreAll的命令如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">iptables-restore -w 5 -w 100000 --noflush --counters &#123;BytesData&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h2 id="清理冗余的Service地址"><a href="#清理冗余的Service地址" class="headerlink" title="清理冗余的Service地址"></a>清理冗余的Service地址</h2><p>在ipvs模式汇总，如果Service已经不在了，需要及时清理该Service的相关地址和规则，清理主要分为三步：</p>
+<ul>
+<li><p>从各个IPSet中清理该Service的相关IP</p>
+</li>
+<li><p>在ipvs中删除该Service的VirtualServer</p>
+</li>
+<li><p>在Dummy网卡上解绑该Service的相关IP地址</p>
+</li>
+<li><p>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/proxy/ipvs/proxier.go#L2061">https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/proxy/ipvs/proxier.go#L2061</a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(proxier *Proxier)</span></span> cleanLegacyService(activeServices <span class="keyword">map</span>[<span class="type">string</span>]<span class="type">bool</span>, currentServices <span class="keyword">map</span>[<span class="type">string</span>]*utilipvs.VirtualServer, legacyBindAddrs <span class="keyword">map</span>[<span class="type">string</span>]<span class="type">bool</span>) &#123;</span><br><span class="line">	isIPv6 := netutils.IsIPv6(proxier.nodeIP)</span><br><span class="line">	<span class="keyword">for</span> cs := <span class="keyword">range</span> currentServices &#123;</span><br><span class="line">		svc := currentServices[cs]</span><br><span class="line">		<span class="keyword">if</span> proxier.isIPInExcludeCIDRs(svc.Address) &#123;</span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> netutils.IsIPv6(svc.Address) != isIPv6 &#123;</span><br><span class="line">			<span class="comment">// Not our family</span></span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> _, ok := activeServices[cs]; !ok &#123;</span><br><span class="line">			klog.V(<span class="number">4</span>).InfoS(<span class="string">&quot;Delete service&quot;</span>, <span class="string">&quot;virtualServer&quot;</span>, svc)</span><br><span class="line">			<span class="keyword">if</span> err := proxier.ipvs.DeleteVirtualServer(svc); err != <span class="literal">nil</span> &#123;</span><br><span class="line">				klog.ErrorS(err, <span class="string">&quot;Failed to delete service&quot;</span>, <span class="string">&quot;virtualServer&quot;</span>, svc)</span><br><span class="line">			&#125;</span><br><span class="line">			addr := svc.Address.String()</span><br><span class="line">			<span class="keyword">if</span> _, ok := legacyBindAddrs[addr]; ok &#123;</span><br><span class="line">				klog.V(<span class="number">4</span>).InfoS(<span class="string">&quot;Unbinding address&quot;</span>, <span class="string">&quot;address&quot;</span>, addr)</span><br><span class="line">				<span class="keyword">if</span> err := proxier.netlinkHandle.UnbindAddress(addr, defaultDummyDevice); err != <span class="literal">nil</span> &#123;</span><br><span class="line">					klog.ErrorS(err, <span class="string">&quot;Failed to unbind service from dummy interface&quot;</span>, <span class="string">&quot;interface&quot;</span>, defaultDummyDevice, <span class="string">&quot;address&quot;</span>, addr)</span><br><span class="line">				&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">					<span class="comment">// In case we delete a multi-port service, avoid trying to unbind multiple times</span></span><br><span class="line">					<span class="built_in">delete</span>(legacyBindAddrs, addr)</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h2 id="清理残留的UDP-Conntrack记录"><a href="#清理残留的UDP-Conntrack记录" class="headerlink" title="清理残留的UDP Conntrack记录"></a>清理残留的UDP Conntrack记录</h2><p>kube-proxy清理最开始统计的Stale Endpoints和Stale Service的UDP Conntrack记录</p>
+<ul>
+<li><p>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/proxy/ipvs/proxier.go#L1404">https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/proxy/ipvs/proxier.go#L1404</a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// For ports on node IPs, open the actual port and hold it.</span></span><br><span class="line">		<span class="keyword">for</span> _, lp := <span class="keyword">range</span> lps &#123;</span><br><span class="line">			<span class="keyword">if</span> svcInfo.Protocol() != v1.ProtocolSCTP &amp;&amp; lp.Protocol == netutils.UDP &#123;</span><br><span class="line">				conntrack.ClearEntriesForPort(proxier.exec, lp.Port, isIPv6, v1.ProtocolUDP)</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<p>ClearEntriesForIP清理ClusterIP、ExternalIP、LoadBalancerIP的Stale UDP Conntrack记录,使用命令如下</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">conntrack -D --orig-dst &#123;OriginIP&#125; -p UDP</span><br></pre></td></tr></table></figure>
+
+<p>deleteEndpointConnections 负责清理Stale Endpoints的UDP Conntrack记录</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">conntrack -D --orig-dst &#123;OriginIP&#125; --dst-na &#123;EndpointsIP&#125; -p UDP</span><br></pre></td></tr></table></figure>
+
+
+
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2024/12/11/cloud/k8s/kube-proxy/K8s-kube-proxy(ipvs%E4%BB%A3%E7%90%86%E6%A8%A1%E5%BC%8F)/">https://piwriw.github.io/2024/12/11/cloud/k8s/kube-proxy/K8s-kube-proxy(ipvs代理模式)/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a><a class="post-meta__tags" href="/tags/cloud/">cloud</a><a class="post-meta__tags" href="/tags/K8s%E6%BA%90%E7%A0%81/">K8s源码</a><a class="post-meta__tags" href="/tags/kube-proxy/">kube-proxy</a></div><div class="post-share"><div class="social-share" data-image="/img/k8sLogo.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2024/12/12/cloud/k8s/kubelet/K8s-kubelet(Overview)/" title="K8s-kubelet(Overview)"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">K8s-kubelet(Overview)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(Overview) 基于1.25  kubelet是K8s中最重要的节点代理程序，运行在集群的每个节点上。  能够自动将节点注册到集群 将节点上、Pod运行状态和资源使用情况周期性上报到控制平面 同时接受控制平面发送到工作任务、启动停止容器、维护管理Pod 也包含对cAdvusor资源用量监控、容器和镜像垃圾回收  kubelet架构设计kubelet整体架构采用了基于事件的处理模型，通过syncLoop和不断调谐Podtatus和PodSpec差距 PodSpec主要来源自三个来源，kube-apiserver、file和HTTP。  file和HTTP主要用于发现Static类型的Pod kubelet默认每隔20s执行一次检测   PodStatus实际状态主要是通过PLEG周期性扫描冗余运行时的运行状态获取。 PLEG每隔1s，从容器运行时获取Pod和Container信息，并于本地缓存进行对比，发生变更的时候，生成PLEG事件，并且发送给事件订阅者触发执行事件处理程序。  默认，当产生PLEG事件，kubelet会执行sync调谐 kubelet...</div></div></div></a><a class="pagination-related" href="/2024/12/11/cloud/k8s/kube-proxy/K8s-kube-proxy(iptables%E4%BB%A3%E7%90%86%E6%A8%A1%E5%BC%8F%E6%89%A7%E8%A1%8C%E6%B5%81%E7%A8%8B)/" title="K8s-kube-proxy(iptables代理模式执行流程)"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">K8s-kube-proxy(iptables代理模式执行流程)</div></div><div class="info-2"><div class="info-item-1">K8s-kube-proxy(iptables代理模式执行流程) 基于1.25  kube-proxy 通过宿主节点上的配置iptables实现Service功能，都有syncProxyRule实现  统计State Service和Stale Endpointsiptables代理模式第一步是针对UDP协议，统计Stale Service和Stable Endpoints  Endpoints是所有Service的后端地址  为什么需要针对UDP协议进行统计Stale Service和Stale Endpoints的原因？  客户端访问Service负载均衡需要依赖NAT协议，而NAT机制又依赖conntrack模块 UDP协议不会TCP协议一样，存在断开链接，客户端和服务端之间的Conntrack记录不会马上被清除，客户端的发出的UDP数据以来按照原有的NAT发送给不存在的服务端，导致丢包，所以UDP Endpoints被销毁的时候，需要手动清除Conntrack记录 如果一个Service不存在任何后端Pod，则NAT机制由于没有服务端的存在，会丢弃UDP数据包。如果此时S...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2024/12/11/cloud/k8s/kube-proxy/K8s-kube-proxy(iptables%E4%BB%A3%E7%90%86%E6%A8%A1%E5%BC%8F%E6%89%A7%E8%A1%8C%E6%B5%81%E7%A8%8B)/" title="K8s-kube-proxy(iptables代理模式执行流程)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-11</div><div class="info-item-2">K8s-kube-proxy(iptables代理模式执行流程)</div></div><div class="info-2"><div class="info-item-1">K8s-kube-proxy(iptables代理模式执行流程) 基于1.25  kube-proxy 通过宿主节点上的配置iptables实现Service功能，都有syncProxyRule实现  统计State Service和Stale Endpointsiptables代理模式第一步是针对UDP协议，统计Stale Service和Stable Endpoints  Endpoints是所有Service的后端地址  为什么需要针对UDP协议进行统计Stale Service和Stale Endpoints的原因？  客户端访问Service负载均衡需要依赖NAT协议，而NAT机制又依赖conntrack模块 UDP协议不会TCP协议一样，存在断开链接，客户端和服务端之间的Conntrack记录不会马上被清除，客户端的发出的UDP数据以来按照原有的NAT发送给不存在的服务端，导致丢包，所以UDP Endpoints被销毁的时候，需要手动清除Conntrack记录 如果一个Service不存在任何后端Pod，则NAT机制由于没有服务端的存在，会丢弃UDP数据包。如果此时S...</div></div></div></a><a class="pagination-related" href="/2024/12/10/cloud/k8s/kube-proxy/K8s-kube-proxy(%E5%88%9D%E5%A7%8B%E5%8C%96%E8%BF%87%E7%A8%8B)/" title="K8s-kube-proxy(初始化过程)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-10</div><div class="info-item-2">K8s-kube-proxy(初始化过程)</div></div><div class="info-2"><div class="info-item-1">K8s-kube-proxy(初始化过程) 基于1.25  kube-proxy也使用Cobra解析用户输入参数，初始化Options对象、验证参数有效性，调用Run启动  Ref:https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/cmd/kube-proxy/app/server.go#L483 1234567891011121314151617181920212223242526272829303132333435363738394041424344454647484950515253545556575859606162// NewProxyCommand creates a *cobra.Command object with default parametersfunc NewProxyCommand() *cobra.Command &#123;	opts := NewOptions()	cmd := &amp;cobra.Command&#123...</div></div></div></a><a class="pagination-related" href="/2024/12/10/cloud/k8s/kube-proxy/K8s-kube-proxy(Overview)/" title="K8s-kube-proxy（Overview）"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-10</div><div class="info-item-2">K8s-kube-proxy（Overview）</div></div><div class="info-2"><div class="info-item-1">K8s-kube-proxy（Overview） 基于1.25  什么是kube-proxykube-proxy是K8s控制面组件之一，需要在每个节点部署。  kube-proxy根据Service定义和Endpoints、EndpointSlice资源对象中存储的内容，在宿主机上配置iptables、ipvs等规则，实现Service的负载均衡和服务发现功能  kube-proxy主要支持俩种模式：iptables和ipvs  ipatbles：通过配置iptables规则实现DNAT、SNAT、源IP地址检查等 ipvs：通过配置ipvs实现DNAT，而SNAT、源IP地址检查等继续配置iptables实现，并且使用IP Set降低查找IP地址和端口的时间复杂度  Service资源K8s中的Service中，有ClusterIP、NodePort、LoadBalancer和ExternalName  ClusterIP：最基本的Service 类型，在不考虑双栈的情况下，通常包含一个IP地址和若干个Port，并且通过标签选择器关联后端Pod。集群内应用可以通过”Cluste...</div></div></div></a><a class="pagination-related" href="/2025/03/15/cloud/k8s/job/K8sController-Job(%E6%89%B9%E5%A4%84%E7%90%86%E4%BB%BB%E5%8A%A1)/" title="K8sController-Job(批处理任务)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-03-15</div><div class="info-item-2">K8sController-Job(批处理任务)</div></div><div class="info-2"><div class="info-item-1">K8sController-Job(批处理任务) 基于K8s 1.31  主要配置和工作机制123456789101112131415161718192021222324252627282930313233343536apiVersion: batch/v1kind: Jobmetadata:  name: hellospec:  # 可以并行任务数量，默认1  parallelism: 3  completions: 3  # Pod完成模式，NonIndexed（数量达到completions推出，默认），Indexed  # Indexed模式：会被设置为Pod服务名  # - 设置Pod名称：&lt;Job Name&gt;-&lt;索引序号&gt;-&lt;随机字符串&gt;  # - 设置Annotation &quot;batch.kubernetes.io/job-completion-index&quot;: &lt;索引序号&gt;  # - 设置Label &quot;batch.kubernetes.io/job-completion-index&quot...</div></div></div></a><a class="pagination-related" href="/2025/01/05/cloud/k8s/kube-proxy/kube-proxy%E8%BF%90%E8%A1%8C%E6%9C%BA%E5%88%B6%E8%A7%A3%E6%9E%90/" title="kube-proxy运行机制解析"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-01-05</div><div class="info-item-2">kube-proxy运行机制解析</div></div><div class="info-2"><div class="info-item-1">kube-proxy运行机制解析 基于1.29  第一代Proxy一开始是一个真实的TCP&#x2F;UDP代理，类似于HAProxy，负责转发从Service到Pod的访问流量，这被称为“userspace”模式 第二代Porxy从v1.2版本开始，K8s将iptables作为kube-proxy的默认模式，iptables模式组作为kube-proxy都默认模式  iptables模式，不再起到数据层面的Porxy作用，client向Service的请求流量通过iptables的NAT规则 直接发送到目标Pod，不再经过kube-proxy的转发，kube-proxy只承担控制层面的功能，即通过API Server的Watch接口实时跟踪Service与Endpoint的变更信息，并更新Node上相应的iptables规则   kube-proxy针对于Service和Pod创建一些主要的iptables规则如下：  KUBE-CLUSTER-IP：在masquerade-all&#x3D;true或ClusterCIDR被指定的情况下对Service Cluster IP地...</div></div></div></a><a class="pagination-related" href="/2024/12/16/cloud/k8s/kubelet/K8s-kubelet(HTTP%E6%9C%8D%E5%8A%A1%E6%8E%A5%E5%8F%A3)/" title="K8s-kubelet(HTTP服务接口)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-16</div><div class="info-item-2">K8s-kubelet(HTTP服务接口)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(HTTP服务接口) 基于1.25  kubelet通过HTTP Server对外暴露API，为了确保接口安全，kubelet按照安全等级从低到高顺序支持3种HTTP Server，分别是healthz server、readonly server和kubelet core server    一级类目 二级类目 Path路径 描述    Default Handlerers healthz &#x2F;healthz 检查kubelet是否健康，重点检查syncLoop是否持续在规定时间内完成。检查syncLoop四因为其他组件故障会间接导致syncLoop不能执行成功   Default Handlerers pods &#x2F;pods 读取当前节点运行的Pod列表（通过PodManager获取）   Default Handlerers stats &#x2F;stats&#x2F;summary 读取资源使用状态   Default Handlerers metrics &#x2F;metrics 读取kubelet监控指标数据   Defaul...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#K8s-kube-proxy-ipvs%E4%BB%A3%E7%90%86%E6%A8%A1%E5%BC%8F"><span class="toc-number">1.</span> <span class="toc-text">K8s-kube-proxy(ipvs代理模式)</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BB%9F%E8%AE%A1Stale-Service%E5%92%8CStale-Endpoints"><span class="toc-number">1.1.</span> <span class="toc-text">统计Stale Service和Stale Endpoints</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%88%9D%E5%A7%8B%E5%8C%96iptables%E5%86%85%E5%AE%B9%E7%BC%93%E5%86%B2%E5%8C%BA"><span class="toc-number">1.2.</span> <span class="toc-text">初始化iptables内容缓冲区</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%88%9B%E5%BB%BA%E5%9F%BA%E7%A1%80%E7%9A%84iptables%E9%93%BE%E5%92%8C%E8%A7%84%E5%88%99"><span class="toc-number">1.3.</span> <span class="toc-text">创建基础的iptables链和规则</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%88%9B%E5%BB%BADummy%E7%BD%91%E5%8D%A1"><span class="toc-number">1.4.</span> <span class="toc-text">创建Dummy网卡</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%88%9B%E5%BB%BAIPSet"><span class="toc-number">1.5.</span> <span class="toc-text">创建IPSet</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BB%9F%E8%AE%A1%E5%AE%BF%E4%B8%BB%E8%8A%82%E7%82%B9%E7%9A%84IP%E5%9C%B0%E5%9D%80"><span class="toc-number">1.6.</span> <span class="toc-text">统计宿主节点的IP地址</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%BA%E6%AF%8F%E4%B8%AAService%E9%85%8D%E7%BD%AE%E8%A7%84%E5%88%99"><span class="toc-number">1.7.</span> <span class="toc-text">为每个Service配置规则</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%85%8D%E7%BD%AELookBack-IP-Set"><span class="toc-number">1.7.1.</span> <span class="toc-text">配置LookBack IP Set</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%85%8D%E7%BD%AEClusterIP%E7%9A%84IP-Set%E5%92%8Cipvs%E8%A7%84%E5%88%99"><span class="toc-number">1.7.2.</span> <span class="toc-text">配置ClusterIP的IP Set和ipvs规则</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%85%8D%E7%BD%AEExternalIP%E7%9A%84IP-Set%E5%92%8Cipvs%E8%A7%84%E5%88%99"><span class="toc-number">1.7.3.</span> <span class="toc-text">配置ExternalIP的IP Set和ipvs规则</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%85%8D%E7%BD%AELoad-BalancerIP%E7%9A%84IP-Set%E5%92%8Cipvs%E8%A7%84%E5%88%99"><span class="toc-number">1.7.4.</span> <span class="toc-text">配置Load BalancerIP的IP Set和ipvs规则</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%85%8D%E7%BD%AENodePort%E7%9A%84IP-Set%E5%92%8Cipvs%E8%A7%84%E5%88%99"><span class="toc-number">1.7.5.</span> <span class="toc-text">配置NodePort的IP Set和ipvs规则</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%85%8D%E7%BD%AE%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5%E7%9A%84IP-Set"><span class="toc-number">1.7.6.</span> <span class="toc-text">配置健康检查的IP Set</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9B%B4%E6%96%B0%E5%90%84%E4%B8%AAIP-Set%E7%9A%84%E5%86%85%E5%AE%B9"><span class="toc-number">1.7.7.</span> <span class="toc-text">更新各个IP Set的内容</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%9B%E5%BB%BA%E5%8C%B9%E9%85%8D%E7%9A%84IP-Set%E7%9A%84iptables%E8%A7%84%E5%88%99"><span class="toc-number">1.7.8.</span> <span class="toc-text">创建匹配的IP Set的iptables规则</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%8A%8Aiptables%E7%BC%93%E5%AD%98%E5%8C%BA%E5%86%85%E5%AE%B9%E5%88%B7%E6%96%B0%E5%88%B0%E5%AE%BF%E4%B8%BB%E6%9C%BA"><span class="toc-number">1.8.</span> <span class="toc-text">把iptables缓存区内容刷新到宿主机</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%B8%85%E7%90%86%E5%86%97%E4%BD%99%E7%9A%84Service%E5%9C%B0%E5%9D%80"><span class="toc-number">1.9.</span> <span class="toc-text">清理冗余的Service地址</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%B8%85%E7%90%86%E6%AE%8B%E7%95%99%E7%9A%84UDP-Conntrack%E8%AE%B0%E5%BD%95"><span class="toc-number">1.10.</span> <span class="toc-text">清理残留的UDP Conntrack记录</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-日志系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明">Gorm-日志系统模块原理说明</a><time datetime="2026-01-11T11:56:27.000Z" title="发表于 2026-01-11 19:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-迁移功能模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明">Gorm-迁移功能模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-插件系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明">Gorm-插件系统模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-事务处理模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明">Gorm-事务处理模块原理说明</a><time datetime="2026-01-11T09:56:27.000Z" title="发表于 2026-01-11 17:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-关联关系模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明">Gorm-关联关系模块原理说明</a><time datetime="2026-01-11T08:56:27.000Z" title="发表于 2026-01-11 16:56:27">2026-01-11</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

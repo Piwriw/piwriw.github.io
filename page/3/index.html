@@ -1,0 +1,333 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="该知道的都知道，不知道的慢慢了解">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Joohwan">
+<meta property="og:url" content="https://piwriw.github.io/page/3/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="该知道的都知道，不知道的慢慢了解">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/avatar.jpg">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="Joohwan">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/avatar.jpg"><script type="application/ld+json"></script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/page/3/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Joohwan',
+  isHighlightShrink: false,
+  isToc: false,
+  pageType: 'home'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="page" id="body-wrap"><header class="full_page" id="page-header" style="background-image: url(/img/background.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="site-info"><h1 id="site-title">Joohwan</h1><div id="site-subtitle"><span id="subtitle"></span></div><div id="site_social_icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div id="scroll-down"><i class="fas fa-angle-down scroll-down-effects"></i></div></header><main class="layout" id="content-inner"><div class="recent-posts nc" id="recent-posts"><div class="recent-post-items"><div class="recent-post-item"><div class="post_cover left"><a href="/2025/07/23/cloud/prometheus/Prometheus-Discoverer%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0/" title="Prometheus-Discoverer服务发现"><img class="post-bg" src="/img/prometheus.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Prometheus-Discoverer服务发现"></a></div><div class="recent-post-info"><a class="article-title" href="/2025/07/23/cloud/prometheus/Prometheus-Discoverer%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0/" title="Prometheus-Discoverer服务发现">Prometheus-Discoverer服务发现</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2025-07-23T14:08:55.000Z" title="发表于 2025-07-23 22:08:55">2025-07-23</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/prometheus/">prometheus</a></span></div><div class="content">Prometheus-Discoverer服务发现 基于v3.5  启动流程sequenceDiagram     participant main.go     participant Manager     participant Provider     participant Discoverer     participant TargetGroup main.go-&gt;&gt;Manager: NewManager()  main.go-&gt;&gt;Manager: ApplyConfig()  Manager-&gt;&gt;Provider: 创建Provider实例 Manager-&gt;&gt;Provider: startProvider()  Provider-&gt;&gt;Discoverer: 初始化具体发现器(如K8s/Consul等) Provider-&gt;&gt;Discoverer: Run(ctx, updatesCh)  loop 发现循环     Discoverer-&gt;&gt;TargetGroup: 获取目标组 ...</div></div></div><div class="recent-post-item"><div class="post_cover right"><a href="/2025/07/22/cloud/prometheus/Prometheus-%E9%85%8D%E7%BD%AE%E7%AE%A1%E7%90%86/" title="Prometheus-载入配置"><img class="post-bg" src="/img/prometheus.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Prometheus-载入配置"></a></div><div class="recent-post-info"><a class="article-title" href="/2025/07/22/cloud/prometheus/Prometheus-%E9%85%8D%E7%BD%AE%E7%AE%A1%E7%90%86/" title="Prometheus-载入配置">Prometheus-载入配置</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2025-07-22T14:08:55.000Z" title="发表于 2025-07-22 22:08:55">2025-07-22</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/prometheus/">prometheus</a></span></div><div class="content">Prometheus-载入配置 基于v3.5  启动顺序sequenceDiagram     participant main.go     participant Config     participant GlobalConfig     participant ScrapeConfig     participant RemoteWriteConfig     participant RuntimeConfig     participant Storage          main.go-&gt;&gt;Config: 加载配置文件(Load/LoadFile)     Config-&gt;&gt;GlobalConfig: 初始化全局配置     Config-&gt;&gt;ScrapeConfig: 初始化抓取配置     Config-&gt;&gt;RemoteWriteConfig: 初始化远程写入配置     Config-&gt;&gt;RuntimeConfig: 初始化运行时配置          main.go-&gt;&gt;Storage...</div></div></div><div class="recent-post-item"><div class="post_cover left"><a href="/2025/07/21/cloud/prometheus/Prometheus-%E9%A1%B9%E7%9B%AE%E5%90%AF%E5%8A%A8main.go/" title="Prometheus-项目启动main.go"><img class="post-bg" src="/img/prometheus.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Prometheus-项目启动main.go"></a></div><div class="recent-post-info"><a class="article-title" href="/2025/07/21/cloud/prometheus/Prometheus-%E9%A1%B9%E7%9B%AE%E5%90%AF%E5%8A%A8main.go/" title="Prometheus-项目启动main.go">Prometheus-项目启动main.go</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2025-07-21T14:08:55.000Z" title="发表于 2025-07-21 22:08:55">2025-07-21</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/prometheus/">prometheus</a></span></div><div class="content">Prometheus-项目启动main.go 基于v3.5  启动顺序flowchart TD     A[启动 main 函数] --&gt; B[解析命令行参数/配置文件]     B --&gt; C[初始化日志系统]     C --&gt; D[初始化通知系统]     D --&gt; E[校验参数和配置]     E --&gt; F[初始化核心组件]     F --&gt; F1[本地存储 localStorage]     F --&gt; F2[抓取管理器 scrapeManager]     F --&gt; F3[远程存储 remoteStorage]     F --&gt; F4[规则管理器 ruleManager]     F --&gt; F5[Web 服务 webHandler]     F --&gt; F6[服务发现 discoveryManager]     F --&gt; F7[告警通知 notifierManager]     F --&gt; F8[Tracing 管理 tracingManager]     F1 &amp; F...</div></div></div><div class="recent-post-item"><div class="post_cover right"><a href="/2025/07/20/cloud/alertmanager/Alertmanager-%E5%91%8A%E8%AD%A6%E5%8F%91%E9%80%81/" title="Alertmanager-告警发送"><img class="post-bg" src="/img/prometheus.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Alertmanager-告警发送"></a></div><div class="recent-post-info"><a class="article-title" href="/2025/07/20/cloud/alertmanager/Alertmanager-%E5%91%8A%E8%AD%A6%E5%8F%91%E9%80%81/" title="Alertmanager-告警发送">Alertmanager-告警发送</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2025-07-20T13:08:55.000Z" title="发表于 2025-07-20 21:08:55">2025-07-20</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/alertmanager/">alertmanager</a></span></div><div class="content">Alertmanager-告警发送 基于v0.28  启动顺序sequenceDiagram     participant Alert as 新告警     participant Dispatcher as Dispatcher     participant Route as Route     participant AggrGroup as aggrGroup     participant NotifyStage as notify.Stage     participant Notifier as Notifier(邮件/微信等)      Alert-&gt;&gt;Dispatcher: 新告警流入     Dispatcher-&gt;&gt;Route: 路由树匹配     Route--&gt;&gt;Dispatcher: 匹配到的 Route     Dispatcher-&gt;&gt;AggrGroup: 插入/创建分组     Note over AggrGroup: run 协程定时触发通知     AggrGroup-&gt;&gt;Noti...</div></div></div><div class="recent-post-item"><div class="post_cover left"><a href="/2025/07/18/cloud/alertmanager/Alertmanager-dispatch%E5%91%8A%E8%AD%A6%E5%88%86%E7%BB%84/" title="Alertmanager-dispatch告警分组"><img class="post-bg" src="/img/prometheus.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Alertmanager-dispatch告警分组"></a></div><div class="recent-post-info"><a class="article-title" href="/2025/07/18/cloud/alertmanager/Alertmanager-dispatch%E5%91%8A%E8%AD%A6%E5%88%86%E7%BB%84/" title="Alertmanager-dispatch告警分组">Alertmanager-dispatch告警分组</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2025-07-18T13:08:55.000Z" title="发表于 2025-07-18 21:08:55">2025-07-18</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/alertmanager/">alertmanager</a></span></div><div class="content">Alertmanager-dispatch告警分组 基于v0.28  总体流程flowchart TD     A[告警流入 Alertmanager] --&gt; B[dispatch 路由树匹配]     B --&gt; C&#123;匹配到哪些 Route?&#125;     C -- 无匹配 --&gt; Z[丢弃或默认处理]     C -- 有匹配 --&gt; D[分组聚合（按 group_by 标签）]     D --&gt; E[分组等待 group_wait]     E --&gt; F[分组内聚合告警]     F --&gt; G&#123;到达 group_interval 或有新告警?&#125;     G -- 否 --&gt; F     G -- 是 --&gt; H[触发通知管道]     H --&gt; I[通知发送（邮件/微信/钉钉等）]     I --&gt; J[分组生命周期管理]     J --&gt; K&#123;分组内还有活跃告警?&#125;     K -- 有 --&gt; F     K -- 无 --...</div></div></div><div class="recent-post-item"><div class="post_cover right"><a href="/2025/07/17/cloud/alertmanager/Alertmanager-silencer%E5%91%8A%E8%AD%A6%E9%9D%99%E9%BB%98/" title="Alertmanager-silencer告警静默"><img class="post-bg" src="/img/prometheus.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Alertmanager-silencer告警静默"></a></div><div class="recent-post-info"><a class="article-title" href="/2025/07/17/cloud/alertmanager/Alertmanager-silencer%E5%91%8A%E8%AD%A6%E9%9D%99%E9%BB%98/" title="Alertmanager-silencer告警静默">Alertmanager-silencer告警静默</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2025-07-17T13:08:55.000Z" title="发表于 2025-07-17 21:08:55">2025-07-17</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/alertmanager/">alertmanager</a></span></div><div class="content">Alertmanager-silencer告警静默 基于v0.28  总体流程sequenceDiagram     participant Alert as 告警(Labels)     participant Silencer as Silencer     participant Silences as Silences     participant Store as state(存储)     participant Marker as AlertMarker      Alert-&gt;&gt;Silencer: 新告警流入，调用 Mutes(lset)     Silencer-&gt;&gt;Marker: 查询该告警指纹的静默状态     alt Marker 版本与 Silences 一致         Silencer-&gt;&gt;Silences: 仅查询已知静默ID是否仍然有效     else Marker 版本不一致         Silencer-&gt;&gt;Silences: 全量查询所有匹配该告警的静默     end     S...</div></div></div><div class="recent-post-item"><div class="post_cover left"><a href="/2025/07/16/cloud/alertmanager/Alertmanager-%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%E5%8A%A0%E8%BD%BD/" title="Alertmanager-inhibitor告警抑制"><img class="post-bg" src="/img/prometheus.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Alertmanager-inhibitor告警抑制"></a></div><div class="recent-post-info"><a class="article-title" href="/2025/07/16/cloud/alertmanager/Alertmanager-%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%E5%8A%A0%E8%BD%BD/" title="Alertmanager-inhibitor告警抑制">Alertmanager-inhibitor告警抑制</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2025-07-16T13:08:55.000Z" title="发表于 2025-07-16 21:08:55">2025-07-16</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/alertmanager/">alertmanager</a></span></div><div class="content">Alertmanager-inhibitor告警抑制 基于v0.28  总体流程flowchart TD     A[告警流入 Alertmanager] --&gt; B&#123;是否匹配抑制规则?&#125;     B -- 否 --&gt; E[正常进入分发/通知流程]     B -- 是 --&gt; C[遍历所有 InhibitRule]     C --&gt; D&#123;目标告警是否匹配 TargetMatchers?&#125;     D -- 否 --&gt; C     D -- 是 --&gt; F&#123;是否存在源告警满足 SourceMatchers 且 Equal 标签相等?&#125;     F -- 否 --&gt; C     F -- 是 --&gt; G[该告警被抑制, 不再通知]     C --&gt;|遍历完所有规则| H&#123;是否被抑制?&#125;     H -- 是 --&gt; G     H -- 否 --&gt; E          subgraph 规则说明       direction LR...</div></div></div><div class="recent-post-item"><div class="post_cover right"><a href="/2025/07/15/cloud/alertmanager/Alertmanager-%E6%A0%B8%E5%BF%83%E6%A8%A1%E5%9D%97/" title="Alertmanager-主入口main.go"><img class="post-bg" src="/img/prometheus.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Alertmanager-主入口main.go"></a></div><div class="recent-post-info"><a class="article-title" href="/2025/07/15/cloud/alertmanager/Alertmanager-%E6%A0%B8%E5%BF%83%E6%A8%A1%E5%9D%97/" title="Alertmanager-主入口main.go">Alertmanager-主入口main.go</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2025-07-15T13:08:55.000Z" title="发表于 2025-07-15 21:08:55">2025-07-15</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/alertmanager/">alertmanager</a></span></div><div class="content">Alertmanager-主入口main.go 基于v0.28  关键模块说明 API  入口：api/v2/ 功能：接收Prometheus警报、提供管理接口   AlertRouter  路径：/dispatch  处理流程： 1func (r *Route) Match(lset model.LabelSet) bool   Inhibitor  路径：/inhibit  核心逻辑： 1func (ih *Inhibitor) Mutes(lset model.LabelSet) bool   DispatchTree  路径：/dispatch 特性：多级路由树结构   Notification Pipeline  路径：/notify 阶段： GroupWait GroupInterval RepeatInterval     Notifier  集成：/notify/&lt;type&gt;  实现示例： 1234type EmailNotifier struct &#123;    conf *config.EmailConfig    tmpl *template...</div></div></div><div class="recent-post-item"><div class="post_cover left"><a href="/2025/06/05/cloud/prometheus/Prometheus%E5%AE%89%E5%85%A8%E8%AE%A4%E8%AF%81/" title="Prometheus安全认证"><img class="post-bg" src="/img/prometheus.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Prometheus安全认证"></a></div><div class="recent-post-info"><a class="article-title" href="/2025/06/05/cloud/prometheus/Prometheus%E5%AE%89%E5%85%A8%E8%AE%A4%E8%AF%81/" title="Prometheus安全认证">Prometheus安全认证</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2025-06-05T04:08:55.000Z" title="发表于 2025-06-05 12:08:55">2025-06-05</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/prometheus/">prometheus</a></span></div><div class="content">Prometheus安全认证背景一般Prometheus开启端口之后就可以访问UI，缺少安全认证 Prometheus提供了 Basic Auth能力 Ref：https://prometheus.ac.cn/docs/prometheus/latest/configuration/https/ &#x2F;web-config.yml：https://github.com/prometheus/prometheus/blob/release-3.4/documentation/examples/web-config.yml  1. 设置账号密码12345Centos # 下载工具yum install httpd-tools# 生成账号密码htpasswd -nB &#x27;admin&#x27;  2.配置web-config.yml12basic_auth_users:  admin: $2y$05$UKSS18ztdsUNoEuXYScr2OE1TCMe1hWnmD6JuwUi/uPTJayHIakae  3. 启动配置添加/bin/prometheus --web.c...</div></div></div><div class="recent-post-item"><div class="post_cover right"><a href="/2025/05/13/poem/book/%E3%80%8A%E4%B8%80%E4%B8%AA%E4%BA%BA%E5%B0%B1%E4%B8%80%E4%B8%AA%E4%BA%BA%E3%80%8B-%E4%B9%A6%E6%91%98/" title="《一个人就一个人》-书摘"><img class="post-bg" src="/img/poem.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="《一个人就一个人》-书摘"></a></div><div class="recent-post-info"><a class="article-title" href="/2025/05/13/poem/book/%E3%80%8A%E4%B8%80%E4%B8%AA%E4%BA%BA%E5%B0%B1%E4%B8%80%E4%B8%AA%E4%BA%BA%E3%80%8B-%E4%B9%A6%E6%91%98/" title="《一个人就一个人》-书摘">《一个人就一个人》-书摘</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2025-05-13T14:38:55.000Z" title="发表于 2025-05-13 22:38:55">2025-05-13</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/poem/">poem</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/poem/%E4%B9%A6%E6%91%98/">书摘</a></span></div><div class="content">《一个人就一个人》-书摘 一个人就一个人-不是伤感，也不是执拗。我们的人生原本就是一个人 至于爱情。 恋爱是短暂的陪伴，婚姻是长久的同行。 我们不是因为工作才走在一起，我们是为了要走 在一起才做这份工作。 困了就跟同事说：”对不起，我困了，我要睡午觉。”这个习惯坚持了十年。 到了运动时间，就跟大家说：”对不起，我要去运动了，明天继续开会吧。” 累了，就什么都不做。 不爽了，就看部催泪电影，好好哭一场。 也会为了庆祝某件事，自己开一瓶酒，对自己说：”你真厉害啊！” 不让此刻的自己失望，不让未来的自己抱憾。 我对群没恶意，群对我也没恶意。惯用的做法是屏蔽群消 息，不然我每天的工作就是看手机。有人问如果错过重要的消 息怎么办，我的感觉是一如果一个消息能错过你而进行，表 示你并不重要。如果一个消息需要等你回应，你不回应，一定会有同事给你打电话告诉你 群。说起变淡的原 因，好像也没什么特别的，大家聊起时，没有义愤填膺，也不 是特别抗拒，就是“噢噢噢，有听说，随便你……”。别人在你 人生中这么淡去，你也应该能想象得到自己又是如何淡出别人 的人生的。当你发现你和某个人淡了，可能会很懊恼，但也不...</div></div></div></div><nav id="pagination"><div class="pagination"><a class="extend prev" rel="prev" href="/page/2/#content-inner"><i class="fas fa-chevron-left fa-fw"></i></a><a class="page-number" href="/">1</a><a class="page-number" href="/page/2/#content-inner">2</a><span class="page-number current">3</span><a class="page-number" href="/page/4/#content-inner">4</a><span class="space">&hellip;</span><a class="page-number" href="/page/26/#content-inner">26</a><a class="extend next" rel="next" href="/page/4/#content-inner"><i class="fas fa-chevron-right fa-fw"></i></a></div></nav></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-日志系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明">Gorm-日志系统模块原理说明</a><time datetime="2026-01-11T11:56:27.000Z" title="发表于 2026-01-11 19:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-迁移功能模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明">Gorm-迁移功能模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-插件系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明">Gorm-插件系统模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-事务处理模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明">Gorm-事务处理模块原理说明</a><time datetime="2026-01-11T09:56:27.000Z" title="发表于 2026-01-11 17:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-关联关系模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明">Gorm-关联关系模块原理说明</a><time datetime="2026-01-11T08:56:27.000Z" title="发表于 2026-01-11 16:56:27">2026-01-11</time></div></div></div></div><div class="card-widget card-categories"><div class="item-headline">
+            <i class="fas fa-folder-open"></i>
+            <span>分类</span>
+            <a class="card-more-btn" href="/categories/" title="查看更多">
+      <i class="fas fa-angle-right"></i></a>
+          </div>
+          <ul class="card-category-list" id="aside-cat-list">
+            <li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/"><span class="card-category-list-name">basic</span><span class="card-category-list-count">36</span></a><ul class="card-category-list child"><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/go/"><span class="card-category-list-name">go</span><span class="card-category-list-count">14</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/"><span class="card-category-list-name">设计模式</span><span class="card-category-list-count">13</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/%E9%9D%A2%E8%AF%95/"><span class="card-category-list-name">面试</span><span class="card-category-list-count">9</span></a></li></ul></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/braveheart/"><span class="card-category-list-name">braveheart</span><span class="card-category-list-count">1</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/cloud/"><span class="card-category-list-name">cloud</span><span class="card-category-list-count">166</span></a><ul class="card-category-list child"><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/cloud/Harbor/"><span class="card-category-list-name">Harbor</span><span class="card-category-list-count">1</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/cloud/Istio/"><span class="card-category-list-name">Istio</span><span class="card-category-list-count">1</span></a></li></ul></li>
+          </ul></div><div class="card-widget card-tags"><div class="item-headline"><i class="fas fa-tags"></i><span>标签</span></div><div class="card-tag-cloud"><a href="/tags/k8s/" style="font-size: 1.5em; color: #99a9bf">k8s</a> <a href="/tags/CKAD/" style="font-size: 1.13em; color: #999a9c">CKAD</a> <a href="/tags/kubeedge/" style="font-size: 1.3em; color: #99a1ac">kubeedge</a> <a href="/tags/kube-apiserver/" style="font-size: 1.37em; color: #99a4b2">kube-apiserver</a> <a href="/tags/%E9%9D%A2%E8%AF%95/" style="font-size: 1.37em; color: #99a4b2">面试</a> <a href="/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/" style="font-size: 1.27em; color: #99a0a9">微服务</a> <a href="/tags/prometheus%E6%BA%90%E7%A0%81/" style="font-size: 1.33em; color: #99a2af">prometheus源码</a> <a href="/tags/kubelet/" style="font-size: 1.1em; color: #999">kubelet'</a> <a href="/tags/crd/" style="font-size: 1.13em; color: #999a9c">crd</a> <a href="/tags/kubeadm/" style="font-size: 1.17em; color: #999c9f">kubeadm</a> <a href="/tags/kubelet/" style="font-size: 1.27em; color: #99a0a9">kubelet</a> <a href="/tags/zap/" style="font-size: 1.13em; color: #999a9c">zap</a> <a href="/tags/cookies/" style="font-size: 1.1em; color: #999">cookies</a> <a href="/tags/alertmanager/" style="font-size: 1.27em; color: #99a0a9">alertmanager</a> <a href="/tags/validation/" style="font-size: 1.1em; color: #999">validation</a> <a href="/tags/deployment/" style="font-size: 1.13em; color: #999a9c">deployment</a> <a href="/tags/crio/" style="font-size: 1.1em; color: #999">crio</a> <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" style="font-size: 1.4em; color: #99a5b6">分布式</a> <a href="/tags/kustomize/" style="font-size: 1.1em; color: #999">kustomize</a> <a href="/tags/grafana/" style="font-size: 1.13em; color: #999a9c">grafana</a> <a href="/tags/Harbor/" style="font-size: 1.1em; color: #999">Harbor</a> <a href="/tags/dasemonset/" style="font-size: 1.17em; color: #999c9f">dasemonset</a> <a href="/tags/%E6%BA%90%E7%A0%81/" style="font-size: 1.4em; color: #99a5b6">源码</a> <a href="/tags/mysql/" style="font-size: 1.13em; color: #999a9c">mysql</a> <a href="/tags/kubectl/" style="font-size: 1.2em; color: #999da3">kubectl</a> <a href="/tags/private/" style="font-size: 1.2em; color: #999da3">private</a> <a href="/tags/gc/" style="font-size: 1.1em; color: #999">gc</a> <a href="/tags/tools/" style="font-size: 1.33em; color: #99a2af">tools</a> <a href="/tags/Istio/" style="font-size: 1.1em; color: #999">Istio</a> <a href="/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/" style="font-size: 1.27em; color: #99a0a9">计算机网络</a> <a href="/tags/web/" style="font-size: 1.43em; color: #99a6b9">web</a> <a href="/tags/cloud/" style="font-size: 1.47em; color: #99a8bc">cloud</a> <a href="/tags/containerd/" style="font-size: 1.23em; color: #999ea6">containerd</a> <a href="/tags/etcd/" style="font-size: 1.1em; color: #999">etcd</a> <a href="/tags/braveheart/" style="font-size: 1.1em; color: #999">braveheart</a> <a href="/tags/kubemark/" style="font-size: 1.1em; color: #999">kubemark</a> <a href="/tags/%E9%99%90%E6%B5%81%E7%AD%96%E7%95%A5/" style="font-size: 1.1em; color: #999">限流策略</a> <a href="/tags/job/" style="font-size: 1.2em; color: #999da3">job</a> <a href="/tags/devops/" style="font-size: 1.1em; color: #999">devops</a> <a href="/tags/Gin/" style="font-size: 1.17em; color: #999c9f">Gin</a></div></div><div class="card-widget card-archives">
+    <div class="item-headline">
+      <i class="fas fa-archive"></i>
+      <span>归档</span>
+      <a class="card-more-btn" href="/archives/"
+            title="查看更多">
+            <i class="fas fa-angle-right"></i>
+          </a>
+    </div>
+  
+    <ul class="card-archive-list">
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2026/01/">
+            <span class="card-archive-list-date">
+              一月 2026
+            </span>
+            <span class="card-archive-list-count">10</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/09/">
+            <span class="card-archive-list-date">
+              九月 2025
+            </span>
+            <span class="card-archive-list-count">1</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/08/">
+            <span class="card-archive-list-date">
+              八月 2025
+            </span>
+            <span class="card-archive-list-count">6</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/07/">
+            <span class="card-archive-list-date">
+              七月 2025
+            </span>
+            <span class="card-archive-list-count">11</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/06/">
+            <span class="card-archive-list-date">
+              六月 2025
+            </span>
+            <span class="card-archive-list-count">1</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/05/">
+            <span class="card-archive-list-date">
+              五月 2025
+            </span>
+            <span class="card-archive-list-count">1</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/03/">
+            <span class="card-archive-list-date">
+              三月 2025
+            </span>
+            <span class="card-archive-list-count">11</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/02/">
+            <span class="card-archive-list-date">
+              二月 2025
+            </span>
+            <span class="card-archive-list-count">1</span>
+          </a>
+        </li>
+      
+    </ul>
+  </div><div class="card-widget card-webinfo"><div class="item-headline"><i class="fas fa-chart-line"></i><span>网站信息</span></div><div class="webinfo"><div class="webinfo-item"><div class="item-name">文章数目 :</div><div class="item-count">259</div></div><div class="webinfo-item"><div class="item-name">本站总字数 :</div><div class="item-count">519.1k</div></div><div class="webinfo-item"><div class="item-name">本站访客数 :</div><div class="item-count" id="busuanzi_value_site_uv"><i class="fa-solid fa-spinner fa-spin"></i></div></div><div class="webinfo-item"><div class="item-name">本站总浏览量 :</div><div class="item-count" id="busuanzi_value_site_pv"><i class="fa-solid fa-spinner fa-spin"></i></div></div><div class="webinfo-item"><div class="item-name">最后更新时间 :</div><div class="item-count" id="last-push-date" data-lastPushDate="2026-02-28T13:30:23.474Z"><i class="fa-solid fa-spinner fa-spin"></i></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>window.typedJSFn = {
+  init: str => {
+    window.typed = new Typed('#subtitle', Object.assign({
+      strings: str,
+      startDelay: 300,
+      typeSpeed: 150,
+      loop: true,
+      backSpeed: 50,
+    }, null))
+  },
+  run: subtitleType => {
+    if (true) {
+      if (typeof Typed === 'function') {
+        subtitleType()
+      } else {
+        btf.getScript('https://cdn.jsdelivr.net/npm/typed.js/dist/typed.umd.min.js').then(subtitleType)
+      }
+    } else {
+      subtitleType()
+    }
+  },
+  processSubtitle: (content, extraContents = []) => {
+    if (true) {
+      const sub = ["我们登上并非我们所选择的舞台，演出并非我们所选择的剧本","该知道的都知道，不知道的慢慢了解","偶尔怀念一下就好了，脚下的路更重要"].slice()
+
+      if (extraContents.length > 0) {
+        sub.unshift(...extraContents)
+      }
+
+      if (typeof content === 'string') {
+        sub.unshift(content)
+      } else if (Array.isArray(content)) {
+        sub.unshift(...content)
+      }
+
+      sub.length > 0 && typedJSFn.init(sub)
+    } else {
+      document.getElementById('subtitle').textContent = typeof content === 'string' ? content :
+        (Array.isArray(content) && content.length > 0 ? content[0] : '')
+    }
+  }
+}
+btf.addGlobalFn('pjaxSendOnce', () => { typed.destroy() }, 'typedDestroy')
+</script><script>function subtitleType () {
+  typedJSFn.processSubtitle(["我们登上并非我们所选择的舞台，演出并非我们所选择的剧本","该知道的都知道，不知道的慢慢了解","偶尔怀念一下就好了，脚下的路更重要"])
+}
+typedJSFn.run(subtitleType)</script><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script></div><script src="/js/categories.js" defer></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

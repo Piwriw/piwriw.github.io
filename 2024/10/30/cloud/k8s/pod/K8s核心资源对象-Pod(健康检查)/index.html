@@ -1,0 +1,358 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>K8s核心资源对象-Pod（健康检查） | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="K8s核心资源对象-Pod（健康检查） 基于1.25  什么是健康检查K8s支持三种健康检查：  livenessProbe：存活探针 表示容器是否在运行，是否需要重启 如果liveness探测为Failure，kubelete会终止容器，按照策略重启   readinessProbe：就绪探针 表示容器是准备好接受请求 如果readiness探测失败，从Endpoint控制器种移除改PodIP">
+<meta property="og:type" content="article">
+<meta property="og:title" content="K8s核心资源对象-Pod（健康检查）">
+<meta property="og:url" content="https://piwriw.github.io/2024/10/30/cloud/k8s/pod/K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-Pod(%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5)/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="K8s核心资源对象-Pod（健康检查） 基于1.25  什么是健康检查K8s支持三种健康检查：  livenessProbe：存活探针 表示容器是否在运行，是否需要重启 如果liveness探测为Failure，kubelete会终止容器，按照策略重启   readinessProbe：就绪探针 表示容器是准备好接受请求 如果readiness探测失败，从Endpoint控制器种移除改PodIP">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/k8sLogo.png">
+<meta property="article:published_time" content="2024-10-30T12:57:55.000Z">
+<meta property="article:modified_time" content="2026-02-28T13:29:12.671Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="k8s">
+<meta property="article:tag" content="cloud">
+<meta property="article:tag" content="K8s源码">
+<meta property="article:tag" content="pod">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/k8sLogo.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "K8s核心资源对象-Pod（健康检查）",
+  "url": "https://piwriw.github.io/2024/10/30/cloud/k8s/pod/K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-Pod(%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5)/",
+  "image": "https://piwriw.github.io/img/k8sLogo.png",
+  "datePublished": "2024-10-30T12:57:55.000Z",
+  "dateModified": "2026-02-28T13:29:12.671Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2024/10/30/cloud/k8s/pod/K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-Pod(%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5)/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'K8s核心资源对象-Pod（健康检查）',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/k8sLogo.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">K8s核心资源对象-Pod（健康检查）</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">K8s核心资源对象-Pod（健康检查）</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2024-10-30T12:57:55.000Z" title="发表于 2024-10-30 20:57:55">2024-10-30</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-02-28T13:29:12.671Z" title="更新于 2026-02-28 21:29:12">2026-02-28</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/">k8s</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/pod/">pod</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">1.5k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>7分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-02-28 21:29:12&quot;}" hidden></div><h1 id="K8s核心资源对象-Pod（健康检查）"><a href="#K8s核心资源对象-Pod（健康检查）" class="headerlink" title="K8s核心资源对象-Pod（健康检查）"></a>K8s核心资源对象-Pod（健康检查）</h1><blockquote>
+<p>基于1.25</p>
+</blockquote>
+<h2 id="什么是健康检查"><a href="#什么是健康检查" class="headerlink" title="什么是健康检查"></a>什么是健康检查</h2><p>K8s支持三种健康检查：</p>
+<ul>
+<li>livenessProbe：存活探针<ul>
+<li>表示容器是否在运行，是否需要重启</li>
+<li>如果liveness探测为Failure，kubelete会终止容器，按照策略重启</li>
+</ul>
+</li>
+<li>readinessProbe：就绪探针<ul>
+<li>表示容器是准备好接受请求</li>
+<li>如果readiness探测失败，从Endpoint控制器种移除改PodIP</li>
+</ul>
+</li>
+<li>startupProbe：启动探针<ul>
+<li>设置了启动探针，其他的被暂时禁用，直至启动探针成功</li>
+<li>启动探针失败，按照策略重启</li>
+<li>对于启动时间长的场景</li>
+</ul>
+</li>
+</ul>
+<h2 id="ProbeManager"><a href="#ProbeManager" class="headerlink" title="ProbeManager"></a>ProbeManager</h2><p>ProbeManager负责管理Pod探针，是一个Manager的接口声明。</p>
+<ul>
+<li>当执行AddPod func，会为Pod每一个容器创建一个探测的worker</li>
+<li>worker会对分配的容器，定期周期性探测，并且缓存探测结果</li>
+<li>执行UpdatePodStatus func，Manager会使用缓存结果把PodStatus设置类似Ready状态</li>
+</ul>
+<p>相关接口说明：</p>
+<ul>
+<li>AddPod：为Pod每个容器添加对应的探测worker</li>
+<li>StopLivenessAndStartup：停止指定容器Pod的所有容器的存活探针和启动探针</li>
+<li>RemovePod：移除指定Pod中的所有容器的worker</li>
+<li>CleanupPods：清理不再运行的Pod保留追定UID的Pod以及正在运行的worker</li>
+<li>UpdatePodStatus：根据容器状态、缓存的探测结果和worker状态，修改给定Pod状态</li>
+<li>Ref：<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/kubelet/prober/prober_manager.go#L69">https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/kubelet/prober/prober_manager.go#L69</a></li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="comment">// Manager manages pod probing. It creates a probe &quot;worker&quot; for every container that specifies a</span></span><br><span class="line"><span class="comment">// probe (AddPod). The worker periodically probes its assigned container and caches the results. The</span></span><br><span class="line"><span class="comment">// manager use the cached probe results to set the appropriate Ready state in the PodStatus when</span></span><br><span class="line"><span class="comment">// requested (UpdatePodStatus). Updating probe parameters is not currently supported.</span></span><br><span class="line"><span class="keyword">type</span> Manager <span class="keyword">interface</span> &#123;</span><br><span class="line">	<span class="comment">// AddPod creates new probe workers for every container probe. This should be called for every</span></span><br><span class="line">	<span class="comment">// pod created.</span></span><br><span class="line">	AddPod(pod *v1.Pod)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// StopLivenessAndStartup handles stopping liveness and startup probes during termination.</span></span><br><span class="line">	StopLivenessAndStartup(pod *v1.Pod)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// RemovePod handles cleaning up the removed pod state, including terminating probe workers and</span></span><br><span class="line">	<span class="comment">// deleting cached results.</span></span><br><span class="line">	RemovePod(pod *v1.Pod)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// CleanupPods handles cleaning up pods which should no longer be running.</span></span><br><span class="line">	<span class="comment">// It takes a map of &quot;desired pods&quot; which should not be cleaned up.</span></span><br><span class="line">	CleanupPods(desiredPods <span class="keyword">map</span>[types.UID]sets.Empty)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// UpdatePodStatus modifies the given PodStatus with the appropriate Ready state for each</span></span><br><span class="line">	<span class="comment">// container based on container running status, cached probe results and worker states.</span></span><br><span class="line">	UpdatePodStatus(types.UID, *v1.PodStatus)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="探针的数据结构"><a href="#探针的数据结构" class="headerlink" title="探针的数据结构"></a>探针的数据结构</h2><ul>
+<li>Ref：<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/apis/core/types.go#L2074">https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/apis/core/types.go#L2074</a></li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Probe describes a health check to be performed against a container to determine whether it is</span></span><br><span class="line"><span class="comment">// alive or ready to receive traffic.</span></span><br><span class="line"><span class="keyword">type</span> Probe <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// The action taken to determine the health of a container</span></span><br><span class="line">  <span class="comment">// 探测方式，支持四种，命令行、HTTP、TCP、gRPC</span></span><br><span class="line">	ProbeHandler</span><br><span class="line">	<span class="comment">// Length of time before health checking is activated.  In seconds.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 容器启动之后延迟多久进行探测</span></span><br><span class="line">	InitialDelaySeconds <span class="type">int32</span></span><br><span class="line">	<span class="comment">// Length of time before health checking times out.  In seconds.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 每次探测的超时时间</span></span><br><span class="line">	TimeoutSeconds <span class="type">int32</span></span><br><span class="line">	<span class="comment">// How often (in seconds) to perform the probe.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 多长时间一次探测</span></span><br><span class="line">	PeriodSeconds <span class="type">int32</span></span><br><span class="line">	<span class="comment">// Minimum consecutive successes for the probe to be considered successful after having failed.</span></span><br><span class="line">	<span class="comment">// Must be 1 for liveness and startup.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 最少连续探测成功的次数，满足该次数认为是success</span></span><br><span class="line">	SuccessThreshold <span class="type">int32</span></span><br><span class="line">	<span class="comment">// Minimum consecutive failures for the probe to be considered failed after having succeeded.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 最少连续探测失败的次数，才认为是Fail</span></span><br><span class="line">	FailureThreshold <span class="type">int32</span></span><br><span class="line">	<span class="comment">// Optional duration in seconds the pod needs to terminate gracefully upon probe failure.</span></span><br><span class="line">	<span class="comment">// The grace period is the duration in seconds after the processes running in the pod are sent</span></span><br><span class="line">	<span class="comment">// a termination signal and the time when the processes are forcibly halted with a kill signal.</span></span><br><span class="line">	<span class="comment">// Set this value longer than the expected cleanup time for your process.</span></span><br><span class="line">	<span class="comment">// If this value is nil, the pod&#x27;s terminationGracePeriodSeconds will be used. Otherwise, this</span></span><br><span class="line">	<span class="comment">// value overrides the value provided by the pod spec.</span></span><br><span class="line">	<span class="comment">// Value must be non-negative integer. The value zero indicates stop immediately via</span></span><br><span class="line">	<span class="comment">// the kill signal (no opportunity to shut down).</span></span><br><span class="line">	<span class="comment">// This is a beta field and requires enabling ProbeTerminationGracePeriod feature gate.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// Pod探测失败需要正常终止的可选持续时间，优雅关闭</span></span><br><span class="line">	TerminationGracePeriodSeconds *<span class="type">int64</span></span><br><span class="line">&#125;</span><br><span class="line">...</span><br><span class="line">/ ProbeHandler defines a specific action that should be taken in a probe.</span><br><span class="line"><span class="comment">// One and only one of the fields must be specified.</span></span><br><span class="line"><span class="keyword">type</span> ProbeHandler <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// Exec specifies the action to take.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">	Exec *ExecAction</span><br><span class="line">	<span class="comment">// HTTPGet specifies the http request to perform.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">	HTTPGet *HTTPGetAction</span><br><span class="line">	<span class="comment">// TCPSocket specifies an action involving a TCP port.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">	TCPSocket *TCPSocketAction</span><br><span class="line"></span><br><span class="line">	<span class="comment">// GRPC specifies an action involving a GRPC port.</span></span><br><span class="line">	<span class="comment">// This is a beta field and requires enabling GRPCContainerProbe feature gate.</span></span><br><span class="line">	<span class="comment">// +featureGate=GRPCContainerProbe</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">	GRPC *GRPCAction</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="四种探测模式"><a href="#四种探测模式" class="headerlink" title="四种探测模式"></a>四种探测模式</h2><h3 id="命令行"><a href="#命令行" class="headerlink" title="命令行"></a>命令行</h3><p>在kubelete在容器内使用cmd，命令行进行探测</p>
+<ul>
+<li><p>执行成功 返回值0&#x3D;存活</p>
+</li>
+<li><p>非0，容器终止重启</p>
+</li>
+<li><p>Command参数是在容器内执行的命令行</p>
+<ul>
+<li>容器的工作目录是容器文件系统的根目录&#x2F;</li>
+<li>命令简单执行，不在shell里面，需要显式调用shell</li>
+</ul>
+</li>
+</ul>
+<h3 id="HTTP"><a href="#HTTP" class="headerlink" title="HTTP"></a>HTTP</h3><p>基于使用HTTP GET请求进行探测：</p>
+<ul>
+<li>返回&gt;&#x3D;200 &amp;&lt;&#x3D;400 &#x3D;success</li>
+<li>其他都是failed</li>
+</ul>
+<p>相关字段：</p>
+<ul>
+<li><p>Ref：<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/apis/core/types.go#L2023">https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/apis/core/types.go#L2023</a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// HTTPGetAction describes an action based on HTTP Get requests.</span></span><br><span class="line"><span class="keyword">type</span> HTTPGetAction <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// Optional: Path to access on the HTTP server.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 访问HTTP的Path</span></span><br><span class="line">	Path <span class="type">string</span></span><br><span class="line">	<span class="comment">// Required: Name or number of the port to access on the container.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 访问容器的端口名称或者端口号</span></span><br><span class="line">	Port intstr.IntOrString</span><br><span class="line">	<span class="comment">// Optional: Host name to connect to, defaults to the pod IP. You</span></span><br><span class="line">	<span class="comment">// probably want to set &quot;Host&quot; in httpHeaders instead.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 连接的主机名，默认PodIP</span></span><br><span class="line">	Host <span class="type">string</span></span><br><span class="line">	<span class="comment">// Optional: Scheme to use for connecting to the host, defaults to HTTP.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 协议，默认HTTP</span></span><br><span class="line">	Scheme URIScheme</span><br><span class="line">	<span class="comment">// Optional: Custom headers to set in the request. HTTP allows repeated headers.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 自定义请求头</span></span><br><span class="line">	HTTPHeaders []HTTPHeader</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h3 id="TCP"><a href="#TCP" class="headerlink" title="TCP"></a>TCP</h3><p>容器尝试执行TCP检查</p>
+<ul>
+<li><p>端口打开，成功</p>
+</li>
+<li><p>如果远程容器打开连接，立即关闭也是成功</p>
+</li>
+<li><p>Ref：<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/apis/core/types.go#L2053">https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/apis/core/types.go#L2053</a></p>
+</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// TCPSocketAction describes an action based on opening a socket</span></span><br><span class="line"><span class="keyword">type</span> TCPSocketAction <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// Required: Port to connect to.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 访问容器的端口名称或者端口号</span></span><br><span class="line">	Port intstr.IntOrString</span><br><span class="line">	<span class="comment">// Optional: Host name to connect to, defaults to the pod IP.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 连接的主机名，默认PodIP</span></span><br><span class="line">	Host <span class="type">string</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="gRPC"><a href="#gRPC" class="headerlink" title="gRPC"></a>gRPC</h3><p>gRPC还在beta阶段，必须启用GRPCContainerProbe特性才能用</p>
+<ul>
+<li>Ref：<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/apis/core/types.go#L2278">https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/apis/core/types.go#L2278</a></li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">type</span> GRPCAction <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// Port number of the gRPC service.</span></span><br><span class="line">	<span class="comment">// Note: Number must be in the range 1 to 65535.</span></span><br><span class="line">  <span class="comment">// 访问容器的端口名称或者端口号</span></span><br><span class="line">	Port <span class="type">int32</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// Service is the name of the service to place in the gRPC HealthCheckRequest</span></span><br><span class="line">	<span class="comment">// (see https://github.com/grpc/grpc/blob/master/doc/health-checking.md).</span></span><br><span class="line">	<span class="comment">//</span></span><br><span class="line">	<span class="comment">// If this is not specified, the default behavior is to probe the server&#x27;s overall health status.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 放置在gPRC HealthCheckRequest的服务名称，必须配置Port</span></span><br><span class="line">  <span class="comment">// 如果健康状态端点不在默认服务智商，必须配置Service属性</span></span><br><span class="line">	Service *<span class="type">string</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image202410302126282.png"></p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2024/10/30/cloud/k8s/pod/K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-Pod(%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5)/">https://piwriw.github.io/2024/10/30/cloud/k8s/pod/K8s核心资源对象-Pod(健康检查)/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a><a class="post-meta__tags" href="/tags/cloud/">cloud</a><a class="post-meta__tags" href="/tags/K8s%E6%BA%90%E7%A0%81/">K8s源码</a><a class="post-meta__tags" href="/tags/pod/">pod</a></div><div class="post-share"><div class="social-share" data-image="/img/k8sLogo.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2024/10/30/cloud/k8s/pod/K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-Pod(%E7%8A%B6%E6%80%81%E4%BB%A5%E5%8F%8A%E5%8E%9F%E5%9C%B0%E5%8D%87%E7%BA%A7)/" title="K8s核心资源对象-Pod（状态以及原地升级）"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">K8s核心资源对象-Pod（状态以及原地升级）</div></div><div class="info-2"><div class="info-item-1">K8s核心资源对象-Pod（状态以及原地升级） 基于1.25  Pod的PodStatus Ref：https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/apis/core/types.go#L3365  12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849505152535455565758596061// PodStatus represents information about the status of a pod. Status may trail the actual// state of a system.type PodStatus struct &#123;	// +optional  // Pod生命周期，包含Pending、Running、Succeeded、Failed和Unknown	Phase Pod...</div></div></div></a><a class="pagination-related" href="/2024/10/29/cloud/k8s/pod/K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-Pod(%E9%9D%99%E6%80%81Pod)/" title="K8s核心资源对象-Pod（静态Pod）"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">K8s核心资源对象-Pod（静态Pod）</div></div><div class="info-2"><div class="info-item-1">K8s核心资源对象-Pod（静态Pod） 基于1.25  什么是静态PodStatic Pod在指定Node由kubelet守护进程之间管理，不需要kube-apiserver监管。  kubelete监视每个static Pod（失败之后重启） static Pod只允许在某一个节点上 节点上运行Pod ，API Server是可见的，但是不受到kube-apiserver控制  创建静态Pod有俩种模式：配置文件和HTTP  配置文件：定义标准的Pod，用JSON或者YAML格式存储在指定目录 使用kubelet的”staticPodPath:“ kubelet定期扫描目录，实现Pod 的CRUD 扫描忽略已点号开头的文件    静态Pod的创建流程有三种func：  NewSourceFile NewSourceURL NewSourceApiserver  最终通过m.merger.Merge最终合并  Ref:https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339b...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2024/10/30/cloud/k8s/pod/K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-Pod(%E7%8A%B6%E6%80%81%E4%BB%A5%E5%8F%8A%E5%8E%9F%E5%9C%B0%E5%8D%87%E7%BA%A7)/" title="K8s核心资源对象-Pod（状态以及原地升级）"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-10-30</div><div class="info-item-2">K8s核心资源对象-Pod（状态以及原地升级）</div></div><div class="info-2"><div class="info-item-1">K8s核心资源对象-Pod（状态以及原地升级） 基于1.25  Pod的PodStatus Ref：https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/apis/core/types.go#L3365  12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849505152535455565758596061// PodStatus represents information about the status of a pod. Status may trail the actual// state of a system.type PodStatus struct &#123;	// +optional  // Pod生命周期，包含Pending、Running、Succeeded、Failed和Unknown	Phase Pod...</div></div></div></a><a class="pagination-related" href="/2024/10/29/cloud/k8s/pod/K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-Pod(%E9%9D%99%E6%80%81Pod)/" title="K8s核心资源对象-Pod（静态Pod）"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-10-29</div><div class="info-item-2">K8s核心资源对象-Pod（静态Pod）</div></div><div class="info-2"><div class="info-item-1">K8s核心资源对象-Pod（静态Pod） 基于1.25  什么是静态PodStatic Pod在指定Node由kubelet守护进程之间管理，不需要kube-apiserver监管。  kubelete监视每个static Pod（失败之后重启） static Pod只允许在某一个节点上 节点上运行Pod ，API Server是可见的，但是不受到kube-apiserver控制  创建静态Pod有俩种模式：配置文件和HTTP  配置文件：定义标准的Pod，用JSON或者YAML格式存储在指定目录 使用kubelet的”staticPodPath:“ kubelet定期扫描目录，实现Pod 的CRUD 扫描忽略已点号开头的文件    静态Pod的创建流程有三种func：  NewSourceFile NewSourceURL NewSourceApiserver  最终通过m.merger.Merge最终合并  Ref:https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339b...</div></div></div></a><a class="pagination-related" href="/2024/10/29/cloud/k8s/pod/K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-Pod(QoS%E4%B8%8E%E9%A9%B1%E9%80%90%E9%A1%BA%E5%BA%8F)/" title="K8s核心资源对象-Pod（QoS与驱逐顺序）"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-10-29</div><div class="info-item-2">K8s核心资源对象-Pod（QoS与驱逐顺序）</div></div><div class="info-2"><div class="info-item-1">K8s核心资源对象-Pod（QoS与驱逐顺序） 基于1.25  什么是QoSQos的三个选值：  Guaranteed：最严格的最不可怜面临驱逐，保证它们不会退出，直到超过它们的限制或没有可以从节点抢占的低优先级Pod  要求每一个Pod容器都要有limits和requests limits和requests必须相等   Burstable：Pod基于一些请求的下限保证，不需要特定的限制  不指定，使用None，允许Pod可用时候灵活增加资源  当Node资源压力导致Pod被驱逐，只有在所有的BestEffort类型的Pod被驱逐之后，Burstable才会被驱逐  要求至少有一个Pod有CPU requests和limits    BestEffort：如果节点面临资源压力，kubelete更愿意驱逐BestEffort的Pod  所有容器都没有limits和requests    QoS的计算参与QoS：普通容器和Init容器，临时容器不参与。 流程如下：  把普通容器、Init容器追加到allContainers中  遍历Pod中所有参与计算的容器，获取requets，通过...</div></div></div></a><a class="pagination-related" href="/2024/10/29/cloud/k8s/pod/K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-Pod(%E8%B5%84%E6%BA%90%E9%85%8D%E9%A2%9D%E4%B8%8Ecgroup)/" title="K8s核心资源对象-Pod（资源配额与cgroup）"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-10-29</div><div class="info-item-2">K8s核心资源对象-Pod（资源配额与cgroup）</div></div><div class="info-2"><div class="info-item-1">K8s核心资源对象-Pod（资源配额与cgroup） 基于1.25  Pod的资源配额Pod主要通过requetsts和limits设置配额：  requests.cpu&#x3D;250m后，实际上是把cgroup的cpu.shares的值设置了（250&#x2F;1000）*1024，默认值是1024  limits.cpu&#x3D;500m，实际上把cgroup的cpu.cfs_quota_us的值设置为（500&#x2F;1000）*100ms，而cpu.cfs_period_us始终是100ms  limits.memory&#x3D;128Mi,相当于cgroup的memory.limit_in_bytes设置为128 * 1024  * 1024，调度时，只会使用requests.memory&#x3D;64Mi判断  如果值设置了limits，没指定requests,没有应用准入时机制，requests的值同样会设置limits   生成cgroup资源的流程如下：  初始化Pause容器和其他容器都用调用calculateLinux Resource Func...</div></div></div></a><a class="pagination-related" href="/2024/10/26/cloud/k8s/pod/K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-Pod(%E5%88%9B%E5%BB%BA%E6%B5%81%E7%A8%8B)/" title="K8s核心资源对象-Pod（创建流程）"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-10-26</div><div class="info-item-2">K8s核心资源对象-Pod（创建流程）</div></div><div class="info-2"><div class="info-item-1">K8s核心资源对象-Pod（创建流程） 基于1.25  如何创建Pod容器通过kubelet 创建   Ref：https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/kubelet/kuberuntime/kuberuntime_manager.go#L668  1234567891011121314151617181920212223242526272829303132333435363738394041424344454647484950515253545556575859606162636465666768697071727374757677787980818283848586878889909192939495969798991001011021031041051061071081091101111121131141151161171181191201211221231241251261271281291301311321331341351361...</div></div></div></a><a class="pagination-related" href="/2024/10/25/cloud/k8s/pod/K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-Pod(Container)/" title="K8s核心资源对象-Pod(Container)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-10-25</div><div class="info-item-2">K8s核心资源对象-Pod(Container)</div></div><div class="info-2"><div class="info-item-1">K8s核心资源对象-Pod(Container) 基于1.25  Container相关字段 Ref：https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/apis/core/types.go#L2167  123456789101112131415161718192021222324252627282930313233343536373839404142434445464748495051525354555657585960616263646566676869707172737475// Container represents a single container that is expected to be run on the host.type Container struct &#123;	// Required: This must be a DNS_LABEL.  Each container in a pod must	// have ...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-Pod%EF%BC%88%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5%EF%BC%89"><span class="toc-number">1.</span> <span class="toc-text">K8s核心资源对象-Pod（健康检查）</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5"><span class="toc-number">1.1.</span> <span class="toc-text">什么是健康检查</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ProbeManager"><span class="toc-number">1.2.</span> <span class="toc-text">ProbeManager</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%8E%A2%E9%92%88%E7%9A%84%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84"><span class="toc-number">1.3.</span> <span class="toc-text">探针的数据结构</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%9B%E7%A7%8D%E6%8E%A2%E6%B5%8B%E6%A8%A1%E5%BC%8F"><span class="toc-number">1.4.</span> <span class="toc-text">四种探测模式</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%91%BD%E4%BB%A4%E8%A1%8C"><span class="toc-number">1.4.1.</span> <span class="toc-text">命令行</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#HTTP"><span class="toc-number">1.4.2.</span> <span class="toc-text">HTTP</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#TCP"><span class="toc-number">1.4.3.</span> <span class="toc-text">TCP</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#gRPC"><span class="toc-number">1.4.4.</span> <span class="toc-text">gRPC</span></a></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-日志系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明">Gorm-日志系统模块原理说明</a><time datetime="2026-01-11T11:56:27.000Z" title="发表于 2026-01-11 19:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-迁移功能模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明">Gorm-迁移功能模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-插件系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明">Gorm-插件系统模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-事务处理模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明">Gorm-事务处理模块原理说明</a><time datetime="2026-01-11T09:56:27.000Z" title="发表于 2026-01-11 17:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-关联关系模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明">Gorm-关联关系模块原理说明</a><time datetime="2026-01-11T08:56:27.000Z" title="发表于 2026-01-11 16:56:27">2026-01-11</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

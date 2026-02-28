@@ -1,0 +1,321 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>crictl | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="crictl什么是crictlCRI的CLI工具-crictl 安装与配置安装12wget https:&#x2F;&#x2F;github.com&#x2F;kubernetes-sigs&#x2F;cri-tools&#x2F;releases&#x2F;download&#x2F;v1.32.0&#x2F;crictl-v1.32.0-linux-amd64.tar.gztar -zxvf crictl-v1.32.0-linux-amd64.tar.gz -C &#x2F;us">
+<meta property="og:type" content="article">
+<meta property="og:title" content="crictl">
+<meta property="og:url" content="https://piwriw.github.io/2024/12/25/cloud/k8s/containerd/crictl/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="crictl什么是crictlCRI的CLI工具-crictl 安装与配置安装12wget https:&#x2F;&#x2F;github.com&#x2F;kubernetes-sigs&#x2F;cri-tools&#x2F;releases&#x2F;download&#x2F;v1.32.0&#x2F;crictl-v1.32.0-linux-amd64.tar.gztar -zxvf crictl-v1.32.0-linux-amd64.tar.gz -C &#x2F;us">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/containerd.png">
+<meta property="article:published_time" content="2024-12-25T15:08:55.000Z">
+<meta property="article:modified_time" content="2026-02-28T13:29:12.663Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="k8s">
+<meta property="article:tag" content="cloud">
+<meta property="article:tag" content="containerd">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/containerd.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "crictl",
+  "url": "https://piwriw.github.io/2024/12/25/cloud/k8s/containerd/crictl/",
+  "image": "https://piwriw.github.io/img/containerd.png",
+  "datePublished": "2024-12-25T15:08:55.000Z",
+  "dateModified": "2026-02-28T13:29:12.663Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2024/12/25/cloud/k8s/containerd/crictl/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'crictl',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/containerd.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">crictl</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">crictl</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2024-12-25T15:08:55.000Z" title="发表于 2024-12-25 23:08:55">2024-12-25</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-02-28T13:29:12.663Z" title="更新于 2026-02-28 21:29:12">2026-02-28</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/">k8s</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/containerd/">containerd</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">1.5k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>7分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-02-28 21:29:12&quot;}" hidden></div><h1 id="crictl"><a href="#crictl" class="headerlink" title="crictl"></a>crictl</h1><h2 id="什么是crictl"><a href="#什么是crictl" class="headerlink" title="什么是crictl"></a>什么是crictl</h2><p>CRI的CLI工具-crictl</p>
+<h2 id="安装与配置"><a href="#安装与配置" class="headerlink" title="安装与配置"></a>安装与配置</h2><h3 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">wget https://github.com/kubernetes-sigs/cri-tools/releases/download/v1.32.0/crictl-v1.32.0-linux-amd64.tar.gz</span><br><span class="line">tar -zxvf crictl-v1.32.0-linux-amd64.tar.gz -C /usr/local/bin</span><br></pre></td></tr></table></figure>
+
+<h3 id="配置"><a href="#配置" class="headerlink" title="配置"></a>配置</h3><ol>
+<li><p>crictl连接containerd</p>
+<p>默认情况下（没有配置crictl配置文件），crictl在Linux节点下会通过几种sock连接运行时的endpoint</p>
+<ul>
+<li>docker：unix:&#x2F;&#x2F;&#x2F;var&#x2F;run&#x2F;dockershim.sock</li>
+<li>containerd: unix:&#x2F;&#x2F;&#x2F;run&#x2F;contianerd&#x2F;containerd.sock</li>
+<li>Ciro: unix:&#x2F;&#x2F;&#x2F;run&#x2F;crio&#x2F;crio&#x2F;sock</li>
+<li>Cri-containerd: unix:&#x2F;&#x2F;&#x2F;var&#x2F;run&#x2F;cri-dockerd.sock</li>
+</ul>
+<blockquote>
+<p>如果是Windows节点，会默认连接到containerd</p>
+</blockquote>
+</li>
+</ol>
+<p>如果要自定义crictl的连接信息有三种形式</p>
+<ol>
+<li><p>通过crictl –runtime-endpoint 和 –runtime-image-endpoint配置</p>
+</li>
+<li><p>通过设置环境变量CONTAINER_RUNTIME_ENDPOINT和IMAGE_SERVEVICE_ENDPOINT配置</p>
+</li>
+<li><p>通过指定crictl –config&#x3D;&#x2F;ect&#x2F;crictl&#x2F;crictl.yaml 来设置配置文件，不指定从&#x2F;etc&#x2F;crictl.yaml和环境变量CRI_CONFIG_FILE中配置的config文件</p>
+</li>
+<li><p>crictl config设置</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line">[root@iZbp1ebizftw2vpbpm737wZ ~]# crictl config</span><br><span class="line">NAME:</span><br><span class="line">   crictl config - Get, set and list crictl configuration options</span><br><span class="line"></span><br><span class="line">USAGE:</span><br><span class="line">   crictl config command [command options] [&lt;crictl options&gt;]</span><br><span class="line"></span><br><span class="line">EXAMPLES:</span><br><span class="line"><span class="meta prompt_">   # </span><span class="language-bash">Set the key <span class="string">&quot;debug&quot;</span> to <span class="string">&quot;true&quot;</span></span></span><br><span class="line">   crictl config --set debug=true</span><br><span class="line"></span><br><span class="line"><span class="meta prompt_">   # </span><span class="language-bash">Set the key <span class="string">&quot;debug&quot;</span> to <span class="string">&quot;true&quot;</span></span></span><br><span class="line">   crictl config debug true</span><br><span class="line"></span><br><span class="line"><span class="meta prompt_">   # </span><span class="language-bash">Get the value of <span class="string">&quot;debug&quot;</span></span></span><br><span class="line">   crictl config --get debug</span><br><span class="line"></span><br><span class="line"><span class="meta prompt_">   # </span><span class="language-bash">Show the full configuration</span></span><br><span class="line">   crictl config --list</span><br><span class="line"></span><br><span class="line">CRICTL OPTIONS:</span><br><span class="line">   runtime-endpoint:      Container Runtime Interface (CRI) runtime endpoint (default: &quot;&quot;)</span><br><span class="line">   image-endpoint:        Container Runtime Interface (CRI) image endpoint (default: &quot;&quot;)</span><br><span class="line">   timeout:               Timeout of connecting to server (default: 2)</span><br><span class="line">   debug:                 Enable debug output (default: false)</span><br><span class="line">   pull-image-on-create:  Enable pulling image on create requests (default: false)</span><br><span class="line">   disable-pull-on-run:   Disable pulling image on run requests (default: false)</span><br><span class="line"></span><br><span class="line">COMMANDS:</span><br><span class="line">   help, h  Shows a list of commands or help for one command</span><br><span class="line"></span><br><span class="line">OPTIONS:</span><br><span class="line">   --get value                  Show the option value</span><br><span class="line">   --list                       Show all option value (default: false)</span><br><span class="line">   --set value [ --set value ]  Set option (can specify multiple or separate values with commas: opt1=val1,opt2=val2)</span><br><span class="line">   --help, -h                   show help</span><br><span class="line">[root@iZbp1ebizftw2vpbpm737wZ ~]# </span><br></pre></td></tr></table></figure>
+
+<p>Example:</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">[root@iZbp1ebizftw2vpbpm737wZ ~]# cat /etc/crictl.yaml </span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">RuntimeService对应的endpoint</span></span><br><span class="line">runtime-endpoint: unix:///run/containerd/containerd.sock</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">ImageService对应的endpoint，如果为空，默认与runtime-endpoint一致</span></span><br><span class="line">image-endpoint: unix:///run/containerd/containerd.sock</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">crictl连接containerd CRI Plugin的超时时间，默认2s</span></span><br><span class="line">timeout: 2</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">是否打印debug日志默认<span class="literal">false</span></span></span><br><span class="line">debug: false</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">是否在插件容器时拉取镜像，默认<span class="literal">false</span></span></span><br><span class="line">pull-image-on-create: false</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">是否禁止在运行容器禁止拉取镜像， 默认<span class="literal">false</span></span></span><br><span class="line">disable-pull-on-run: false</span><br><span class="line">[root@iZbp1ebizftw2vpbpm737wZ ~]# </span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>除了手动创建&#x2F;etc&#x2F;crictl.yaml 还可以通过crictl config –set<key>&#x3D;<value>自动生成 &#x2F;etc&#x2F;crictl.yaml</p>
+</blockquote>
+</li>
+</ol>
+<h2 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><span class="line">[root@iZbp1ebizftw2vpbpm737wZ ~]# crictl -h</span><br><span class="line">NAME:</span><br><span class="line">   crictl - client for CRI</span><br><span class="line"></span><br><span class="line">USAGE:</span><br><span class="line">   crictl [global options] command [command options]</span><br><span class="line"></span><br><span class="line">VERSION:</span><br><span class="line">   v1.32.0</span><br><span class="line"></span><br><span class="line">COMMANDS:</span><br><span class="line">   attach                 Attach to a running container</span><br><span class="line">   checkpoint             Checkpoint one or more running containers</span><br><span class="line">   completion             Output shell completion code</span><br><span class="line">   config                 Get, set and list crictl configuration options</span><br><span class="line">   create                 Create a new container</span><br><span class="line">   events, event          Stream the events of containers</span><br><span class="line">   exec                   Run a command in a running container</span><br><span class="line">   imagefsinfo            Return image filesystem info</span><br><span class="line">   images, image, img     List images</span><br><span class="line">   info                   Display information of the container runtime</span><br><span class="line">   inspect                Display the status of one or more containers</span><br><span class="line">   inspecti               Return the status of one or more images</span><br><span class="line">   inspectp               Display the status of one or more pods</span><br><span class="line">   logs                   Fetch the logs of a container</span><br><span class="line">   metricsp               List pod metrics. Metrics are unstructured key/value pairs gathered by CRI meant to replace cAdvisor&#x27;s /metrics/cadvisor endpoint.</span><br><span class="line">   pods                   List pods</span><br><span class="line">   port-forward           Forward local port to a pod</span><br><span class="line">   ps                     List containers</span><br><span class="line">   pull                   Pull an image from a registry</span><br><span class="line">   rm                     Remove one or more containers</span><br><span class="line">   rmi                    Remove one or more images</span><br><span class="line">   rmp                    Remove one or more pods</span><br><span class="line">   run                    Run a new container inside a sandbox</span><br><span class="line">   runp                   Run a new pod</span><br><span class="line">   runtime-config         Retrieve the container runtime configuration</span><br><span class="line">   start                  Start one or more created containers</span><br><span class="line">   stats                  List container(s) resource usage statistics</span><br><span class="line">   statsp                 List pod statistics. Stats represent a structured API that will fulfill the Kubelet&#x27;s /stats/summary endpoint.</span><br><span class="line">   stop                   Stop one or more running containers</span><br><span class="line">   stopp                  Stop one or more running pods</span><br><span class="line">   update                 Update one or more running containers</span><br><span class="line">   update-runtime-config  Update the runtime configuration</span><br><span class="line">   version                Display runtime version information</span><br><span class="line">   help, h                Shows a list of commands or help for one command</span><br><span class="line"></span><br><span class="line">GLOBAL OPTIONS:</span><br><span class="line">   --config value, -c value                   Location of the client config file. If not specified and the default does not exist, the program&#x27;s directory is searched as well (default: &quot;/etc/crictl.yaml&quot;) [$CRI_CONFIG_FILE]</span><br><span class="line">   --debug, -D                                Enable debug mode (default: false)</span><br><span class="line">   --enable-tracing                           Enable OpenTelemetry tracing. (default: false)</span><br><span class="line">   --image-endpoint value, -i value           Endpoint of CRI image manager service (default: uses &#x27;runtime-endpoint&#x27; setting) [$IMAGE_SERVICE_ENDPOINT]</span><br><span class="line">   --profile-cpu value                        Write a pprof CPU profile to the provided path.</span><br><span class="line">   --profile-mem value                        Write a pprof memory profile to the provided path.</span><br><span class="line">   --runtime-endpoint value, -r value         Endpoint of CRI container runtime service (default: uses in order the first successful one of [unix:///run/containerd/containerd.sock unix:///run/crio/crio.sock unix:///var/run/cri-dockerd.sock]). Default is now deprecated and the endpoint should be set instead. [$CONTAINER_RUNTIME_ENDPOINT]</span><br><span class="line">   --timeout value, -t value                  Timeout of connecting to the server in seconds (e.g. 2s, 20s.). 0 or less is set to default (default: 2s)</span><br><span class="line">   --tracing-endpoint value                   Address to which the gRPC tracing collector will send spans to. (default: &quot;127.0.0.1:4317&quot;)</span><br><span class="line">   --tracing-sampling-rate-per-million value  Number of samples to collect per million OpenTelemetry spans. Set to 1000000 or -1 to always sample. (default: -1)</span><br><span class="line">   --help, -h                                 show help</span><br><span class="line">   --version, -v                              print the version</span><br><span class="line">[root@iZbp1ebizftw2vpbpm737wZ ~]# </span><br></pre></td></tr></table></figure>
+
+<h3 id="pod相关"><a href="#pod相关" class="headerlink" title="pod相关"></a>pod相关</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">运行一个新的Pod</span></span><br><span class="line">crictl runp </span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">停止一个或者多个正在运行的pod</span></span><br><span class="line">crictp stopp </span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">删除一个或多个Pod</span></span><br><span class="line">crictp rmp</span><br><span class="line"><span class="meta prompt_"> </span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">列出pods</span></span><br><span class="line">crictl pods</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">以指定格式显示一个或多个pod的状态和详细信息，支持的格式有json、yaml、go-templdate、table</span></span><br><span class="line">crictl inspectp</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">列出一个或多个pod的资源利用率(cpu、memory)</span></span><br><span class="line">crictl statsp</span><br></pre></td></tr></table></figure>
+
+<h3 id="容器相关"><a href="#容器相关" class="headerlink" title="容器相关"></a>容器相关</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">在sandbox中创建容器</span></span><br><span class="line">crictl create </span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">启动一个或多个容器</span></span><br><span class="line">crictl start</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">停止一个或多个运行的容器</span></span><br><span class="line">crictl stop </span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">删除一个或多个容器</span></span><br><span class="line">crictl rm</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">在sandbox启动容器，等价于create+start</span></span><br><span class="line">crictl run</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">列出正在运行的容器，通过-a列出所有的容器</span></span><br><span class="line">crictl ps</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">以指定的格式显示一个或多个容器的状态，支持json\yaml\go-template\table</span></span><br><span class="line">crictl inspect</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">更新一个或者多个正在运行的容器</span></span><br><span class="line">crictl update</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">列出一个或者多个容器状态</span></span><br><span class="line">crictl stats</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">拉取镜像</span></span><br><span class="line">crictl pull </span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">列出所有镜像</span></span><br><span class="line">images、image、img</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">以指定格式显示一个或者多个镜像的详细信息，支持json、yaml、go-template、table</span></span><br><span class="line">crictl inspecti</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">删除一个或者多个镜像</span></span><br><span class="line">crictl rmi</span><br></pre></td></tr></table></figure>
+
+<h3 id="Streaming"><a href="#Streaming" class="headerlink" title="Streaming"></a>Streaming</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">attach到正在运行进程</span></span><br><span class="line">crictl attch</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">在正在运行的容器执行命令</span></span><br><span class="line">crictl exec </span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">将本地端口转发到pod上</span></span><br><span class="line">crictl port-forward</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">获取容器的日志</span></span><br><span class="line">crictl logs</span><br></pre></td></tr></table></figure>
+
+<h3 id="其他"><a href="#其他" class="headerlink" title="其他"></a>其他</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">打印runtime的版本信息</span></span><br><span class="line">crictl version</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">打印镜像文件系统的信息</span></span><br><span class="line">crictl imagefsinfo</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">获取runtime信息（CRI+CNI的状态）</span></span><br><span class="line">crictl info</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">获取和设置crictl配置信息</span></span><br><span class="line">crictl config</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">输出自动补全信息的shell</span></span><br><span class="line">crictl completion</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">打印帮助信息</span></span><br><span class="line">crictl -h help</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>注意：尽量不要在K8s集群上通过crictl启动pod。如果节点上正在运行kubelet，通过crictl启动pod sandbox或者pod sandbox的内容器时，要先停掉kubelete，否则pod会因为K8s不存在对应pod被kubelet 删除</p>
+</blockquote>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2024/12/25/cloud/k8s/containerd/crictl/">https://piwriw.github.io/2024/12/25/cloud/k8s/containerd/crictl/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a><a class="post-meta__tags" href="/tags/cloud/">cloud</a><a class="post-meta__tags" href="/tags/containerd/">containerd</a></div><div class="post-share"><div class="social-share" data-image="/img/containerd.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2024/12/25/cloud/k8s/containerd/ctr%E7%9A%84%E4%BD%BF%E7%94%A8/" title="ctr的使用"><img class="cover" src="/img/containerd.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">ctr的使用</div></div><div class="info-2"><div class="info-item-1">ctr的使用 安装完containerd之后，ctr也安装好   ctr上containerd提供的客户端，内置在containerd中  查看支持命令 12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849505152535455[root@iZbp1ebizftw2vpbpm737wZ ~]# ctr --help                                                                                                                                                               NAME:                                                                                                               ...</div></div></div></a><a class="pagination-related" href="/2024/12/25/cloud/k8s/containerd/containerd-%E5%AE%89%E8%A3%85/" title="containerd-安装"><img class="cover" src="/img/containerd.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">containerd-安装</div></div><div class="info-2"><div class="info-item-1">containerd-安装官方提供三种类型安装包  containerd：仅包含containerd相关二进制精简安装包，格式为containerd-${VERSION}.${OS}-${ARCH}.tar.gz cri-containerd：包含containerd、cri与runc工具的安装包，格式为cri-containerd-${VERSION}.${OS}-${ARCH}.tar.gz cri-containerd-cni：包含containerd、cri、runc、cni工具的安装包，格式为cri-containerd-cni-${VERSION}.${OS}-${ARCH}.tar.gz  目前主流支持window和linux平台 大致流程安装 下载containerd release安装包  1wget https://github.com/containerd/containerd/releases/download/v1.7.24/cri-containerd-cni-1.7.24-linux-amd64.tar.gz   安装包解压  1tar -zxvf ...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2024/12/26/cloud/k8s/containerd/nerdctl%E7%9A%84%E4%BD%BF%E7%94%A8/" title="nerdctl的使用"><img class="cover" src="/img/nerdctl.svg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-26</div><div class="info-item-2">nerdctl的使用</div></div><div class="info-2"><div class="info-item-1">nerdctl的使用什么是nerdctlnerdctl是containerd官方提供的兼容Docker命令行的工具，支持Docker Cli所有命令，并且支持dokcer-compose 设计初衷不是Docker Cli复制品，希望促进containerd创新实验的发展，Docker不支持这些实验特性如镜像延迟加载，镜像加密  安装nerdctl官方提供俩种安装包  精简安装包：nerdctl--linux-amd64.tar.gz 仅包含nerdctl的二进制文件，以及rootless模式下的辅助安装脚本，需要解压到&#x2F;user&#x2F;local&#x2F;bin目录 完整安装包：nerdctl-full--linux-amd64-.tar.gz。包含containerd、CNI、runc、BUildKit、rootlesskit等完整组件，需要解压到&#x2F;user&#x2F;local目录   cat share&#x2F;doc&#x2F;nerdctl-full&#x2F;README.md可以看见组件版本  下载nerdctl完整安装包 12wget ...</div></div></div></a><a class="pagination-related" href="/2024/12/25/cloud/k8s/containerd/ctr%E7%9A%84%E4%BD%BF%E7%94%A8/" title="ctr的使用"><img class="cover" src="/img/containerd.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-25</div><div class="info-item-2">ctr的使用</div></div><div class="info-2"><div class="info-item-1">ctr的使用 安装完containerd之后，ctr也安装好   ctr上containerd提供的客户端，内置在containerd中  查看支持命令 12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849505152535455[root@iZbp1ebizftw2vpbpm737wZ ~]# ctr --help                                                                                                                                                               NAME:                                                                                                               ...</div></div></div></a><a class="pagination-related" href="/2024/12/25/cloud/k8s/containerd/containerd-%E5%AE%89%E8%A3%85/" title="containerd-安装"><img class="cover" src="/img/containerd.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-25</div><div class="info-item-2">containerd-安装</div></div><div class="info-2"><div class="info-item-1">containerd-安装官方提供三种类型安装包  containerd：仅包含containerd相关二进制精简安装包，格式为containerd-${VERSION}.${OS}-${ARCH}.tar.gz cri-containerd：包含containerd、cri与runc工具的安装包，格式为cri-containerd-${VERSION}.${OS}-${ARCH}.tar.gz cri-containerd-cni：包含containerd、cri、runc、cni工具的安装包，格式为cri-containerd-cni-${VERSION}.${OS}-${ARCH}.tar.gz  目前主流支持window和linux平台 大致流程安装 下载containerd release安装包  1wget https://github.com/containerd/containerd/releases/download/v1.7.24/cri-containerd-cni-1.7.24-linux-amd64.tar.gz   安装包解压  1tar -zxvf ...</div></div></div></a><a class="pagination-related" href="/2024/12/24/cloud/k8s/containerd/containerd-CRI/" title="containerd-CRI"><img class="cover" src="/img/containerd.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-24</div><div class="info-item-2">containerd-CRI</div></div><div class="info-2"><div class="info-item-1">containerd-CRIOverviewCRI定义了容器和镜像服务的接口，使用Protocol Buffer协议  定义了kubelet与不同容器运行时交互规范 接口包含客户端与服务端   123kubectl xx--containerd-runtime-endpoint=&lt;CRI Server的Uninx Socket&gt;--image-service-endpont=&lt; CRI Serverdr的Uninx Socket&gt;   如果Runtime Service和Image Service在一个gPRC Server中要配置container-runtime-endpoint，当image-service-endpoint为空，默认使用container-runtime-endpoint一致的地址 如果是K8s 1.24以前使用CRI Server需要设置container-runtime&#x3D;remote（自从kubelet移除了dockershim，这个参数废弃，默认container-runtime&#x3D;docker  Runti...</div></div></div></a><a class="pagination-related" href="/2025/08/24/cloud/k8s/K8s%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97-%E5%AE%A2%E6%88%B7%E7%AB%AF/" title="K8s开发指南-客户端"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-08-24</div><div class="info-item-2">K8s开发指南-客户端</div></div><div class="info-2"><div class="info-item-1">K8s开发指南-客户端 基于K8s v1.29  API客户端 Ref：https://github.com/kubernetes/client-go  K8s认证方式主要一下俩类：  集群外的认证：客户端程序运行在集群外，以独立进程访问API Server 集群内的认证：客户端在K8s内以Pod形式运行，通过内部服务名访问API Server  客户端访问API Server常见的认证方式有以下的几种  数字证书方式 ServiceAccount方式 BearerToken方式  对于运行在K8s集群之外的客户端，建议使用数字证书方式连接API Server，客户端需要配置的信息包括CA根证书、客户端证书、客户段私钥以及API Server地址 对于运行在集群内的Pod，建议使用ServiceAccount认证方式，需要为Pod增加ServiceAccount资源，并为ServiceAccount配置好正确的RBAC权限 基于kubeconfig文件的配置方式有以下几种：  用户HOME目录中的约定目录，例如$HOME&#x2F;.kube&#x2F;config 在环境变量K...</div></div></div></a><a class="pagination-related" href="/2025/08/23/cloud/k8s/K8s%E5%BC%80%E5%8F%91-API%E8%AF%A6%E8%A7%A3/" title="K8s开发-API详解"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-08-23</div><div class="info-item-2">K8s开发-API详解</div></div><div class="info-2"><div class="info-item-1">K8s开发-API详解 基于K8s v1.29  资源对象一个K8s资源对象描述一般是kind、apiVersion、metadata、spec和status五个部分 资源对象的类型资源对象的类型用Kind属性表示，总体分为3个类型：  对象（Object）、代表系统中永久资源实体，比如Pod、RC 列表（List）：资源对象的合集 简单类别（Simple）：作用于资源对象或非持久辅助实体的特定操作，比如Status、Scale、ListOptions等  资源对象的元数据metadata是资源对象的元数据定义，由一组属性来定义，在K8s中，每个资源对象都必须包含以下元数据属性：  namespec：对象所属的命名空间，如果不指定，则昔日会将对象置于名为default中 name：对象的名称、在一个ns下，唯一性 uid：系统为每个对象生成唯一的ID，符合RFC4122 labels：自定义标签 annotations：用户自定义注解，被K8s内部进程或者外部工具使用 resourceVersion：用于识别资源内部斑斑的字符串，在Watch操作，可以避免Get和下一次Watch...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#crictl"><span class="toc-number">1.</span> <span class="toc-text">crictl</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%80%E4%B9%88%E6%98%AFcrictl"><span class="toc-number">1.1.</span> <span class="toc-text">什么是crictl</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%89%E8%A3%85%E4%B8%8E%E9%85%8D%E7%BD%AE"><span class="toc-number">1.2.</span> <span class="toc-text">安装与配置</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%89%E8%A3%85"><span class="toc-number">1.2.1.</span> <span class="toc-text">安装</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%85%8D%E7%BD%AE"><span class="toc-number">1.2.2.</span> <span class="toc-text">配置</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8"><span class="toc-number">1.3.</span> <span class="toc-text">使用</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#pod%E7%9B%B8%E5%85%B3"><span class="toc-number">1.3.1.</span> <span class="toc-text">pod相关</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%B9%E5%99%A8%E7%9B%B8%E5%85%B3"><span class="toc-number">1.3.2.</span> <span class="toc-text">容器相关</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Streaming"><span class="toc-number">1.3.3.</span> <span class="toc-text">Streaming</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%85%B6%E4%BB%96"><span class="toc-number">1.3.4.</span> <span class="toc-text">其他</span></a></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-日志系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明">Gorm-日志系统模块原理说明</a><time datetime="2026-01-11T11:56:27.000Z" title="发表于 2026-01-11 19:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-迁移功能模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明">Gorm-迁移功能模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-插件系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明">Gorm-插件系统模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-事务处理模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明">Gorm-事务处理模块原理说明</a><time datetime="2026-01-11T09:56:27.000Z" title="发表于 2026-01-11 17:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-关联关系模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明">Gorm-关联关系模块原理说明</a><time datetime="2026-01-11T08:56:27.000Z" title="发表于 2026-01-11 16:56:27">2026-01-11</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

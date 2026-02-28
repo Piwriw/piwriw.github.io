@@ -1,0 +1,407 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Iptables-概述 | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="iptables  什么是iptablesiptables其实只是一个简称，其真正代表的是netfilter&#x2F;iptables这个IP数据包过滤系统。为了简便，本文也将整套系统用iptables简称。iptables是3.5版本的Linux内核集成的IP数据包过滤系统。当系统接入网络时，该系统有利于在Linux系统上更好地控制IP信息包和防火墙配置。此外，iptables还可以进行NAT规则的管理">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Iptables-概述">
+<meta property="og:url" content="https://piwriw.github.io/2024/09/23/cloud/iptables/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="iptables  什么是iptablesiptables其实只是一个简称，其真正代表的是netfilter&#x2F;iptables这个IP数据包过滤系统。为了简便，本文也将整套系统用iptables简称。iptables是3.5版本的Linux内核集成的IP数据包过滤系统。当系统接入网络时，该系统有利于在Linux系统上更好地控制IP信息包和防火墙配置。此外，iptables还可以进行NAT规则的管理">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/golang.png">
+<meta property="article:published_time" content="2024-09-23T14:08:55.000Z">
+<meta property="article:modified_time" content="2026-02-28T13:29:12.660Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="iptables">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/golang.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Iptables-概述",
+  "url": "https://piwriw.github.io/2024/09/23/cloud/iptables/",
+  "image": "https://piwriw.github.io/img/golang.png",
+  "datePublished": "2024-09-23T14:08:55.000Z",
+  "dateModified": "2026-02-28T13:29:12.660Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2024/09/23/cloud/iptables/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Iptables-概述',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/golang.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">Iptables-概述</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">Iptables-概述</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2024-09-23T14:08:55.000Z" title="发表于 2024-09-23 22:08:55">2024-09-23</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-02-28T13:29:12.660Z" title="更新于 2026-02-28 21:29:12">2026-02-28</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/">k8s</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">6.3k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>22分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-02-28 21:29:12&quot;}" hidden></div><h1 id="iptables"><a href="#iptables" class="headerlink" title="iptables"></a>iptables</h1><div style=" width: 100%; height:220;overflow: hidden; "><iframe src="https://widget.pkmer.cn/free/BongoCat?user=f97c2982-f00c-4fe1-8b54-47ddcccf7273&theme=%E4%BA%AE%E8%89%B2%E6%A8%A1%E5%BC%8F" allow="fullscreen" style=" height: 100%; width: 100%;"></iframe></div>
+
+<h2 id="什么是iptables"><a href="#什么是iptables" class="headerlink" title="什么是iptables"></a>什么是iptables</h2><p><code>iptables</code>其实只是一个简称，其真正代表的是<code>netfilter/iptables</code>这个IP数据包过滤系统。为了简便，本文也将整套系统用iptables简称。iptables是3.5版本的Linux内核集成的IP数据包过滤系统。当系统接入网络时，该系统有利于在Linux系统上更好地控制IP信息包和防火墙配置。此外，iptables还可以进行NAT规则的管理。 上面有提到netfilter&#x2F;iptables这个组合，这个组合中：</p>
+<ul>
+<li>netfilter位于内核空间，是内核的一部分，由一些数据包过滤表组成，这些表包含内核用来控制数据包过滤处理的规则集；而netfilter又是由内核中若干hook组成的，程序在执行到内核hook处时便会执行数据包过滤的相关逻辑。</li>
+<li>iptables位于<a target="_blank" rel="noopener" href="https://zhida.zhihu.com/search?q=%E7%94%A8%E6%88%B7%E7%A9%BA%E9%97%B4&zhida_source=entity&is_preview=1">用户空间</a>，是一种工具。该工具可以很便捷地对netfilter所维护的表数据进行修改。从而可以很便捷地控制数据包的过滤规则</li>
+</ul>
+<h3 id="执行顺序"><a href="#执行顺序" class="headerlink" title="执行顺序"></a>执行顺序</h3><p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/202409162226090.png"></p>
+<h2 id="什么是包过滤防火墙"><a href="#什么是包过滤防火墙" class="headerlink" title="什么是包过滤防火墙"></a>什么是包过滤防火墙</h2><p>包过滤防火墙在网络层截取网络数据包的包头（header），针对数据包的包头，根据事先定义好的防火墙过滤规则进行对比，根据对比结果，再执行不同的动作。 包过滤防火墙一般工作在网络层，所以也称为“网络防火墙”，通过检查数据流中每一个数据包的源ip地址，目标ip地址，源端口，目标端口，协议类型（tcp,udp,icmp等），状态等信息来判断是否符合规则</p>
+<h2 id="什么是NAT"><a href="#什么是NAT" class="headerlink" title="什么是NAT"></a>什么是NAT</h2><p>NAT（Network Address Translation）<a target="_blank" rel="noopener" href="https://zhida.zhihu.com/search?q=%E7%BD%91%E7%BB%9C%E5%9C%B0%E5%9D%80%E8%BD%AC%E6%8D%A2&zhida_source=entity&is_preview=1">网络地址转换</a>，常用于局域网主机想与互联网服务通信时做地址转换，因为公网IP有限，且局域网主机访问公网必须要使用公网IP才可以访问到，因此使用NAT方法对地址做转换是一个很高效的方法。根据NAT使用场景不同可以将NAT分为SNAT（Source Network Address Translation）和DNAT（Destination Network Address Translation）</p>
+<ul>
+<li>SNAT：用于局域网服务访问公网服务的场景。即将局域网发出的请求的原地址转换成NAT主机所拥有的公网IP地址，从而与公网服务进行通信</li>
+<li>DNAT：用于公网请求访问局域网服务的场景。即将从公网接收到的请求的目的地址通过NAT规则所配置的局域网网段进行目标服务器局域网地址的转换，从而与局域网内服务通信</li>
+</ul>
+<h2 id="Netfilter-Hooks"><a href="#Netfilter-Hooks" class="headerlink" title="Netfilter Hooks"></a>Netfilter Hooks</h2><p>etfilter其实是内核中若干个Hook点组成的。数据包经过<a target="_blank" rel="noopener" href="https://zhida.zhihu.com/search?q=%E5%86%85%E6%A0%B8%E5%8D%8F%E8%AE%AE%E6%A0%88&zhida_source=entity&is_preview=1">内核协议栈</a>处理程序时，处理程序会触发<code>内核模块注册在相关Hook点上的数据包处理函数</code>。至于处理程序会触发哪个Hook函数，取决于当前<code>数据包的方向（ingress/egress）</code>、<code>数据包的目的地址</code>、<code>数据包在上一个Hook点的状态</code>等等。 内核中有关数据过滤的Hook点有如下几个：</p>
+<ul>
+<li><code>NF_IP_PRE_ROUTING</code>：接收到的数据包进行协议栈后立即触发此Hook，在进行任何路由判断之前；</li>
+<li><code>NF_IP_LOCAL_IN</code>：接收到的数据包经过了路由判断，如果目的地址是本机，将触发此Hook；</li>
+<li><code>NF_IP_FORWARD</code>：接收到的数据包经过了路由判断，如果目的地址是其他机器，将触发此Hook；</li>
+<li><code>NF_IP_LOCAL_OUT</code>：本机产生的准备发送的数据包，在进入协议栈之前立即执行该Hook；</li>
+<li><code>NF_IP_POST_ROUTING</code>：本机产生的准备发送的或者转发的数据包，在经过路由判断之后，将执行该Hook</li>
+</ul>
+<p><strong>注册处理函数时必须提供优先级</strong>，以便 hook 触发时能按照 优先级高低调用处理函数。这使得<strong>多个模块（或者同一内核模块的多个实例）可以在同一 hook 点注册，并且有确定的处理顺序</strong>。内核模块会依次被调用，每次返回一个结果给 netfilter 框架，提示该对这个包做什么操作</p>
+<h2 id="iptables-表和链（Tables-and-Chains）"><a href="#iptables-表和链（Tables-and-Chains）" class="headerlink" title="iptables 表和链（Tables and Chains）"></a>iptables 表和链（Tables and Chains）</h2><p>iptables 使用 table 来组织规则，根据<strong>用来做什么类型的判断</strong>（the type of decisions they are used to make）标准，将规则分为不同 table。</p>
+<p>在每个 table 内部，规则被进一步组织成 chain，<strong>内置的 chain 是由内置的 hook 触发 的</strong>。chain 基本上能决定（basically determin）规则<strong>何时</strong>被匹配。</p>
+<p>下面可以看出，内置的 chain 名字和 netfilter hook 名字是一一对应的：</p>
+<ul>
+<li><code>PREROUTING</code>: 由 <code>NF_IP_PRE_ROUTING</code> hook 触发</li>
+<li><code>INPUT</code>: 由 <code>NF_IP_LOCAL_IN</code> hook 触发</li>
+<li><code>FORWARD</code>: 由 <code>NF_IP_FORWARD</code> hook 触发</li>
+<li><code>OUTPUT</code>: 由 <code>NF_IP_LOCAL_OUT</code> hook 触发</li>
+<li><code>POSTROUTING</code>: 由 <code>NF_IP_POST_ROUTING</code> hook 触发</li>
+</ul>
+<h2 id="Table"><a href="#Table" class="headerlink" title="Table"></a>Table</h2><p>一共有五种table类型：</p>
+<ul>
+<li><p><code>filter table</code>: 过滤（放行&#x2F;拒绝）</p>
+</li>
+<li><p><code>nat table</code>:实现网络地址转换规则</p>
+</li>
+<li><p><code>manle table</code>:修改IP头</p>
+</li>
+<li><p><code>raw table</code>:conntrack 相关</p>
+</li>
+<li><p><code>security table</code>:打SELinux标记</p>
+</li>
+</ul>
+<h3 id="filter-table"><a href="#filter-table" class="headerlink" title="filter table"></a>filter table</h3><p><code>filter</code> table 是最常用的 table 之一，用于<strong>判断是否允许一个包通过</strong>。</p>
+<p>在防火墙领域，这通常称作“过滤”包（”filtering” packets）。这个 table 提供了防火墙 的一些常见功能</p>
+<blockquote>
+<p>filter表中有三条链：input、forward和output。</p>
+</blockquote>
+<ul>
+<li><p>input：用来过滤进入主机的数据包；</p>
+</li>
+<li><p>forward：负责转发流经主机的数据包，起到转发的作用，和NAT关系很大。想要主机支持转发需要设置相关内核参数 &#x2F; <strong>将数据转发到本机的其他网卡设备上</strong></p>
+<ul>
+<li><pre><code class="text">net.ipv4.ip_forward=1 
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">- output：用来处理从主机发出去的数据包。</span><br><span class="line"></span><br><span class="line">### nat table</span><br><span class="line"></span><br><span class="line">`nat` table 用于实现网络地址转换规则。</span><br><span class="line"></span><br><span class="line">当包进入协议栈的时候，这些规则决定是否以及如何修改包的源/目的地址，以改变包被 路由时的行为。`nat` table 通常用于将包路由到无法直接访问的网络</span><br><span class="line"></span><br><span class="line">&gt; nat表中有三条链：prerouting，postrouting和output</span><br><span class="line"></span><br><span class="line">- prerouting：在数据包到达netfilter系统时，在进行路由判断之前执行该链上的规则，作用是改变数据包的目的地址、目的端口等，起到DNAT的作用；</span><br><span class="line">- postrouting：数据包发出时，当数据包经过了路由判断后执行该链上的规则，作用是改变数据包的源地址、源端口等，起到SNAT的作用；</span><br><span class="line">- output：用来处理从主机发出去的数据包。</span><br><span class="line"></span><br><span class="line">### mangle table</span><br><span class="line"></span><br><span class="line">`mangle`（修正）table 用于**修改包的 IP 头**。</span><br><span class="line"></span><br><span class="line">例如，可以修改包的 TTL，增加或减少包可以经过的跳数。</span><br><span class="line"></span><br><span class="line">这个 table 还可以对包打**只在内核内有效的**“标记”（internal kernel “mark”），后 续的 table 或工具处理的时候可以用到这些标记。标记不会修改包本身，只是在包的内核 表示上做标记。</span><br><span class="line"></span><br><span class="line">### raw table</span><br><span class="line"></span><br><span class="line">**iptables 防火墙是有状态的**：对每个包进行判断的时候是**依赖已经判断过的包**。</span><br><span class="line"></span><br><span class="line">建立在 netfilter 之上的连接跟踪（connection tracking）特性**使得 iptables 将包 看作已有的连接或会话的一部分**，而不是一个由独立、不相关的包组成的流。 数据包到达网络接口之后很快就会有连接跟踪逻辑判断。</span><br><span class="line"></span><br><span class="line">### 链（chain）</span><br><span class="line"></span><br><span class="line">filter表中有三条链：input、forward和output。</span><br><span class="line"></span><br><span class="line">- input：用来过滤进入主机的数据包</span><br><span class="line">- forward：负责转发流经主机的数据包，起到转发的作用，和NAT关系很大。想要主机支持转发需要设置相关内核参数</span><br><span class="line">- output：用来处理从主机发出去的数据包</span><br><span class="line"></span><br><span class="line">`raw` table 定义的功能非常有限，其**唯一目的就是提供一个让包绕过连接跟踪的框架**</span><br><span class="line"></span><br><span class="line">### security table</span><br><span class="line"></span><br><span class="line">`security` table 的作用是给包打上 SELinux 标记，以此影响 SELinux 或其他可以解读 SELinux 安全上下文的系统处理包的行为。这些标记可以基于单个包，也可以基于连接</span><br><span class="line"></span><br><span class="line">## 每种 table 实现的 chain（链）</span><br><span class="line"></span><br><span class="line">| Tables/Chains  | PREROUTING | INPUT | FORWARD | OUTPUT | POSTROUTING |</span><br><span class="line">| :------------- | :--------- | :---- | :------ | :----- | :---------- |</span><br><span class="line">| (路由判断)     |            |       |         | Y      |             |</span><br><span class="line">| **raw**        | Y          |       |         | Y      |             |</span><br><span class="line">| (连接跟踪）    | Y          |       |         | Y      |             |</span><br><span class="line">| **mangle**     | Y          | Y     | Y       | Y      | Y           |</span><br><span class="line">| **nat (DNAT)** | Y          |       |         | Y      |             |</span><br><span class="line">| (路由判断)     | Y          |       |         | Y      |             |</span><br><span class="line">| **filter**     |            | Y     | Y       | Y      |             |</span><br><span class="line">| **security**   |            | Y     | Y       | Y      |             |</span><br><span class="line">| **nat (SNAT)** |            | Y     |         | Y      | Y           |</span><br><span class="line"></span><br><span class="line">**当一个包触发 netfilter hook 时，处理过程将沿着列从上向下执行**。触发哪个 hook（列）和包的方向（ingress/egress）、路由判断、过滤条件等相关</span><br><span class="line"></span><br><span class="line">## Chain 遍历优先级</span><br><span class="line"></span><br><span class="line">假设服务器知道如何路由数据包，而且防火墙允许数据包传输，下面就是不同场景下包的游 走流程：</span><br><span class="line"></span><br><span class="line">- 收到的、目的是本机的包：`PRETOUTING` -&gt; `INPUT`</span><br><span class="line">- 收到的、目的是其他主机的包：`PRETOUTING` -&gt; `FORWARD` -&gt; `POSTROUTING`</span><br><span class="line">- 本地产生的包：`OUTPUT` -&gt; `POSTROUTING`</span><br><span class="line"></span><br><span class="line">## 规则</span><br><span class="line"></span><br><span class="line">规则是最终影响数据包的地方，一条有效的规则必须由`匹配规则+动作目标`组成：</span><br><span class="line"></span><br><span class="line">- 匹配规则：提供了需要执行对应动作的目标匹配机制。通常可以匹配协议类型、目的地址、源地址、目的端口、源端口、目的网段、源网段、接收数据包的网卡、发送数据包的网卡、协议头、连接状态等。</span><br><span class="line">- 动作目标：又称为Target。是数据包满足匹配规则时触发的相应的动作。Target分为两种类型：终止目标和非终止目标</span><br><span class="line"></span><br><span class="line">### 终止目标</span><br><span class="line"></span><br><span class="line">Linux内核提供如下的终止目标动作：</span><br><span class="line"></span><br><span class="line">| 动作       | 含义                                                         |</span><br><span class="line">| ---------- | ------------------------------------------------------------ |</span><br><span class="line">| ACCEPT     | 允许数据包通过                                               |</span><br><span class="line">| DROP       | 直接丢弃数据包，不给任何回应信息，这时候[客户端](https://zhida.zhihu.com/search?q=客户端&amp;zhida_source=entity&amp;is_preview=1)会感觉自己的请求没有响应，过了超时时间才会有反应。 |</span><br><span class="line">| REJECT     | 拒绝数据包通过，必要时会给数据发送端一个响应的信息，客户端刚请求就会收到拒绝的信息 |</span><br><span class="line">| SNAT       | 源地址转换，解决内网用户用同一个公网地址上网的问题           |</span><br><span class="line">| MASQUERADE | 是SNAT的一种特殊形式，适用于动态的、临时会变的ip上           |</span><br><span class="line">| DNAT       | 目标地址转换                                                 |</span><br><span class="line">| REDIRECT   | 在本机做端口映射                                             |</span><br><span class="line">| LOG        | 在/var/log/messages文件中记录日志信息（其实就是写入系统日志，通过dmesg也可以看到），然后将数据包传递给下一条规则，也就是说除了记录以外不对数据包做任何其他操作，仍然让下一条规则去匹配 |</span><br><span class="line"></span><br><span class="line">### 特殊的非终止目标 —— Jumping Target</span><br><span class="line"></span><br><span class="line">那如果我想在不影响其他链的情况下使用自己定义的链，该如何操作呢？这时就可以在内置链上配置一个Jumping Target。实际上这里指定的就是我自定义的链的名字。例如下面的配置：</span><br><span class="line"></span><br><span class="line">```text</span><br><span class="line">[root@localhost ~]# iptables -L</span><br><span class="line">Chain INPUT (policy ACCEPT)</span><br><span class="line">target     prot opt source               destination</span><br><span class="line">KUBE-FIREWALL  all  --  anywhere             anywhere</span><br><span class="line"></span><br><span class="line">Chain KUBE-FIREWALL (2 references)</span><br><span class="line">target     prot opt source               destination</span><br><span class="line">DROP       all  --  anywhere             anywhere             /* kubernetes firewall for dropping marked packets */ mark match 0x8000/0x8000</span><br></pre></td></tr></table></figure>
+</code></pre>
+</li>
+</ul>
+</li>
+</ul>
+<p>上面的配置中，INPUT链的target为一条自定义的名为KUBE-FIREWALL的链，这样，从INPUT入口进入的数据包将会沿着链到达KUBE-FIREWALL链，然后将所有带有<code>0x8000/0x8000</code>标记的包丢弃。</p>
+<h2 id="Linux命令操作Iptables"><a href="#Linux命令操作Iptables" class="headerlink" title="Linux命令操作Iptables"></a>Linux命令操作Iptables</h2><h3 id="链操作"><a href="#链操作" class="headerlink" title="链操作"></a>链操作</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">-N 新建链,自定义一条新的规则链</span></span><br><span class="line">iptables -N test</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">X 删除链,删除自定义的规则链；</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">仅能删除用户自定义的引用计数为0的空的链</span></span><br><span class="line">iptables -X test</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">-E 重命名,重命名自定义链；</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">引用计数不为0的自定义链不能够被重命名，也不能被删除；</span></span><br><span class="line">iptables -N testrn</span><br><span class="line">iptables -E testrn testrename</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">-P 默认策略,设置默认策略</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">对filter表中的链而言，其默认策略有</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">ACCEPT：接受</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">DROP：丢弃</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">REJECT：拒绝</span></span><br><span class="line">iptables -P INPUT DROP</span><br><span class="line">iptables -A INPUT -p tcp --dport 22 -j ACCEPT</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h3 id="规则管理"><a href="#规则管理" class="headerlink" title="规则管理"></a>规则管理</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">-A 追加规则，在已有规则后追加规则</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">增加一条拒绝80端口的规则</span></span><br><span class="line">iptables -A INPUT -p tcp --dport 80 -j REJECT</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">-R 替换规则,替换指定链上的指定规则</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">使用-R命令修改拒绝80端口的规则为接受访问</span></span><br><span class="line">iptables -R INPUT 2 -p tcp --dport 80 -j ACCEPT</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">-I 插入规则,要指明位置，省略时表示第一条</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">不指定位置</span></span><br><span class="line"> iptables -I INPUT -p tcp --dport 3306 -j ACCEPT</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">指定位置2</span></span><br><span class="line">iptables -I INPUT 2 -p tcp --dport 443 -j ACCEPT</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">-D：delete，删除规则按照规则序号或规则本身</span></span><br><span class="line">[root@note1 ~]# iptables -vnL INPUT --line-number</span><br><span class="line">Chain INPUT (policy ACCEPT 0 packets, 0 bytes)</span><br><span class="line">num   pkts bytes target     prot opt in     out     source               destination         </span><br><span class="line">1        0     0 ACCEPT     tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            tcp dpt:3306</span><br><span class="line">2      882 55100 ACCEPT     tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            tcp dpt:22</span><br><span class="line">3        0     0 ACCEPT     tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            tcp dpt:80</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">序号删除</span></span><br><span class="line">iptables -D INPUT 2</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">指定规则删除</span></span><br><span class="line">ptables -D INPUT -p tcp --dport 3306 -j ACCEPT</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">-Z 置零</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">iptables的每条规则都有两个计数器：</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">(1) 匹配到的报文的个数；pkts</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">(2) 匹配到的所有报文的大小之和；bytes</span></span><br><span class="line">[root@note1 ~]# iptables -vnL INPUT --line-number</span><br><span class="line">Chain INPUT (policy ACCEPT 11 packets, 774 bytes)</span><br><span class="line">num   pkts bytes target     prot opt in     out     source               destination         </span><br><span class="line">1     1028 63752 ACCEPT     tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            tcp dpt:22</span><br><span class="line">2        0     0 ACCEPT     tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            tcp dpt:80</span><br><span class="line">[root@note1 ~]# iptables -Z INPUT</span><br><span class="line">[root@note1 ~]# iptables -vnL INPUT --line-number</span><br><span class="line">Chain INPUT (policy ACCEPT 0 packets, 0 bytes)</span><br><span class="line">num   pkts bytes target     prot opt in     out     source               destination         </span><br><span class="line">1        6   364 ACCEPT     tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            tcp dpt:22</span><br><span class="line">2        0     0 ACCEPT     tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            tcp dpt:80</span><br><span class="line">[root@note1 ~]#</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">-F 清空规则链</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h4 id="基础"><a href="#基础" class="headerlink" title="基础"></a>基础</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">查看Filter表中所有链以及规则</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">-n：将主机信息（IP地址，端口等）以数字的形式打印出来。默认会以hostname等方式打印出来； -L：显示规则链中已有的条目； --line-numbers：显示条目序号</span></span><br><span class="line">iptables -nL --line-numbers</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">保存当前系统iptables规则</span></span><br><span class="line">iptables-save &gt; $HOME/iptables-save.bak</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h4 id="新增"><a href="#新增" class="headerlink" title="新增"></a>新增</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">向filter表的INPUT链中新增拒绝所有来自192.168.1.1的数据包并指定其序号为2</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">-I：表示insert，即向链中插入一条规则，INPUT为链名，2为规则的序号； -s: 代表匹配源地址； -j：规则目标（Target），DROP代表丢弃所有包</span></span><br><span class="line">iptables -I INPUT 2 -s 192.168.1.1/32 -j DROP</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">向filter表的INPUT链中追加一条拒绝所有发送到192.168.1.1的数据包</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">-A：表示append，即向链末尾追加一条规则； -d：代表匹配目的地址。</span></span><br><span class="line">iptables -A INPUT -d 192.168.1.1/32 -j DROP</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">在nat表的PREROUTING链中新增一条序号为1的LOG规则</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">-I：表示insert，即向链中插入一条规则，PREROUTING为链名，没有指定序号默认为1，即顶部插入； -j：规则目标（Target），LOG代表获取数据包并打印日志； --log-prefix：日志信息的前缀，只能在-j LOG的情况下使用。可以通过man iptables-extensions查看其他针对某个Target的配置使用方式</span></span><br><span class="line">iptables -I PREROUTING -t nat -j LOG --log-prefix &quot;[NAT_PREROUTING_LOG]&quot;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h4 id="删除"><a href="#删除" class="headerlink" title="删除"></a>删除</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">删除filter表的INPUT链中拒绝所有来自192.168.1.1的数据包的规则</span></span><br><span class="line">iptables -D INPUT -s 192.168.1.1/32</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash"> -D：表示delete，即从链中删除相关规则</span></span><br><span class="line">iptables -D INPUT -s 192.168.1.1/32</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">删除filter表的INPUT链中序号为2的规则</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">-D：表示delete，即从链中删除相关规则，链名后面可以接数字，表示删除某个序号。序号怎么获取可以在查看链规则时使用--line-numbers选</span></span><br><span class="line">iptables -D INPUT 2</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h4 id="修改"><a href="#修改" class="headerlink" title="修改"></a>修改</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">在filter表的INPUT链上对所有经过路由选择后判定为发给本机的数据包做跳转至KUBE-NODE-PORT链的操作</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">-m：表示match，这里涉及到iptables扩展的用法，即包匹配扩展模块（extended packet matching modules）。这里使用的addrtype意思是通过选项指定的地址类型进行匹配，结合--dst-type不难得知：当数据包的目的地址类型是本机时，则该包匹配该规则。</span></span><br><span class="line">iptables -I INPUT -m addrtype --dst-type LOCAL -j KUBE-NODE-PORT</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h4 id="example"><a href="#example" class="headerlink" title="example"></a>example</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">实现所有192.168.1.0/24的地址通过123.123.123.123公网地址访问公网</span></span><br><span class="line">iptables -t nat -A POSTROUTING -s 192.168.1.0/24 -j SNAT --to-source 123.123.123.123</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">拒绝一分钟内新建超过4次SSH连接的IP再次连接</span></span><br><span class="line">iptables -A INPUT -p tcp -m tcp --dport 22 -m state --state NEW -m recent --set --name SSH --rsource</span><br><span class="line">iptables -A INPUT -p tcp -m tcp --dport 22 -m state --state NEW -m recent --update --seconds 60 --hitcount 4 --name SSH --rsource -j DROP</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h3 id="扩展模块选项"><a href="#扩展模块选项" class="headerlink" title="扩展模块选项"></a>扩展模块选项</h3><ul>
+<li><p>iptables可以使用带有-m或–match选项的扩展包匹配模块，后跟匹配模块名称；之后，根据特定的模块，可以使用各种额外的命令行选项。您可以在一行中指定多个扩展匹配模块，并且可以在指定模块以接收特定于该模块的帮助后使用-h或–help选项。扩展匹配模块按照规则中指定的顺序进行计算</p>
+</li>
+<li><p>隐式扩展：在使用-p选项指明了特定的协议时，无需再用-m选项指明扩展模块的扩展机制，不需要手动加载扩展模块，即<br>有的模块只需要指定协议名称，不需要指定模块名称，这样在定义协议时，间接的使用了模块，如TCP、UDP、icmp协议，因为协议名与模块名同名；</p>
+<p>显示扩展：必须使用-m选项指明要调用的扩展模块的扩展机制(手动指定引用的模块名称)，要手动加载扩展模块</p>
+<p>rpm -ql iptables   #查看iptables所支持的模块</p>
+</li>
+</ul>
+<h4 id="tcp模块"><a href="#tcp模块" class="headerlink" title="tcp模块"></a>tcp模块</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">iptables -A INPUT -s 192.168.39.6 -p tcp --dport 80 -j ACCEPT</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">filter表input链添加一条规则，允许192.168.39.6通过tcp协议访问本机的80端口；-p指定tcp协议时间接使用了tcp模块</span></span><br><span class="line"></span><br><span class="line">iptables -A INPUT -s 192.168.39.6 -p tcp --dport 80:90 -j ACCEPT</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">允许192.168.39.6通过tcp协议访问本机的80-90之间的所有端口；连续的端口号只会占用一条规则</span></span><br><span class="line"></span><br><span class="line">iptables -A INPUT -s 192.168.39.100 -p tcp --tcp-flags SYN,ACK,FIN,RST,URG,PSH SYN -j REJECT</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">filter表input链添加规则，指定192.168.39.100三次捂手的第一次握手直接拒绝；指定6个标记位，三次握手的第一次握手只有SYN标记位为1，其余都为0，所以最后的SYN表示为SYN为1；标记位只属于TCP协议，所以需要指定协议为TCP；第二次握手为SYN,ACK为1，其余为0；第三次握手为ACK为1，其余为0；并且标记位不存在6个都为1或者都为0的报文</span></span><br><span class="line"></span><br><span class="line">iptables -A INPUT -s 192.168.39.100 -p tcp --syn -j REJECT</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">--syn也表示三次握手的第一次握手，即只检查6个标记位中的4个，并且syn位为1</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="icmp模块"><a href="#icmp模块" class="headerlink" title="icmp模块"></a>icmp模块</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">filter表input链添加规则，允许客户端ping的响应报文；icmp协议中，<span class="built_in">type</span>为0的表示为响应报文，为8的表示为请求报文；间接引用了icmp模块</span></span><br><span class="line">iptables -A INPUT -p icmp --icmp-type 0 -j ACCEPT</span><br></pre></td></tr></table></figure>
+
+<h4 id="multiport模块"><a href="#multiport模块" class="headerlink" title="multiport模块"></a>multiport模块</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">filter表input链添加规则，允许客户端通过TCP协议访问3306和80端口；multiport模块的作用是指定多个不连续的端口，并且只会生成一条规则，不会生成多余的规则；离散端口最多能指定15个</span></span><br><span class="line">iptables -A INPUT -p tcp -m multiport --dports 80,3306 -j ACCEPT</span><br></pre></td></tr></table></figure>
+
+<h4 id="string模块"><a href="#string模块" class="headerlink" title="string模块"></a>string模块</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">iptables虽然不是应用层防火墙，但是也可以通过string模块分析数据报文中的特定关键字</span></span><br><span class="line">--algo &#123;bm|kmp&#125;   字符串匹配检测算法</span><br><span class="line">--from offset     指定数据帧的开始偏移位置</span><br><span class="line">--to offset       指定数据帧的结束偏移位置</span><br><span class="line">--string pattern  要检测的字符串模式</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">filter表output链添加规则，拒绝客户端访问的站点页面内容中带有google关键字的页面；此规则需要设置在output链上，此规则只针对站点页面的内容，所以客户端在访问时，请求报文中是不带有站点页面内容的，只有回复报文中才包含页面内容，并且回复报文的源端口为本机的80端口</span></span><br><span class="line">iptables -A OUTPUT -p tcp --sport 80 -m string --algo bm --string &quot;google&quot; -j REJECT</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h4 id="time模块"><a href="#time模块" class="headerlink" title="time模块"></a>time模块</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">通过time模块定义具体时间的访问策略</span></span><br><span class="line">--datestart YYYY[-MM[-DD[Thh[:mm[:ss]]]]] 开始日期</span><br><span class="line">--datestop  YYYY[-MM[-DD[Thh[:mm[:ss]]]]] 结束日期</span><br><span class="line">--timestart hh:mm[:ss] 开始时间</span><br><span class="line">--timestop  hh:mm[:ss] 结束时间</span><br><span class="line">--monthdays day[,day...] 每个月的几号</span><br><span class="line">--weekdays day[,day...]  星期几，1 – 7 分别表示星期一到星期日</span><br><span class="line">--kerneltz：内核时区，不建议使用，不设置此选项CentOS7系统默认为UTC，设置规则时需要+8小时；centos6不支持--kerneltz，centos6默认就是当地时间，不需要进行转换；</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">filter表input链添加规则，拒绝所有客户端在周六、周日的早9点到晚6点访问本机的所有地址</span></span><br><span class="line">iptables -A INPUT -m time --timestart 1:00 --timestop 10:00 --weekdays Sat,Sun -j DROP</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h4 id="connlimit模块"><a href="#connlimit模块" class="headerlink" title="connlimit模块"></a>connlimit模块</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">根据每个客户端IP做并发连接数数量匹配限制，可防止Dos(Denial of Service，拒绝服务)攻击</span></span><br><span class="line">--connlimit-upto   连接的数量小于等于多少时匹配</span><br><span class="line">--connlimit-above  连接的数量大于多少时匹配</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">filter表input链添加规则，当每个客户端IP访问tcp80端口，并发连接超过100时，拒绝访问</span></span><br><span class="line">iptables -A INPUT -p tcp --dport 80 -m connlimit --connlimit-above 100 -j REJECT   </span><br></pre></td></tr></table></figure>
+
+<h4 id="limit模块"><a href="#limit模块" class="headerlink" title="limit模块"></a>limit模块</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">limit模块可以限制报文收发速率</span><br><span class="line">--limit #[/second|/minute|/hour|/day]  #限制收发报文速率</span><br><span class="line">--limit-burst number                   #指定前多少个报文不限制</span><br><span class="line"></span><br><span class="line">1、iptables -A INPUT -p icmp --icmp-type 8 -m limit --limit 20/minute --limit-burst 5 -j ACCEPT</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">filter表input链添加规则，指定每分钟接收20个报文，并且前5个报文不进行限制</span></span><br><span class="line"></span><br><span class="line">2、iptables -A INPUT -j REJECT   </span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">需要配合此条规则一起使用，否则第一条规则不成立，默认会全部允许访问</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="state模块"><a href="#state模块" class="headerlink" title="state模块"></a>state模块</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">通过state状态跟踪模块，判断新旧用户发起的请求，从而进行访问控制；</span><br><span class="line"></span><br><span class="line">状态有如下几种：</span><br><span class="line">NEW：新发出请求；连接追踪信息库中不存在此连接的相关信息条目，因此，将其识别为第一次发出的请求，即new为一次连接的第一个请求；如断开连接后，重新建立连接，再次发送请求，此请求也为new；</span><br><span class="line">ESTABLISHED：NEW状态之后，连接追踪信息库中为其建立的条目失效之前期间内所进行的通信状态，即一次连接第一次请求之后的请求都为ESTABLISHED；</span><br><span class="line">RELATED：新发起的但与已有连接相关联的连接，如：ftp协议中的数据连接与命令连接之间的关系；</span><br><span class="line">INVALID：无效的连接，如flag标记位不正确，如TCP6个标记位都为0或者都为1；</span><br><span class="line">UNTRACKED：未进行追踪的连接，如raw表中关闭追踪；</span><br><span class="line"></span><br><span class="line">1、iptables -A INPUT -p tcp --dport 22 -m state --state ESTABLISHED,RELATED -j ACCEPT</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">ESTABLISHED为已经建立连接的，RELATED为与已有连接相关的连接，这两个状态都代表老用户；允许老用户通过tcp协议访问22端口</span></span><br><span class="line"></span><br><span class="line">2、iptables -A INPUT -j REJECT  #配合第一条规则使用，拒绝新用户连接22端口</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash"><span class="comment">##注意</span></span></span><br><span class="line">连接跟踪功能是通过conntrack模块实现的，通过“lsmod | grep conntrack”查看内核中是否加载了该模块，此模块会因为iptables规则中调用了state模块，则内核会自动加载conntrack模块，否则不会加载此模块</span><br><span class="line">/proc/net/nf_conntrack         #此文件为跟踪库，记录了连接过本机的IP，但是记录在内存中，终究是有极限的 </span><br><span class="line"></span><br><span class="line">/proc/sys/net/nf_conntrack_max #此文件记录了最大跟踪连接的数量，超过此文件数量的连接将会被拒绝；连接跟踪会占用较多内存，加大系统负载 </span><br><span class="line"></span><br><span class="line">/proc/sys/net/netfilter/       #此目录下的文件记录了各个协议的连接超时时长 </span><br><span class="line"></span><br><span class="line"></span><br><span class="line">conntrack连接跟踪模块还有另外一个功能，ftp的被动模式开启的端口不固定，这样在防火墙策略中不方便开启端口，跟踪模块可以通过分析ftp协议的21端口，通过分析命令通道获取到被动模式所要开启的数据通道端口号，需要让内核加载一个能够分析ftp协议的conntrack跟踪模块，具体步骤如下： </span><br><span class="line">1、modprobe nf_conntrack_ftp                                        #使内核加载能够分析ftp协议的conntrack跟踪模块 </span><br><span class="line"></span><br><span class="line">2、iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT #允许已经建立连接或和已有连接相关的连接访问；连通21端口，后续连接都算ESTABLISHED或RELATED； </span><br><span class="line"></span><br><span class="line">3、iptables -A INPUT -p tcp --dport 21 -j ACCEPT                    #允许客户端访问tcp的21端口 </span><br><span class="line"></span><br><span class="line">4、iptables -A INPUT -J REJECT     </span><br></pre></td></tr></table></figure>
+
+<h3 id="state"><a href="#state" class="headerlink" title="state"></a>state</h3><p>state模块允许访问此数据包的连接跟踪状态。</p>
+<ul>
+<li>NEW: 新连接请求；</li>
+<li>ESTABLISHED：已建立的连接；</li>
+<li>INVALID：无法识别的连接；</li>
+<li>RELATED：相关联的连接，当前连接是一个新请求，但附属于某个已存在的连接；</li>
+<li>UNTRACKED：未追踪的连接；</li>
+</ul>
+<blockquote>
+<p>state内核模块装载：</p>
+</blockquote>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">nf_conntrack</span><br><span class="line">nf_conntrack_ipv4</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>手动装载</p>
+</blockquote>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nf_conntrack_ftp</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>追踪到的连接</p>
+</blockquote>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/proc/net/nf_conntrack</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>调整可记录的连接数量最大值</p>
+</blockquote>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/proc/sys/net/nf_conntrack_max</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>超时时长</p>
+</blockquote>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/proc/sys/net/netfilter/timeout</span><br></pre></td></tr></table></figure>
+
+<h3 id="保存、重载"><a href="#保存、重载" class="headerlink" title="保存、重载"></a>保存、重载</h3><p>保存：<code>iptables-save &gt; /PATH/TO/SOME_RULE_FILE</code></p>
+<p>重载：<code>iptabls-restore &lt; /PATH/FROM/SOME_RULE_FILE</code><br><code>-n, --noflush</code>：不清除原有规则<br><code>-t, --test</code>：仅分析生成规则集，但不提交</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2024/09/23/cloud/iptables/">https://piwriw.github.io/2024/09/23/cloud/iptables/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/iptables/">iptables</a></div><div class="post-share"><div class="social-share" data-image="/img/golang.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2024/09/23/cloud/docker/Docker-Linux%20Cgroups/" title="Docker-Linux Cgroups"><img class="cover" src="/img/docker.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">Docker-Linux Cgroups</div></div><div class="info-2"><div class="info-item-1">Docker-Linux Cgroups什么是Linux CgroupsLinux Cgroups提供了对一组进程以及将来子进程的资源限制、控制和统计的能力，包含CPU、内存、存储、网络等。通过Cgroups，可以方便的限制某个进程的资源占用，并且可以实时统计监控进程和统计消息。 Cgroups的组件cgroupcgroup是对进程分组管理的一种机制，一个cgroup包含一组进程，并且在cgroup 上增加Linux subsystem的各种参数配置，将一组进程和一组subsystem系统参数关联起来 subsystemsubsystem是一组资源控制模块，有下面的几个模块  blkio设置对块设备（比如硬盘）输入输出的访问控制  cpu设置cgroup中进程的CPU被调度的策略  cpuacct可以统计cgroup中进程调度的CPu占用  cpuset在多核机器上设置cgroup中进程可以使用的CPU和内存（此内存仅适用于NUMA架构）  devices控制cgroup中进程对于设备的访问  freezer用于挂起（suspend)和恢复（resume)cgroup中的进程  ...</div></div></div></a><a class="pagination-related" href="/2024/09/15/basic/go/GO-%E6%B7%B1%E6%8B%B7%E8%B4%9D/" title="GO-深拷贝"><img class="cover" src="/img/go.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">GO-深拷贝</div></div><div class="info-2"><div class="info-item-1">GO-深拷贝复习在 Go 语言中，所有的函数参数传递都是值传递（pass by value），当将参数传递给函数时，实际上是将参数的副本传递给函数。 然而，这并不意味着在函数内部对参数的修改都不会影响原始数据。因为在 Go 中，有些数据类型本身就是引用类型，比如切片（slice）、映射（map）、通道（channel）、接口（interface）和指针（pointer）。当这些类型作为参数传递给函数时，虽然传递的是值，但值本身就是一个引用 代码陷阱切片是结构 预期：Before和After是一样的值，因为参数传递都是值传递  123456789101112131415161718192021222324252627282930package mainimport (	&quot;fmt&quot;	&quot;strconv&quot;)type Person struct &#123;	Name    string	Age     int	Address []string&#125;func changepeople(people []Person) &#123;	people...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2025/03/14/database/mysql/MySQL-PerformanceSchema/" title="MySQL-PerformanceSchema"><img class="cover" src="/img/mysql.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-03-14</div><div class="info-item-2">MySQL-PerformanceSchema</div></div><div class="info-2"><div class="info-item-1">MySQL-PerformanceSchemaPerformanceSchemaPerformance Schema是提供了MySQL服务器内部运行的操作上的底层指标 消费者表实上，MySQL 8.0.25社区 版的performance_schema中包含110个表。基于它们的用途，可分为以 下几个类别。  当前和历史数据  存放事件的表名包含如下结尾：  *current 当前服务器上进行中的事件  _history 每个线程最近完成的10个事件  history_long 从全局来看，每个线程最近完成的10000个事件  _ _history和_history_long表的大小是可配置的 以下是当前和历史数据  events_waits 底层服务器等待，例如获取互斥对象  events_statements SQL查询语句  events_stages 配置文件信息，例如创建临时表或发  events_transactions 事务   汇总表和摘要：  汇总表保存有关该表所建议的内容的聚合信息。例如，memory_summary_by_thread_by_event_na...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#iptables"><span class="toc-number">1.</span> <span class="toc-text">iptables</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%80%E4%B9%88%E6%98%AFiptables"><span class="toc-number">1.1.</span> <span class="toc-text">什么是iptables</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%89%A7%E8%A1%8C%E9%A1%BA%E5%BA%8F"><span class="toc-number">1.1.1.</span> <span class="toc-text">执行顺序</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF%E5%8C%85%E8%BF%87%E6%BB%A4%E9%98%B2%E7%81%AB%E5%A2%99"><span class="toc-number">1.2.</span> <span class="toc-text">什么是包过滤防火墙</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%80%E4%B9%88%E6%98%AFNAT"><span class="toc-number">1.3.</span> <span class="toc-text">什么是NAT</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Netfilter-Hooks"><span class="toc-number">1.4.</span> <span class="toc-text">Netfilter Hooks</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#iptables-%E8%A1%A8%E5%92%8C%E9%93%BE%EF%BC%88Tables-and-Chains%EF%BC%89"><span class="toc-number">1.5.</span> <span class="toc-text">iptables 表和链（Tables and Chains）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Table"><span class="toc-number">1.6.</span> <span class="toc-text">Table</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#filter-table"><span class="toc-number">1.6.1.</span> <span class="toc-text">filter table</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Linux%E5%91%BD%E4%BB%A4%E6%93%8D%E4%BD%9CIptables"><span class="toc-number">1.7.</span> <span class="toc-text">Linux命令操作Iptables</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%93%BE%E6%93%8D%E4%BD%9C"><span class="toc-number">1.7.1.</span> <span class="toc-text">链操作</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%A7%84%E5%88%99%E7%AE%A1%E7%90%86"><span class="toc-number">1.7.2.</span> <span class="toc-text">规则管理</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%9F%BA%E7%A1%80"><span class="toc-number">1.7.2.1.</span> <span class="toc-text">基础</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%96%B0%E5%A2%9E"><span class="toc-number">1.7.2.2.</span> <span class="toc-text">新增</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%88%A0%E9%99%A4"><span class="toc-number">1.7.2.3.</span> <span class="toc-text">删除</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BF%AE%E6%94%B9"><span class="toc-number">1.7.2.4.</span> <span class="toc-text">修改</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#example"><span class="toc-number">1.7.2.5.</span> <span class="toc-text">example</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%89%A9%E5%B1%95%E6%A8%A1%E5%9D%97%E9%80%89%E9%A1%B9"><span class="toc-number">1.7.3.</span> <span class="toc-text">扩展模块选项</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#tcp%E6%A8%A1%E5%9D%97"><span class="toc-number">1.7.3.1.</span> <span class="toc-text">tcp模块</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#icmp%E6%A8%A1%E5%9D%97"><span class="toc-number">1.7.3.2.</span> <span class="toc-text">icmp模块</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#multiport%E6%A8%A1%E5%9D%97"><span class="toc-number">1.7.3.3.</span> <span class="toc-text">multiport模块</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#string%E6%A8%A1%E5%9D%97"><span class="toc-number">1.7.3.4.</span> <span class="toc-text">string模块</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#time%E6%A8%A1%E5%9D%97"><span class="toc-number">1.7.3.5.</span> <span class="toc-text">time模块</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#connlimit%E6%A8%A1%E5%9D%97"><span class="toc-number">1.7.3.6.</span> <span class="toc-text">connlimit模块</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#limit%E6%A8%A1%E5%9D%97"><span class="toc-number">1.7.3.7.</span> <span class="toc-text">limit模块</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#state%E6%A8%A1%E5%9D%97"><span class="toc-number">1.7.3.8.</span> <span class="toc-text">state模块</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#state"><span class="toc-number">1.7.4.</span> <span class="toc-text">state</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BF%9D%E5%AD%98%E3%80%81%E9%87%8D%E8%BD%BD"><span class="toc-number">1.7.5.</span> <span class="toc-text">保存、重载</span></a></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-日志系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明">Gorm-日志系统模块原理说明</a><time datetime="2026-01-11T11:56:27.000Z" title="发表于 2026-01-11 19:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-迁移功能模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明">Gorm-迁移功能模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-插件系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明">Gorm-插件系统模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-事务处理模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明">Gorm-事务处理模块原理说明</a><time datetime="2026-01-11T09:56:27.000Z" title="发表于 2026-01-11 17:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-关联关系模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明">Gorm-关联关系模块原理说明</a><time datetime="2026-01-11T08:56:27.000Z" title="发表于 2026-01-11 16:56:27">2026-01-11</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

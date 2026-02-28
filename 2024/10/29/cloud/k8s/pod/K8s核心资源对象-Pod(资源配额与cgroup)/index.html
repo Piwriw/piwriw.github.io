@@ -1,0 +1,358 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>K8s核心资源对象-Pod（资源配额与cgroup） | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="K8s核心资源对象-Pod（资源配额与cgroup） 基于1.25  Pod的资源配额Pod主要通过requetsts和limits设置配额：  requests.cpu&#x3D;250m后，实际上是把cgroup的cpu.shares的值设置了（250&#x2F;1000）*1024，默认值是1024  limits.cpu&#x3D;500m，实际上把cgroup的cpu.cfs_quota">
+<meta property="og:type" content="article">
+<meta property="og:title" content="K8s核心资源对象-Pod（资源配额与cgroup）">
+<meta property="og:url" content="https://piwriw.github.io/2024/10/29/cloud/k8s/pod/K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-Pod(%E8%B5%84%E6%BA%90%E9%85%8D%E9%A2%9D%E4%B8%8Ecgroup)/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="K8s核心资源对象-Pod（资源配额与cgroup） 基于1.25  Pod的资源配额Pod主要通过requetsts和limits设置配额：  requests.cpu&#x3D;250m后，实际上是把cgroup的cpu.shares的值设置了（250&#x2F;1000）*1024，默认值是1024  limits.cpu&#x3D;500m，实际上把cgroup的cpu.cfs_quota">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/k8sLogo.png">
+<meta property="article:published_time" content="2024-10-29T12:57:55.000Z">
+<meta property="article:modified_time" content="2026-02-28T13:29:12.671Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="k8s">
+<meta property="article:tag" content="cloud">
+<meta property="article:tag" content="K8s源码">
+<meta property="article:tag" content="pod">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/k8sLogo.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "K8s核心资源对象-Pod（资源配额与cgroup）",
+  "url": "https://piwriw.github.io/2024/10/29/cloud/k8s/pod/K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-Pod(%E8%B5%84%E6%BA%90%E9%85%8D%E9%A2%9D%E4%B8%8Ecgroup)/",
+  "image": "https://piwriw.github.io/img/k8sLogo.png",
+  "datePublished": "2024-10-29T12:57:55.000Z",
+  "dateModified": "2026-02-28T13:29:12.671Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2024/10/29/cloud/k8s/pod/K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-Pod(%E8%B5%84%E6%BA%90%E9%85%8D%E9%A2%9D%E4%B8%8Ecgroup)/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'K8s核心资源对象-Pod（资源配额与cgroup）',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/k8sLogo.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">K8s核心资源对象-Pod（资源配额与cgroup）</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">K8s核心资源对象-Pod（资源配额与cgroup）</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2024-10-29T12:57:55.000Z" title="发表于 2024-10-29 20:57:55">2024-10-29</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-02-28T13:29:12.671Z" title="更新于 2026-02-28 21:29:12">2026-02-28</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/">k8s</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/pod/">pod</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">1.7k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>8分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-02-28 21:29:12&quot;}" hidden></div><h1 id="K8s核心资源对象-Pod（资源配额与cgroup）"><a href="#K8s核心资源对象-Pod（资源配额与cgroup）" class="headerlink" title="K8s核心资源对象-Pod（资源配额与cgroup）"></a>K8s核心资源对象-Pod（资源配额与cgroup）</h1><blockquote>
+<p>基于1.25</p>
+</blockquote>
+<h2 id="Pod的资源配额"><a href="#Pod的资源配额" class="headerlink" title="Pod的资源配额"></a>Pod的资源配额</h2><p>Pod主要通过requetsts和limits设置配额：</p>
+<ul>
+<li><p>requests.cpu&#x3D;250m后，实际上是把<code>cgroup</code>的<code>cpu.shares</code>的值设置了（250&#x2F;1000）*1024，默认值是1024</p>
+</li>
+<li><p>limits.cpu&#x3D;500m，实际上把<code>cgroup</code>的<code>cpu.cfs_quota_us</code>的值设置为（500&#x2F;1000）*100ms，而<code>cpu.cfs_period_us</code>始终是100ms</p>
+</li>
+<li><p>limits.memory&#x3D;128Mi,相当于<code>cgroup</code>的<code>memory.limit_in_bytes</code>设置为128 * 1024  * 1024，调度时，只会使用requests.memory&#x3D;64Mi判断</p>
+</li>
+<li><p>如果值设置了limits，没指定requests,没有应用准入时机制，requests的值同样会设置limits</p>
+</li>
+</ul>
+<p>生成cgroup资源的流程如下：</p>
+<ol>
+<li>初始化Pause容器和其他容器都用调用calculateLinux Resource Func来计算最终资源</li>
+<li>生成Linux的容器资源配额LinuxContainer Resource</li>
+</ol>
+<h2 id="LinuxContainer-Resource字段"><a href="#LinuxContainer-Resource字段" class="headerlink" title="LinuxContainer Resource字段"></a>LinuxContainer Resource字段</h2><ul>
+<li><p>CpuPeriod：容器CPU时间长度，单位是微秒</p>
+</li>
+<li><p>CpuQuota：容器可以使用的CPU的时间量，单位微秒</p>
+<ul>
+<li>不设置CpuQuota，容器可以允许使用全部时间的CPU时间</li>
+<li>CpuQuota小于CpuPeriod，则容器CPU资源将设置为CpuQuota&#x2F;CpuPeriod比例</li>
+</ul>
+</li>
+<li><p>CpuShares：容器的CPU资源共享时间。CpuShares表示对CPU时间的相对访问权，而不是实际的时间片数。所有容器的CPU时间如果已经分配完，则CpuShares越大，获得CPU时间越多</p>
+</li>
+<li><p>MermoryLimtitInBytes：对容器内存使用的硬限制，单位为Bytes。容器无法使用超过此限制，超过容器困难强制退出</p>
+</li>
+<li><p>OomScoreAdj：设置内核Out-Of-Memory killer规则的一种机制，在内存资源紧张，终止系统的一些进程，释放更多内存资源</p>
+<ul>
+<li>通过调试此值，可以提供容器被警告和终止的风险</li>
+<li>默认0.无限制</li>
+</ul>
+</li>
+<li><p>CpusetCpus：容器能使用的CPU ID列表。”0-2，5，7“ 容器可以使用0，1，2 ，5，7 号CPU</p>
+</li>
+<li><p>CpusetMems：容器能使用的内存节点列表</p>
+</li>
+<li><p>HugepageLimits：容器对Hugepage的大小个数量限制</p>
+</li>
+<li><p>Unified：Linux cgroup v2参数，键值对表示参数名和值</p>
+</li>
+<li><p>MemeorySwapLimitInBytes：对容器使用swap的硬限制，单位为字节</p>
+<ul>
+<li>不设置，默认2倍MermoryLimtitInBytes</li>
+</ul>
+</li>
+<li><p>Ref：<a target="_blank" rel="noopener" href="https://github.com/kubernetes/cri-api/blob/2c8d015e0d408208ca8843c1d6e2e2fce1e5dd94/pkg/apis/runtime/v1/api.pb.go#L3256">https://github.com/kubernetes/cri-api/blob/2c8d015e0d408208ca8843c1d6e2e2fce1e5dd94/pkg/apis/runtime/v1/api.pb.go#L3256</a></p>
+</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// LinuxContainerResources specifies Linux specific configuration for</span></span><br><span class="line"><span class="comment">// resources.</span></span><br><span class="line"><span class="keyword">type</span> LinuxContainerResources <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// CPU CFS (Completely Fair Scheduler) period. Default: 0 (not specified).</span></span><br><span class="line">	CpuPeriod <span class="type">int64</span> <span class="string">`protobuf:&quot;varint,1,opt,name=cpu_period,json=cpuPeriod,proto3&quot; json:&quot;cpu_period,omitempty&quot;`</span></span><br><span class="line">	<span class="comment">// CPU CFS (Completely Fair Scheduler) quota. Default: 0 (not specified).</span></span><br><span class="line">	CpuQuota <span class="type">int64</span> <span class="string">`protobuf:&quot;varint,2,opt,name=cpu_quota,json=cpuQuota,proto3&quot; json:&quot;cpu_quota,omitempty&quot;`</span></span><br><span class="line">	<span class="comment">// CPU shares (relative weight vs. other containers). Default: 0 (not specified).</span></span><br><span class="line">	CpuShares <span class="type">int64</span> <span class="string">`protobuf:&quot;varint,3,opt,name=cpu_shares,json=cpuShares,proto3&quot; json:&quot;cpu_shares,omitempty&quot;`</span></span><br><span class="line">	<span class="comment">// Memory limit in bytes. Default: 0 (not specified).</span></span><br><span class="line">	MemoryLimitInBytes <span class="type">int64</span> <span class="string">`protobuf:&quot;varint,4,opt,name=memory_limit_in_bytes,json=memoryLimitInBytes,proto3&quot; json:&quot;memory_limit_in_bytes,omitempty&quot;`</span></span><br><span class="line">	<span class="comment">// OOMScoreAdj adjusts the oom-killer score. Default: 0 (not specified).</span></span><br><span class="line">	OomScoreAdj <span class="type">int64</span> <span class="string">`protobuf:&quot;varint,5,opt,name=oom_score_adj,json=oomScoreAdj,proto3&quot; json:&quot;oom_score_adj,omitempty&quot;`</span></span><br><span class="line">	<span class="comment">// CpusetCpus constrains the allowed set of logical CPUs. Default: &quot;&quot; (not specified).</span></span><br><span class="line">	CpusetCpus <span class="type">string</span> <span class="string">`protobuf:&quot;bytes,6,opt,name=cpuset_cpus,json=cpusetCpus,proto3&quot; json:&quot;cpuset_cpus,omitempty&quot;`</span></span><br><span class="line">	<span class="comment">// CpusetMems constrains the allowed set of memory nodes. Default: &quot;&quot; (not specified).</span></span><br><span class="line">	CpusetMems <span class="type">string</span> <span class="string">`protobuf:&quot;bytes,7,opt,name=cpuset_mems,json=cpusetMems,proto3&quot; json:&quot;cpuset_mems,omitempty&quot;`</span></span><br><span class="line">	<span class="comment">// List of HugepageLimits to limit the HugeTLB usage of container per page size. Default: nil (not specified).</span></span><br><span class="line">	HugepageLimits []*HugepageLimit <span class="string">`protobuf:&quot;bytes,8,rep,name=hugepage_limits,json=hugepageLimits,proto3&quot; json:&quot;hugepage_limits,omitempty&quot;`</span></span><br><span class="line">	<span class="comment">// Unified resources for cgroup v2. Default: nil (not specified).</span></span><br><span class="line">	<span class="comment">// Each key/value in the map refers to the cgroup v2.</span></span><br><span class="line">	<span class="comment">// e.g. &quot;memory.max&quot;: &quot;6937202688&quot; or &quot;io.weight&quot;: &quot;default 100&quot;.</span></span><br><span class="line">	Unified <span class="keyword">map</span>[<span class="type">string</span>]<span class="type">string</span> <span class="string">`protobuf:&quot;bytes,9,rep,name=unified,proto3&quot; json:&quot;unified,omitempty&quot; protobuf_key:&quot;bytes,1,opt,name=key,proto3&quot; protobuf_val:&quot;bytes,2,opt,name=value,proto3&quot;`</span></span><br><span class="line">	<span class="comment">// Memory swap limit in bytes. Default 0 (not specified).</span></span><br><span class="line">	MemorySwapLimitInBytes <span class="type">int64</span>    <span class="string">`protobuf:&quot;varint,10,opt,name=memory_swap_limit_in_bytes,json=memorySwapLimitInBytes,proto3&quot; json:&quot;memory_swap_limit_in_bytes,omitempty&quot;`</span></span><br><span class="line">  <span class="comment">// 主要是Protocol Buffers 使用</span></span><br><span class="line">	XXX_NoUnkeyedLiteral   <span class="keyword">struct</span>&#123;&#125; <span class="string">`json:&quot;-&quot;`</span></span><br><span class="line">	<span class="comment">// Protocol 内部字段，提高序列化性能</span></span><br><span class="line">	XXX_sizecache          <span class="type">int32</span>    <span class="string">`json:&quot;-&quot;`</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="计算资源配额"><a href="#计算资源配额" class="headerlink" title="计算资源配额"></a>计算资源配额</h2><p>主要通过applySandboxResources func实现</p>
+<ol>
+<li>计算Init容器和普通容器配额</li>
+<li>计算Overhead指定的资源</li>
+<li>初始化通用容器的配置</li>
+</ol>
+<h2 id="计算cgroup资源限制"><a href="#计算cgroup资源限制" class="headerlink" title="计算cgroup资源限制"></a>计算cgroup资源限制</h2><p>calculateLinuxResources 会把用户指定的参数转换为 Linux参数</p>
+<ul>
+<li>Ref：<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/kubelet/kuberuntime/kuberuntime_container_linux.go#L139">https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/kubelet/kuberuntime/kuberuntime_container_linux.go#L139</a></li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// calculateLinuxResources will create the linuxContainerResources type based on the provided CPU and memory resource requests, limits</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *kubeGenericRuntimeManager)</span></span> calculateLinuxResources(cpuRequest, cpuLimit, memoryLimit *resource.Quantity) *runtimeapi.LinuxContainerResources &#123;</span><br><span class="line">	resources := runtimeapi.LinuxContainerResources&#123;&#125;</span><br><span class="line">	<span class="keyword">var</span> cpuShares <span class="type">int64</span></span><br><span class="line"></span><br><span class="line">	memLimit := memoryLimit.Value()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// If request is not specified, but limit is, we want request to default to limit.</span></span><br><span class="line">	<span class="comment">// API server does this for new containers, but we repeat this logic in Kubelet</span></span><br><span class="line">	<span class="comment">// for containers running on existing Kubernetes clusters.</span></span><br><span class="line">  <span class="comment">// 如果没有设置requests，但是设置了limits，就要设置为request的值</span></span><br><span class="line">	<span class="keyword">if</span> cpuRequest.IsZero() &amp;&amp; !cpuLimit.IsZero() &#123;</span><br><span class="line">		cpuShares = <span class="type">int64</span>(cm.MilliCPUToShares(cpuLimit.MilliValue()))</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		<span class="comment">// if cpuRequest.Amount is nil, then MilliCPUToShares will return the minimal number</span></span><br><span class="line">		<span class="comment">// of CPU shares.</span></span><br><span class="line">		cpuShares = <span class="type">int64</span>(cm.MilliCPUToShares(cpuRequest.MilliValue()))</span><br><span class="line">	&#125;</span><br><span class="line">  <span class="comment">// 设置cpuShares</span></span><br><span class="line">	resources.CpuShares = cpuShares</span><br><span class="line">	<span class="keyword">if</span> memLimit != <span class="number">0</span> &#123;</span><br><span class="line">		resources.MemoryLimitInBytes = memLimit</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 如果设置cpu-cfs-quota参数为true</span></span><br><span class="line">	<span class="keyword">if</span> m.cpuCFSQuota &#123;</span><br><span class="line">		<span class="comment">// if cpuLimit.Amount is nil, then the appropriate default value is returned</span></span><br><span class="line">		<span class="comment">// to allow full usage of cpu resource.</span></span><br><span class="line">    <span class="comment">// 默认为100ms</span></span><br><span class="line">		cpuPeriod := <span class="type">int64</span>(quotaPeriod)</span><br><span class="line">		<span class="keyword">if</span> utilfeature.DefaultFeatureGate.Enabled(kubefeatures.CPUCFSQuotaPeriod) &#123;</span><br><span class="line">			cpuPeriod = <span class="type">int64</span>(m.cpuCFSQuotaPeriod.Duration / time.Microsecond)</span><br><span class="line">		&#125;</span><br><span class="line">		cpuQuota := milliCPUToQuota(cpuLimit.MilliValue(), cpuPeriod)</span><br><span class="line">		resources.CpuQuota = cpuQuota</span><br><span class="line">		resources.CpuPeriod = cpuPeriod</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> &amp;resources</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="调度器计算资源的公式"><a href="#调度器计算资源的公式" class="headerlink" title="调度器计算资源的公式"></a>调度器计算资源的公式</h2><ul>
+<li>Ref：<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/scheduler/framework/types.go#L715">https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/scheduler/framework/types.go#L715</a></li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// resourceRequest = max(sum(podSpec.Containers), podSpec.InitContainers) + overHead</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">calculateResource</span><span class="params">(pod *v1.Pod)</span></span> (res Resource, non0CPU <span class="type">int64</span>, non0Mem <span class="type">int64</span>) &#123;</span><br><span class="line">	resPtr := &amp;res</span><br><span class="line">	<span class="keyword">for</span> _, c := <span class="keyword">range</span> pod.Spec.Containers &#123;</span><br><span class="line">		resPtr.Add(c.Resources.Requests)</span><br><span class="line">		non0CPUReq, non0MemReq := schedutil.GetNonzeroRequests(&amp;c.Resources.Requests)</span><br><span class="line">		non0CPU += non0CPUReq</span><br><span class="line">		non0Mem += non0MemReq</span><br><span class="line">		<span class="comment">// No non-zero resources for GPUs or opaque resources.</span></span><br><span class="line">	&#125;</span><br><span class="line">  <span class="comment">// max(sum(podSpec.Containers),podSpec.InitContainers)+overhead</span></span><br><span class="line">	<span class="keyword">for</span> _, ic := <span class="keyword">range</span> pod.Spec.InitContainers &#123;</span><br><span class="line">		resPtr.SetMaxResource(ic.Resources.Requests)</span><br><span class="line">		non0CPUReq, non0MemReq := schedutil.GetNonzeroRequests(&amp;ic.Resources.Requests)</span><br><span class="line">		non0CPU = max(non0CPU, non0CPUReq)</span><br><span class="line">		non0Mem = max(non0Mem, non0MemReq)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// If Overhead is being utilized, add to the total requests for the pod</span></span><br><span class="line">	<span class="keyword">if</span> pod.Spec.Overhead != <span class="literal">nil</span> &#123;</span><br><span class="line">		resPtr.Add(pod.Spec.Overhead)</span><br><span class="line">		<span class="keyword">if</span> _, found := pod.Spec.Overhead[v1.ResourceCPU]; found &#123;</span><br><span class="line">			non0CPU += pod.Spec.Overhead.Cpu().MilliValue()</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> _, found := pod.Spec.Overhead[v1.ResourceMemory]; found &#123;</span><br><span class="line">			non0Mem += pod.Spec.Overhead.Memory().Value()</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="使用Describe命令查看资源数据的计算方法"><a href="#使用Describe命令查看资源数据的计算方法" class="headerlink" title="使用Describe命令查看资源数据的计算方法"></a>使用Describe命令查看资源数据的计算方法</h2><ul>
+<li><p>累加使用普通容器（pod.Spec.Cotainers)中的资源</p>
+</li>
+<li><p>取所有Init容器的最大资源（pod.Spec.InitContainers)</p>
+</li>
+<li><p>如果配置了Pod开销（Overhead），则Pod开销添加到容器的总资源具有非0数量的总容器限制</p>
+</li>
+<li><p>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubectl/blob/3810c9e1663ed4b1a2eb64eb8d76f1c54de8a5c3/pkg/util/resource/resource.go#L34">https://github.com/kubernetes/kubectl/blob/3810c9e1663ed4b1a2eb64eb8d76f1c54de8a5c3/pkg/util/resource/resource.go#L34</a></p>
+</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// PodRequestsAndLimits returns a dictionary of all defined resources summed up for all</span></span><br><span class="line"><span class="comment">// containers of the pod. If pod overhead is non-nil, the pod overhead is added to the</span></span><br><span class="line"><span class="comment">// total container resource requests and to the total container limits which have a</span></span><br><span class="line"><span class="comment">// non-zero quantity.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">PodRequestsAndLimits</span><span class="params">(pod *corev1.Pod)</span></span> (reqs, limits corev1.ResourceList) &#123;</span><br><span class="line">	reqs, limits = corev1.ResourceList&#123;&#125;, corev1.ResourceList&#123;&#125;</span><br><span class="line">	<span class="keyword">for</span> _, container := <span class="keyword">range</span> pod.Spec.Containers &#123;</span><br><span class="line">		addResourceList(reqs, container.Resources.Requests)</span><br><span class="line">		addResourceList(limits, container.Resources.Limits)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// init containers define the minimum of any resource</span></span><br><span class="line">	<span class="keyword">for</span> _, container := <span class="keyword">range</span> pod.Spec.InitContainers &#123;</span><br><span class="line">		maxResourceList(reqs, container.Resources.Requests)</span><br><span class="line">		maxResourceList(limits, container.Resources.Limits)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Add overhead for running a pod to the sum of requests and to non-zero limits:</span></span><br><span class="line">	<span class="keyword">if</span> pod.Spec.Overhead != <span class="literal">nil</span> &#123;</span><br><span class="line">		addResourceList(reqs, pod.Spec.Overhead)</span><br><span class="line"></span><br><span class="line">		<span class="keyword">for</span> name, quantity := <span class="keyword">range</span> pod.Spec.Overhead &#123;</span><br><span class="line">			<span class="keyword">if</span> value, ok := limits[name]; ok &amp;&amp; !value.IsZero() &#123;</span><br><span class="line">				value.Add(quantity)</span><br><span class="line">				limits[name] = value</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id=""><a href="#" class="headerlink" title=""></a></h2></article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2024/10/29/cloud/k8s/pod/K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-Pod(%E8%B5%84%E6%BA%90%E9%85%8D%E9%A2%9D%E4%B8%8Ecgroup)/">https://piwriw.github.io/2024/10/29/cloud/k8s/pod/K8s核心资源对象-Pod(资源配额与cgroup)/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a><a class="post-meta__tags" href="/tags/cloud/">cloud</a><a class="post-meta__tags" href="/tags/K8s%E6%BA%90%E7%A0%81/">K8s源码</a><a class="post-meta__tags" href="/tags/pod/">pod</a></div><div class="post-share"><div class="social-share" data-image="/img/k8sLogo.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2024/10/29/cloud/k8s/pod/K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-Pod(QoS%E4%B8%8E%E9%A9%B1%E9%80%90%E9%A1%BA%E5%BA%8F)/" title="K8s核心资源对象-Pod（QoS与驱逐顺序）"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">K8s核心资源对象-Pod（QoS与驱逐顺序）</div></div><div class="info-2"><div class="info-item-1">K8s核心资源对象-Pod（QoS与驱逐顺序） 基于1.25  什么是QoSQos的三个选值：  Guaranteed：最严格的最不可怜面临驱逐，保证它们不会退出，直到超过它们的限制或没有可以从节点抢占的低优先级Pod  要求每一个Pod容器都要有limits和requests limits和requests必须相等   Burstable：Pod基于一些请求的下限保证，不需要特定的限制  不指定，使用None，允许Pod可用时候灵活增加资源  当Node资源压力导致Pod被驱逐，只有在所有的BestEffort类型的Pod被驱逐之后，Burstable才会被驱逐  要求至少有一个Pod有CPU requests和limits    BestEffort：如果节点面临资源压力，kubelete更愿意驱逐BestEffort的Pod  所有容器都没有limits和requests    QoS的计算参与QoS：普通容器和Init容器，临时容器不参与。 流程如下：  把普通容器、Init容器追加到allContainers中  遍历Pod中所有参与计算的容器，获取requets，通过...</div></div></div></a><a class="pagination-related" href="/2024/10/27/cloud/alertmanager/Alertmanger-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E5%91%8A%E8%AD%A6%E5%8E%9F%E7%90%86/" title="Alertmanger-深入理解告警原理"><img class="cover" src="/img/prometheus.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">Alertmanger-深入理解告警原理</div></div><div class="info-2"><div class="info-item-1">Alertmanger-深入理解告警原理AlertManager架构图  Alert Provider：API收到来自Prometheus的告警，存储到Alert Provider  原理是内置了Map   Dispatcher组件: 这是一个单独的goroutine，不断地通过订阅的方式从Alert Provider获取新的告警，并且根据YAML配置的Routing Tree将告警通过Label路由到不同的分组中，以实现告警信息的分组处理  Notification Pipeline组件:顾名思义，这是一个责任链模式的组件，它通过一系列逻辑(如抑制、静默、去重等)来优化告警质量。 在源码中，它是通过一个个实现Stage接口的具有不同功能的实例串联 起来得到的  Silence Provider组件:API层将来自Prometheus服务端的告警信息 存储到Silence Provider上，然后由这个组件实现去重逻辑处理。静默规 则用来关闭部分告警的通知  Notify Provider组件:它是Silence Provider组件的下游，会在本地记录日志，Peers的方式将日...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2024/10/30/cloud/k8s/pod/K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-Pod(%E7%8A%B6%E6%80%81%E4%BB%A5%E5%8F%8A%E5%8E%9F%E5%9C%B0%E5%8D%87%E7%BA%A7)/" title="K8s核心资源对象-Pod（状态以及原地升级）"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-10-30</div><div class="info-item-2">K8s核心资源对象-Pod（状态以及原地升级）</div></div><div class="info-2"><div class="info-item-1">K8s核心资源对象-Pod（状态以及原地升级） 基于1.25  Pod的PodStatus Ref：https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/apis/core/types.go#L3365  12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849505152535455565758596061// PodStatus represents information about the status of a pod. Status may trail the actual// state of a system.type PodStatus struct &#123;	// +optional  // Pod生命周期，包含Pending、Running、Succeeded、Failed和Unknown	Phase Pod...</div></div></div></a><a class="pagination-related" href="/2024/10/30/cloud/k8s/pod/K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-Pod(%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5)/" title="K8s核心资源对象-Pod（健康检查）"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-10-30</div><div class="info-item-2">K8s核心资源对象-Pod（健康检查）</div></div><div class="info-2"><div class="info-item-1">K8s核心资源对象-Pod（健康检查） 基于1.25  什么是健康检查K8s支持三种健康检查：  livenessProbe：存活探针 表示容器是否在运行，是否需要重启 如果liveness探测为Failure，kubelete会终止容器，按照策略重启   readinessProbe：就绪探针 表示容器是准备好接受请求 如果readiness探测失败，从Endpoint控制器种移除改PodIP   startupProbe：启动探针 设置了启动探针，其他的被暂时禁用，直至启动探针成功 启动探针失败，按照策略重启 对于启动时间长的场景    ProbeManagerProbeManager负责管理Pod探针，是一个Manager的接口声明。  当执行AddPod func，会为Pod每一个容器创建一个探测的worker worker会对分配的容器，定期周期性探测，并且缓存探测结果 执行UpdatePodStatus func，Manager会使用缓存结果把PodStatus设置类似Ready状态  相关接口说明：  AddPod：为Pod每个容器添加对应的探测worker Sto...</div></div></div></a><a class="pagination-related" href="/2024/10/29/cloud/k8s/pod/K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-Pod(%E9%9D%99%E6%80%81Pod)/" title="K8s核心资源对象-Pod（静态Pod）"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-10-29</div><div class="info-item-2">K8s核心资源对象-Pod（静态Pod）</div></div><div class="info-2"><div class="info-item-1">K8s核心资源对象-Pod（静态Pod） 基于1.25  什么是静态PodStatic Pod在指定Node由kubelet守护进程之间管理，不需要kube-apiserver监管。  kubelete监视每个static Pod（失败之后重启） static Pod只允许在某一个节点上 节点上运行Pod ，API Server是可见的，但是不受到kube-apiserver控制  创建静态Pod有俩种模式：配置文件和HTTP  配置文件：定义标准的Pod，用JSON或者YAML格式存储在指定目录 使用kubelet的”staticPodPath:“ kubelet定期扫描目录，实现Pod 的CRUD 扫描忽略已点号开头的文件    静态Pod的创建流程有三种func：  NewSourceFile NewSourceURL NewSourceApiserver  最终通过m.merger.Merge最终合并  Ref:https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339b...</div></div></div></a><a class="pagination-related" href="/2024/10/29/cloud/k8s/pod/K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-Pod(QoS%E4%B8%8E%E9%A9%B1%E9%80%90%E9%A1%BA%E5%BA%8F)/" title="K8s核心资源对象-Pod（QoS与驱逐顺序）"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-10-29</div><div class="info-item-2">K8s核心资源对象-Pod（QoS与驱逐顺序）</div></div><div class="info-2"><div class="info-item-1">K8s核心资源对象-Pod（QoS与驱逐顺序） 基于1.25  什么是QoSQos的三个选值：  Guaranteed：最严格的最不可怜面临驱逐，保证它们不会退出，直到超过它们的限制或没有可以从节点抢占的低优先级Pod  要求每一个Pod容器都要有limits和requests limits和requests必须相等   Burstable：Pod基于一些请求的下限保证，不需要特定的限制  不指定，使用None，允许Pod可用时候灵活增加资源  当Node资源压力导致Pod被驱逐，只有在所有的BestEffort类型的Pod被驱逐之后，Burstable才会被驱逐  要求至少有一个Pod有CPU requests和limits    BestEffort：如果节点面临资源压力，kubelete更愿意驱逐BestEffort的Pod  所有容器都没有limits和requests    QoS的计算参与QoS：普通容器和Init容器，临时容器不参与。 流程如下：  把普通容器、Init容器追加到allContainers中  遍历Pod中所有参与计算的容器，获取requets，通过...</div></div></div></a><a class="pagination-related" href="/2024/10/26/cloud/k8s/pod/K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-Pod(%E5%88%9B%E5%BB%BA%E6%B5%81%E7%A8%8B)/" title="K8s核心资源对象-Pod（创建流程）"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-10-26</div><div class="info-item-2">K8s核心资源对象-Pod（创建流程）</div></div><div class="info-2"><div class="info-item-1">K8s核心资源对象-Pod（创建流程） 基于1.25  如何创建Pod容器通过kubelet 创建   Ref：https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/kubelet/kuberuntime/kuberuntime_manager.go#L668  1234567891011121314151617181920212223242526272829303132333435363738394041424344454647484950515253545556575859606162636465666768697071727374757677787980818283848586878889909192939495969798991001011021031041051061071081091101111121131141151161171181191201211221231241251261271281291301311321331341351361...</div></div></div></a><a class="pagination-related" href="/2024/10/25/cloud/k8s/pod/K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-Pod(Container)/" title="K8s核心资源对象-Pod(Container)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-10-25</div><div class="info-item-2">K8s核心资源对象-Pod(Container)</div></div><div class="info-2"><div class="info-item-1">K8s核心资源对象-Pod(Container) 基于1.25  Container相关字段 Ref：https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/apis/core/types.go#L2167  123456789101112131415161718192021222324252627282930313233343536373839404142434445464748495051525354555657585960616263646566676869707172737475// Container represents a single container that is expected to be run on the host.type Container struct &#123;	// Required: This must be a DNS_LABEL.  Each container in a pod must	// have ...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-Pod%EF%BC%88%E8%B5%84%E6%BA%90%E9%85%8D%E9%A2%9D%E4%B8%8Ecgroup%EF%BC%89"><span class="toc-number">1.</span> <span class="toc-text">K8s核心资源对象-Pod（资源配额与cgroup）</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#Pod%E7%9A%84%E8%B5%84%E6%BA%90%E9%85%8D%E9%A2%9D"><span class="toc-number">1.1.</span> <span class="toc-text">Pod的资源配额</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#LinuxContainer-Resource%E5%AD%97%E6%AE%B5"><span class="toc-number">1.2.</span> <span class="toc-text">LinuxContainer Resource字段</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%AE%A1%E7%AE%97%E8%B5%84%E6%BA%90%E9%85%8D%E9%A2%9D"><span class="toc-number">1.3.</span> <span class="toc-text">计算资源配额</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%AE%A1%E7%AE%97cgroup%E8%B5%84%E6%BA%90%E9%99%90%E5%88%B6"><span class="toc-number">1.4.</span> <span class="toc-text">计算cgroup资源限制</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%B0%83%E5%BA%A6%E5%99%A8%E8%AE%A1%E7%AE%97%E8%B5%84%E6%BA%90%E7%9A%84%E5%85%AC%E5%BC%8F"><span class="toc-number">1.5.</span> <span class="toc-text">调度器计算资源的公式</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8Describe%E5%91%BD%E4%BB%A4%E6%9F%A5%E7%9C%8B%E8%B5%84%E6%BA%90%E6%95%B0%E6%8D%AE%E7%9A%84%E8%AE%A1%E7%AE%97%E6%96%B9%E6%B3%95"><span class="toc-number">1.6.</span> <span class="toc-text">使用Describe命令查看资源数据的计算方法</span></a></li><li class="toc-item toc-level-2"><a class="toc-link"><span class="toc-number">1.7.</span> <span class="toc-text"></span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-日志系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明">Gorm-日志系统模块原理说明</a><time datetime="2026-01-11T11:56:27.000Z" title="发表于 2026-01-11 19:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-迁移功能模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明">Gorm-迁移功能模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-插件系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明">Gorm-插件系统模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-事务处理模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明">Gorm-事务处理模块原理说明</a><time datetime="2026-01-11T09:56:27.000Z" title="发表于 2026-01-11 17:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-关联关系模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明">Gorm-关联关系模块原理说明</a><time datetime="2026-01-11T08:56:27.000Z" title="发表于 2026-01-11 16:56:27">2026-01-11</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

@@ -1,0 +1,325 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>微服务之注册中心 | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="微服务之注册中心什么是注册中心注册中心的作用一句话概括就是存放和调度服务，实现服务和注册中心，服务和服务之间的相互通信 常见的几种注册中心   名称 优点 缺点 接口 一致性算法    zookeeper 1. 功能强大，不仅仅是服务发现2、提供watch机制，实时获取服务状态3、支持dubbo等框架 1、不支健康检查2、需要在服务中集成sdk，复杂度高3、不支持多数据中心 sdk Paxos">
+<meta property="og:type" content="article">
+<meta property="og:title" content="微服务之注册中心">
+<meta property="og:url" content="https://piwriw.github.io/2023/06/18/web/go/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E4%B9%8B%E6%B3%A8%E5%86%8C%E4%B8%AD%E5%BF%83/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="微服务之注册中心什么是注册中心注册中心的作用一句话概括就是存放和调度服务，实现服务和注册中心，服务和服务之间的相互通信 常见的几种注册中心   名称 优点 缺点 接口 一致性算法    zookeeper 1. 功能强大，不仅仅是服务发现2、提供watch机制，实时获取服务状态3、支持dubbo等框架 1、不支健康检查2、需要在服务中集成sdk，复杂度高3、不支持多数据中心 sdk Paxos">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/go.png">
+<meta property="article:published_time" content="2023-06-18T04:00:13.000Z">
+<meta property="article:modified_time" content="2026-02-28T13:29:12.676Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="web">
+<meta property="article:tag" content="go">
+<meta property="article:tag" content="微服务">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/go.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "微服务之注册中心",
+  "url": "https://piwriw.github.io/2023/06/18/web/go/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E4%B9%8B%E6%B3%A8%E5%86%8C%E4%B8%AD%E5%BF%83/",
+  "image": "https://piwriw.github.io/img/go.png",
+  "datePublished": "2023-06-18T04:00:13.000Z",
+  "dateModified": "2026-02-28T13:29:12.676Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2023/06/18/web/go/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E4%B9%8B%E6%B3%A8%E5%86%8C%E4%B8%AD%E5%BF%83/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '微服务之注册中心',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/go.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">微服务之注册中心</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">微服务之注册中心</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2023-06-18T04:00:13.000Z" title="发表于 2023-06-18 12:00:13">2023-06-18</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-02-28T13:29:12.676Z" title="更新于 2026-02-28 21:29:12">2026-02-28</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/web/">web</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/web/%E5%BE%AE%E6%9C%8D%E5%8A%A1/">微服务</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">1k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>5分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-02-28 21:29:12&quot;}" hidden></div><h1 id="微服务之注册中心"><a href="#微服务之注册中心" class="headerlink" title="微服务之注册中心"></a>微服务之注册中心</h1><h2 id="什么是注册中心"><a href="#什么是注册中心" class="headerlink" title="什么是注册中心"></a>什么是注册中心</h2><p>注册中心的作用一句话概括就<strong>是存放和调度服务</strong>，实现服务和注册中心，服务和服务之间的相互通信</p>
+<h2 id="常见的几种注册中心"><a href="#常见的几种注册中心" class="headerlink" title="常见的几种注册中心"></a>常见的几种注册中心</h2><table>
+<thead>
+<tr>
+<th>名称</th>
+<th align="left">优点</th>
+<th>缺点</th>
+<th>接口</th>
+<th>一致性算法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>zookeeper</td>
+<td align="left">1. 功能强大，不仅仅是服务发现2、提供watch机制，实时获取服务状态3、支持dubbo等框架</td>
+<td>1、不支健康检查2、需要在服务中集成sdk，复杂度高3、不支持多数据中心</td>
+<td>sdk</td>
+<td>Paxos</td>
+</tr>
+<tr>
+<td>consul</td>
+<td align="left">1、简单易用，不需要集成sdk2、自带健康检查3、支持多数据中心4、提供web管理界面</td>
+<td>1、不能实时获取服务msg变化</td>
+<td>http&#x2F;dns</td>
+<td>Raft</td>
+</tr>
+<tr>
+<td>etcd</td>
+<td align="left">1、简单易用、不需要集成sdk2、可配置性强</td>
+<td>1、没有健康检查2、需要配合第三方工具一起完成服务发现3、不支持多数据中心</td>
+<td>http</td>
+<td>Raft</td>
+</tr>
+</tbody></table>
+<h2 id="consul的安装和配置"><a href="#consul的安装和配置" class="headerlink" title="consul的安装和配置"></a>consul的安装和配置</h2><h3 id="Docker安装"><a href="#Docker安装" class="headerlink" title="Docker安装"></a>Docker安装</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 8500 http端口 8600 dns端口</span></span><br><span class="line">docker run -d -p 8500:8500 -p 8300:8300 -p 8301:8301 -p 8302:8302 -p 8600:8600/udp consul consul agent -dev -client=0.0.0.0</span><br></pre></td></tr></table></figure>
+
+<p>webui：访问localhost:8500</p>
+<h3 id="访问dns"><a href="#访问dns" class="headerlink" title="访问dns"></a>访问dns</h3><p>linux: 安装dig</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">yum install bind-utils</span><br><span class="line"></span><br><span class="line">dig @192.168.28.145 -p 8600 consul.service.consul SRV</span><br></pre></td></tr></table></figure>
+
+<h3 id="go整合consul"><a href="#go整合consul" class="headerlink" title="go整合consul"></a>go整合consul</h3><h4 id="注册服务"><a href="#注册服务" class="headerlink" title="注册服务"></a>注册服务</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Register</span><span class="params">(address, name <span class="type">string</span>, port <span class="type">int</span>, tags []<span class="type">string</span>, id <span class="type">string</span>)</span></span> &#123;</span><br><span class="line">	cfg := api.DefaultConfig()</span><br><span class="line">	cfg.Address = <span class="string">&quot;192.168.28.145:8500&quot;</span></span><br><span class="line">	client, err := api.NewClient(cfg)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 生成对应的检查对象</span></span><br><span class="line">	check := &amp;api.AgentServiceCheck&#123;</span><br><span class="line">		HTTP:                           <span class="string">&quot;http://192.168.28.145:8021/health&quot;</span>,</span><br><span class="line">		Timeout:                        <span class="string">&quot;5s&quot;</span>,</span><br><span class="line">		Interval:                       <span class="string">&quot;5s&quot;</span>,</span><br><span class="line">		DeregisterCriticalServiceAfter: <span class="string">&quot;10&quot;</span>,</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 生成注册对象</span></span><br><span class="line">	registerion := &amp;api.AgentServiceRegistration&#123;</span><br><span class="line">		Name:    name,</span><br><span class="line">		ID:      id,</span><br><span class="line">		Port:    port,</span><br><span class="line">		Tags:    tags,</span><br><span class="line">		Address: address,</span><br><span class="line">		Check:   check,</span><br><span class="line">	&#125;</span><br><span class="line">	err = client.Agent().ServiceRegister(registerion)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(err)	</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="获得所有的服务"><a href="#获得所有的服务" class="headerlink" title="获得所有的服务"></a>获得所有的服务</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">AllService</span><span class="params">()</span></span> &#123;</span><br><span class="line">	cfg := api.DefaultConfig()</span><br><span class="line">	cfg.Address = <span class="string">&quot;192.168.28.145:8500&quot;</span></span><br><span class="line">	client, err := api.NewClient(cfg)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(err)</span><br><span class="line">	&#125;</span><br><span class="line">	data, err := client.Agent().Services()</span><br><span class="line">	<span class="keyword">for</span> k, _ := <span class="keyword">range</span> data &#123;</span><br><span class="line">		fmt.Println(k)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="服务过滤"><a href="#服务过滤" class="headerlink" title="服务过滤"></a>服务过滤</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">FilterService</span><span class="params">()</span></span> &#123;</span><br><span class="line">	cfg := api.DefaultConfig()</span><br><span class="line">	cfg.Address = <span class="string">&quot;192.168.28.145:8500&quot;</span></span><br><span class="line">	client, err := api.NewClient(cfg)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(err)</span><br><span class="line">	&#125;</span><br><span class="line">	data, err := client.Agent().ServicesWithFilter(<span class="string">`Service==&quot;user-web&quot;`</span>)</span><br><span class="line">	<span class="keyword">for</span> k, _ := <span class="keyword">range</span> data &#123;</span><br><span class="line">		fmt.Println(k)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="grpc整合"><a href="#grpc整合" class="headerlink" title="grpc整合"></a>grpc整合</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;google.golang.org/grpc/health&quot;</span></span><br><span class="line">	<span class="string">&quot;google.golang.org/grpc/health/grpc_health_v1&quot;</span></span><br><span class="line">)</span><br><span class="line"><span class="comment">//注册服务健康检查</span></span><br><span class="line">	grpc_health_v1.RegisterHealthServer(server, health.NewServer())</span><br></pre></td></tr></table></figure>
+
+<h4 id="grpc服务注册"><a href="#grpc服务注册" class="headerlink" title="grpc服务注册"></a>grpc服务注册</h4><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ConsulRegister</span><span class="params">(address, name <span class="type">string</span>, port <span class="type">int</span>, tags []<span class="type">string</span>, id <span class="type">string</span>)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">	cfg := api.DefaultConfig()</span><br><span class="line">	cfg.Address = global.AppConf.Consul.IP</span><br><span class="line">	client, err := api.NewClient(cfg)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 生成对应的检查对象</span></span><br><span class="line">	check := &amp;api.AgentServiceCheck&#123;</span><br><span class="line">		GRPC:                           fmt.Sprintf(<span class="string">&quot;http://%s:50051/health&quot;</span>, global.AppConf.Consul.IP),</span><br><span class="line">		Timeout:                        <span class="string">&quot;5s&quot;</span>,</span><br><span class="line">		Interval:                       <span class="string">&quot;5s&quot;</span>,</span><br><span class="line">		DeregisterCriticalServiceAfter: <span class="string">&quot;10&quot;</span>,</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 生成注册对象</span></span><br><span class="line">	registerion := &amp;api.AgentServiceRegistration&#123;</span><br><span class="line">		Name:    name,</span><br><span class="line">		ID:      id,</span><br><span class="line">		Port:    port,</span><br><span class="line">		Tags:    tags,</span><br><span class="line">		Address: address,</span><br><span class="line">		Check:   check,</span><br><span class="line">	&#125;</span><br><span class="line">	err = client.Agent().ServiceRegister(registerion)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="gin集成consul"><a href="#gin集成consul" class="headerlink" title="gin集成consul"></a>gin集成consul</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">GetUserListHandler</span><span class="params">(c *gin.Context)</span></span> &#123;</span><br><span class="line">	<span class="comment">// 从注册服务中心拉取</span></span><br><span class="line">	cfg := api.DefaultConfig()</span><br><span class="line">	cfg.Address = fmt.Sprintf(<span class="string">&quot;%s:%d&quot;</span>, global.AppConf.Consul.IP, global.AppConf.Consul.Port)</span><br><span class="line">	userSrcHost := <span class="string">&quot;&quot;</span></span><br><span class="line">	userSrvPort := <span class="number">0</span></span><br><span class="line">	client, err := api.NewClient(cfg)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		zap.S().Errorw(<span class="string">&quot;[GetUserList] 查询 【用户列表失败,拉取服务失败】err:%s&quot;</span>, err.Error())</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	data, err := client.Agent().ServicesWithFilter(fmt.Sprintf(<span class="string">&quot;Service==%s&quot;</span>, global.AppConf.System.Name))</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		zap.S().Errorw(<span class="string">&quot;[GetUserList] 查询 【查询User服务失败】err:%s&quot;</span>, err.Error())</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">for</span> _, service := <span class="keyword">range</span> data &#123;</span><br><span class="line">		userSrcHost = service.Address</span><br><span class="line">		userSrvPort = service.Port</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	userConn, err := grpc.Dial(fmt.Sprintf(<span class="string">&quot;%s:%d&quot;</span>, userSrcHost, userSrvPort), grpc.WithTransportCredentials(insecure.NewCredentials()))</span><br><span class="line">	<span class="comment">//userConn, err := grpc.Dial(fmt.Sprintf(&quot;%s:%d&quot;, setting.Conf.GrpcServer.Host, setting.Conf.GrpcServer.Port), grpc.WithInsecure())</span></span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">println</span>(err.Error())</span><br><span class="line">		zap.S().Errorw(<span class="string">&quot;[GetUserList] 连接 【用户服务失败】&quot;</span>, <span class="string">&quot;msg&quot;</span>, err.Error())</span><br><span class="line">	&#125;</span><br><span class="line">	claims, _ := c.Get(<span class="string">&quot;claims&quot;</span>)</span><br><span class="line">	currentUser := claims.(*jwt_request.CustomClaims)</span><br><span class="line">	zap.S().Infof(<span class="string">&quot;访问用户：%d&quot;</span>, currentUser.ID)</span><br><span class="line">	userClient := proto.NewUserClient(userConn)</span><br><span class="line">	pn := c.DefaultQuery(<span class="string">&quot;pn&quot;</span>, <span class="string">&quot;0&quot;</span>)</span><br><span class="line">	pnInt, _ := strconv.Atoi(pn)</span><br><span class="line">	pSize := c.DefaultQuery(<span class="string">&quot;psize&quot;</span>, <span class="string">&quot;0&quot;</span>)</span><br><span class="line">	pSizeInt, _ := strconv.Atoi(pSize)</span><br><span class="line">	rsp, err := userClient.GetUserList(context.Background(), &amp;proto.PageInfo&#123;</span><br><span class="line">		Pn:    <span class="type">uint32</span>(pnInt),</span><br><span class="line">		PSize: <span class="type">uint32</span>(pSizeInt),</span><br><span class="line">	&#125;)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		zap.S().Errorw(<span class="string">&quot;[GetUserList] 查询 【用户列表失败】&quot;</span>)</span><br><span class="line">		convert.HandleGrpcError2Http(err, c)</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	result := <span class="built_in">make</span>([]response.UserResponse, <span class="number">0</span>)</span><br><span class="line">	<span class="keyword">for</span> _, value := <span class="keyword">range</span> rsp.Data &#123;</span><br><span class="line">		result = <span class="built_in">append</span>(result, response.UserResponse&#123;</span><br><span class="line">			Id:       value.Id,</span><br><span class="line">			NickName: value.Nickname,</span><br><span class="line">			Birthday: response.JsonTime(time.Unix(<span class="type">int64</span>(value.BirthDay), <span class="number">0</span>)),</span><br><span class="line">			Gender:   value.Gender,</span><br><span class="line">			Mobile:   value.Mobile,</span><br><span class="line">		&#125;)</span><br><span class="line">	&#125;</span><br><span class="line">	R.SuccessWithDetailed(c, <span class="string">&quot;获取用户列表成功&quot;</span>, result)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2023/06/18/web/go/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E4%B9%8B%E6%B3%A8%E5%86%8C%E4%B8%AD%E5%BF%83/">https://piwriw.github.io/2023/06/18/web/go/微服务之注册中心/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/web/">web</a><a class="post-meta__tags" href="/tags/go/">go</a><a class="post-meta__tags" href="/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/">微服务</a></div><div class="post-share"><div class="social-share" data-image="/img/go.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2023/06/19/web/go/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%85%8D%E7%BD%AE%E4%B8%AD%E5%BF%83/" title="微服务之配置中心"><img class="cover" src="/img/go.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">微服务之配置中心</div></div><div class="info-2"><div class="info-item-1">微服务之配置中心为什么需要配置中心 添加配置项不方便，大量部署实例需要修改配置麻烦 go使用viper能自动生效，不保证其他服务 开发、测试、生产的环境隔离   配置中心技术选型目前主流有spring cloud config、apollo和nacos apollo是协程开源，nacos是阿里开源  Apollo大而全，功能完善。nacos小而全 部署nacos简单 nacos不仅仅支持配置中心和支持服务注册和发现 都支持各种语言，不过apollo是第三方支持，nacos 是官方支持     功能点 apollo nacos    开源时间 2016.5 2018.6   配置实时推送 支持（http长轮询） 支持（http长轮询）   配置回滚 支持 支持   灰度发布 支持 待支持   权限管理 支持 支持   多集群 支持 支持   监听查询 支持 支持   多语言 主流语言 主流语言（官方支持）   通信协议 http http   nacos安装12# docker模式 docker run --name nacos-standlone -e MODE=standalo...</div></div></div></a><a class="pagination-related" href="/2023/06/10/cloud/k8s/install/K8s%E5%A6%82%E4%BD%95%E6%94%AF%E6%8C%81%E5%85%AC%E7%BD%91%E8%AE%BF%E9%97%AE/" title="K8s如何支持公网访问"><img class="cover" src="/img/kubernetes.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">K8s如何支持公网访问</div></div><div class="info-2"><div class="info-item-1">K8s如何支持公网访问因为k8s默认启动支持内网ip，下面是三种 让k8s支持公网访问的模式 keadm init添加参数12# 未实践kubeadm init --apiserver-advertise-address= 内网ip  --apiserver-cert-extra-sans 公网ip --image-repository registry.aliyuncs.com/google_containers --kubernetes-version v1.19.4 --service-cidr=10.96.0.0/12 --pod-network-cidr=10.244.0.0/16  重新生成apiserver证书 删除原来的apiserver证书 12cd /etc/kubernetes/pkirm apiserver.*	  生成新的apiserver证书 1kubeadm init phase certs apiserver --apiserver-advertise-address 内网ip --apiserver-cert-extra-sans 公网ip --...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2023/06/23/web/go/%E4%BC%98%E9%9B%85%E9%80%80%E5%87%BA%E6%B3%A8%E9%94%80%E6%9C%8D%E5%8A%A1/" title="优雅退出注销服务"><img class="cover" src="/img/go.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2023-06-23</div><div class="info-item-2">优雅退出注销服务</div></div><div class="info-2"><div class="info-item-1">优雅退出注销服务为什么需要优雅注销服务当往服务中心注册了服务之后，由于调试，可能会重复注册同一个服务。当时之前服务由于健康检查，并不会立即退出注销，这就会多线多个“重复的服务” 整合优雅退出服务12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849505152535455565758596061626364656667686970package consulimport (	&quot;fmt&quot;	&quot;github.com/hashicorp/consul/api&quot;)// register.go 工具type Registry struct &#123;	Host string	Port int&#125;type RegistryClient interface &#123;	Register(address string, port int, name string, tags []string, id string) erro...</div></div></div></a><a class="pagination-related" href="/2023/06/19/web/go/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E4%B9%8B%E9%85%8D%E7%BD%AE%E4%B8%AD%E5%BF%83/" title="微服务之配置中心"><img class="cover" src="/img/go.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2023-06-19</div><div class="info-item-2">微服务之配置中心</div></div><div class="info-2"><div class="info-item-1">微服务之配置中心为什么需要配置中心 添加配置项不方便，大量部署实例需要修改配置麻烦 go使用viper能自动生效，不保证其他服务 开发、测试、生产的环境隔离   配置中心技术选型目前主流有spring cloud config、apollo和nacos apollo是协程开源，nacos是阿里开源  Apollo大而全，功能完善。nacos小而全 部署nacos简单 nacos不仅仅支持配置中心和支持服务注册和发现 都支持各种语言，不过apollo是第三方支持，nacos 是官方支持     功能点 apollo nacos    开源时间 2016.5 2018.6   配置实时推送 支持（http长轮询） 支持（http长轮询）   配置回滚 支持 支持   灰度发布 支持 待支持   权限管理 支持 支持   多集群 支持 支持   监听查询 支持 支持   多语言 主流语言 主流语言（官方支持）   通信协议 http http   nacos安装12# docker模式 docker run --name nacos-standlone -e MODE=standalo...</div></div></div></a><a class="pagination-related" href="/2023/06/19/web/go/%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1/" title="微服务之配置中心"><img class="cover" src="/img/go.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2023-06-19</div><div class="info-item-2">微服务之配置中心</div></div><div class="info-2"><div class="info-item-1">负载均衡什么是负载均衡负载均衡是将网络流量分发到多个后台服务的一种机制。通过负载均衡的流量分发，降低了单台服务器的负载，减少了应用的响应时间  负载均衡类型集中式Load balance集中式LB方案，如下图。首先，服务的消费方和提供方不直接耦合，而是在服务消费者和服务提供者之间有一个独立的LB（LB通常是专门的硬件设备如F5，或者基于软件如LVS，HAproxy等实现）。  进程内load balance 可看到引入了第三方：服务注册中心。它做两件事：   维护服务提供方的节点列表，并检测这些节点的健康度。检测的方式是：每个节点部署成功，都通知服务注册中心；然后一直和注册中心保持心跳。 允许服务调用方注册感兴趣的事件，把服务提供方的变化情况推送到服务调用方。    这种方案下，整个load balance的过程是这样的：   服务注册中心维护所有节点的情况。 任何一个节点想要订阅其他服务提供方的节点列表，向服务注册中心注册。 服务注册中心将服务提供方的列表（以长连接的方式）推送到消费方。 消费方接收到消息后，在本地维护一份这个列表，并自己做load balance。    可见...</div></div></div></a><a class="pagination-related" href="/2024/08/20/web/go/Gorm-%E9%92%A9%E5%AD%90Hook/" title="Gin中间件"><img class="cover" src="/img/go.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-08-20</div><div class="info-item-2">Gin中间件</div></div><div class="info-2"><div class="info-item-1">Gorm：钩子HookHook 是在创建、查询、更新、删除等操作之前、之后调用的函数。 支持以下的Hook方法 1234567891011121314151617181920212223242526272829303132333435type BeforeCreateInterface interface &#123;    BeforeCreate(*gorm.DB) error&#125;type AfterCreateInterface interface &#123;    AfterCreate(*gorm.DB) error&#125;type BeforeUpdateInterface interface &#123;    BeforeUpdate(*gorm.DB) error&#125;type AfterUpdateInterface interface &#123;    AfterUpdate(*gorm.DB) error&#125;type BeforeSaveInterface interface &#123;    BeforeSave(*gor...</div></div></div></a><a class="pagination-related" href="/2024/07/23/basic/go/Go-%E6%A0%87%E5%87%86%E5%BA%93%E6%97%A5%E5%BF%97Slog/" title="Go-标准库日志Slog"><img class="cover" src="/img/go.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-07-23</div><div class="info-item-2">Go-标准库日志Slog</div></div><div class="info-2"><div class="info-item-1">Go的标准库日志Slog背景在Go1.21中，在Go的标准库函数中引入了Slog 据说使用的内存比Zap还要小 基础用法12345678slog.Info(&quot;This is info log&quot;)slog.Warn(&quot;This is warning log&quot;)slog.Error(&quot;This is error log&quot;)日志输出：2024/07/23 15:26:01 INFO This is info log2024/07/23 15:26:01 WARN This is warning log2024/07/23 15:26:01 ERROR This is error log  输出参数的日志12345678	name := &quot;sss&quot;	slog.Info(&quot;msg&quot;, slog.String(&quot;name&quot;, name))	slog.Error(&quot;ERROR: value is empty&quot;, slog.Any(&quot;name&qu...</div></div></div></a><a class="pagination-related" href="/2024/03/31/basic/go/Go-%E6%8E%A7%E5%88%B6%E5%8D%8F%E7%A8%8B%E6%95%B0%E9%87%8F/" title="Go-控制协程数量"><img class="cover" src="/img/go.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-03-31</div><div class="info-item-2">Go-控制协程数量</div></div><div class="info-2"><div class="info-item-1">Go-控制协程数量背景GMP的无限创建Goroutine基于共享用户态资源，过多的协程会导致CPU利用率浮动上涨、内存占用上涨、主进程崩溃 如何控制Goroutine数量基于buffer的channel原理：通过buffer的缓冲区的大小和阻塞等待来控制最大的数量 1234567891011121314151617181920212223242526package mainimport (	&quot;fmt&quot;	&quot;runtime&quot;	&quot;time&quot;)func doGoroutine(i int, ch chan bool) &#123;	fmt.Println(&quot;go func&quot;, i, &quot;goroutine count&quot;, runtime.NumGoroutine())	// 结束了一个任务	&lt;-ch&#125;func main() &#123;	task_cnt := 10	// 容量控制了 Goroutine 的数量	ch := make(chan bool, 3)	// for的...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%BE%AE%E6%9C%8D%E5%8A%A1%E4%B9%8B%E6%B3%A8%E5%86%8C%E4%B8%AD%E5%BF%83"><span class="toc-number">1.</span> <span class="toc-text">微服务之注册中心</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF%E6%B3%A8%E5%86%8C%E4%B8%AD%E5%BF%83"><span class="toc-number">1.1.</span> <span class="toc-text">什么是注册中心</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B8%B8%E8%A7%81%E7%9A%84%E5%87%A0%E7%A7%8D%E6%B3%A8%E5%86%8C%E4%B8%AD%E5%BF%83"><span class="toc-number">1.2.</span> <span class="toc-text">常见的几种注册中心</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#consul%E7%9A%84%E5%AE%89%E8%A3%85%E5%92%8C%E9%85%8D%E7%BD%AE"><span class="toc-number">1.3.</span> <span class="toc-text">consul的安装和配置</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Docker%E5%AE%89%E8%A3%85"><span class="toc-number">1.3.1.</span> <span class="toc-text">Docker安装</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%AE%BF%E9%97%AEdns"><span class="toc-number">1.3.2.</span> <span class="toc-text">访问dns</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#go%E6%95%B4%E5%90%88consul"><span class="toc-number">1.3.3.</span> <span class="toc-text">go整合consul</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%B3%A8%E5%86%8C%E6%9C%8D%E5%8A%A1"><span class="toc-number">1.3.3.1.</span> <span class="toc-text">注册服务</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%8E%B7%E5%BE%97%E6%89%80%E6%9C%89%E7%9A%84%E6%9C%8D%E5%8A%A1"><span class="toc-number">1.3.3.2.</span> <span class="toc-text">获得所有的服务</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%9C%8D%E5%8A%A1%E8%BF%87%E6%BB%A4"><span class="toc-number">1.3.3.3.</span> <span class="toc-text">服务过滤</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#grpc%E6%95%B4%E5%90%88"><span class="toc-number">1.3.4.</span> <span class="toc-text">grpc整合</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#grpc%E6%9C%8D%E5%8A%A1%E6%B3%A8%E5%86%8C"><span class="toc-number">1.3.4.1.</span> <span class="toc-text">grpc服务注册</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#gin%E9%9B%86%E6%88%90consul"><span class="toc-number">1.3.5.</span> <span class="toc-text">gin集成consul</span></a></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-日志系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明">Gorm-日志系统模块原理说明</a><time datetime="2026-01-11T11:56:27.000Z" title="发表于 2026-01-11 19:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-迁移功能模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明">Gorm-迁移功能模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-插件系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明">Gorm-插件系统模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-事务处理模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明">Gorm-事务处理模块原理说明</a><time datetime="2026-01-11T09:56:27.000Z" title="发表于 2026-01-11 17:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-关联关系模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明">Gorm-关联关系模块原理说明</a><time datetime="2026-01-11T08:56:27.000Z" title="发表于 2026-01-11 16:56:27">2026-01-11</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

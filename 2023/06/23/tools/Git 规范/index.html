@@ -1,0 +1,331 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Git 规范 | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="Git 规范为什么需要git规范遵循 Git Commit 规范可以提高团队协作效率和代码库的可维护性。 通过明确的 Commit 类型和格式，开发者能够更轻松地理解每个提交所带来的更改，并能够快速回溯和回滚代码。 建议团队在项目中制定统一的 Git Commit 规范，并通过培训和代码审查来确保规范的遵循 git规范 约定式():  git commit 合并     type subject">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Git 规范">
+<meta property="og:url" content="https://piwriw.github.io/2023/06/23/tools/Git%20%E8%A7%84%E8%8C%83/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="Git 规范为什么需要git规范遵循 Git Commit 规范可以提高团队协作效率和代码库的可维护性。 通过明确的 Commit 类型和格式，开发者能够更轻松地理解每个提交所带来的更改，并能够快速回溯和回滚代码。 建议团队在项目中制定统一的 Git Commit 规范，并通过培训和代码审查来确保规范的遵循 git规范 约定式():  git commit 合并     type subject">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/go.png">
+<meta property="article:published_time" content="2023-06-23T13:51:32.000Z">
+<meta property="article:modified_time" content="2026-02-28T13:29:12.675Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="web">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/go.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Git 规范",
+  "url": "https://piwriw.github.io/2023/06/23/tools/Git%20%E8%A7%84%E8%8C%83/",
+  "image": "https://piwriw.github.io/img/go.png",
+  "datePublished": "2023-06-23T13:51:32.000Z",
+  "dateModified": "2026-02-28T13:29:12.675Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2023/06/23/tools/Git%20%E8%A7%84%E8%8C%83/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Git 规范',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/go.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">Git 规范</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">Git 规范</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2023-06-23T13:51:32.000Z" title="发表于 2023-06-23 21:51:32">2023-06-23</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-02-28T13:29:12.675Z" title="更新于 2026-02-28 21:29:12">2026-02-28</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/web/">web</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">213</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>1分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-02-28 21:29:12&quot;}" hidden></div><h1 id="Git-规范"><a href="#Git-规范" class="headerlink" title="Git 规范"></a>Git 规范</h1><h2 id="为什么需要git规范"><a href="#为什么需要git规范" class="headerlink" title="为什么需要git规范"></a>为什么需要git规范</h2><p><strong>遵循 Git Commit 规范可以提高团队协作效率和代码库的可维护性</strong>。 通过明确的 Commit 类型和格式，开发者能够更轻松地理解每个提交所带来的更改，并能够快速回溯和回滚代码。 建议团队在项目中制定统一的 Git Commit 规范，并通过培训和代码审查来确保规范的遵循</p>
+<h4 id="git规范"><a href="#git规范" class="headerlink" title="git规范"></a>git规范</h4><ol>
+<li>约定式<type>(<scope>): <subject></li>
+<li>git commit 合并</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>type</th>
+<th>subject</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>feat</td>
+<td>新功能（feature）</td>
+</tr>
+<tr>
+<td>fix</td>
+<td>修补bug</td>
+</tr>
+<tr>
+<td>docs</td>
+<td>文档（documentation）</td>
+</tr>
+<tr>
+<td>style</td>
+<td>格式（不影响代码运行的变动）</td>
+</tr>
+<tr>
+<td>refactor</td>
+<td>重构（即不是新增功能，也不是修改bug的代码变动）</td>
+</tr>
+<tr>
+<td>chore</td>
+<td>构建过程或辅助工具的变动</td>
+</tr>
+<tr>
+<td>revert</td>
+<td>撤销，版本回退</td>
+</tr>
+<tr>
+<td>perf</td>
+<td>性能优化</td>
+</tr>
+<tr>
+<td>test</td>
+<td>测试</td>
+</tr>
+<tr>
+<td>improvement</td>
+<td>改进</td>
+</tr>
+<tr>
+<td>build</td>
+<td>打包</td>
+</tr>
+<tr>
+<td>ci</td>
+<td>持续集成</td>
+</tr>
+</tbody></table>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2023/06/23/tools/Git%20%E8%A7%84%E8%8C%83/">https://piwriw.github.io/2023/06/23/tools/Git 规范/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/web/">web</a></div><div class="post-share"><div class="social-share" data-image="/img/go.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2023/06/26/web/go/Go-%E6%97%A5%E5%BF%97%E5%BA%93Zap/" title="Go-日志库Zap"><img class="cover" src="/img/go.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">Go-日志库Zap</div></div><div class="info-2"><div class="info-item-1">Go-日志库Zap什么是zap 快，非常快，这也是 zap 最显著的特点。速度快的原因是 zap 避免使用 interface&#123;&#125; 和反射，并且使用 sync.Pool 减少堆内存分配。在 zap 面前 Logrus 的执行速度只有被吊打的份，你可以在官方 GitHub 仓库中看到 zap 与不同日志库的速度对比。 支持结构化日志记录。这是一个优秀的日志库必备功能。 支持七种日志级别：Debug、Info、Warn、Error、DPanic、Panic、Fatal，其中 DPanic 是指在开发环境下（development）记录日志后会进行 panic。 支持输出调用堆栈。 支持 Hooks 机制。  安装1go get -u go.uber.org/zap  基础使用&#x2F;&#x2F; suger 模式会稍微比logger 原生慢一点 1234567891011121314151617	logger, _ := zap.NewDevelopment()	//logger, _ := zap.NewDevelopment()	defer logger....</div></div></div></a><a class="pagination-related" href="/2023/06/23/web/go/%E4%BC%98%E9%9B%85%E9%80%80%E5%87%BA%E6%B3%A8%E9%94%80%E6%9C%8D%E5%8A%A1/" title="优雅退出注销服务"><img class="cover" src="/img/go.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">优雅退出注销服务</div></div><div class="info-2"><div class="info-item-1">优雅退出注销服务为什么需要优雅注销服务当往服务中心注册了服务之后，由于调试，可能会重复注册同一个服务。当时之前服务由于健康检查，并不会立即退出注销，这就会多线多个“重复的服务” 整合优雅退出服务12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849505152535455565758596061626364656667686970package consulimport (	&quot;fmt&quot;	&quot;github.com/hashicorp/consul/api&quot;)// register.go 工具type Registry struct &#123;	Host string	Port int&#125;type RegistryClient interface &#123;	Register(address string, port int, name string, tags []string, id string) erro...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明"><img class="cover" src="/img/go.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-01-11</div><div class="info-item-2">Gorm-日志系统模块原理说明</div></div><div class="info-2"><div class="info-item-1">日志系统模块原理说明 基于1.31 本文档深入解析日志系统模块的设计原理和核心实现，涵盖 SQL 日志记录、性能分析、调用栈追踪等核心内容。学习完本文档后，您将能够彻底理解 GORM 日志系统的工作机制，并能够实现自定义 Logger 来满足各种日志需求。  文档目录12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849505152535455565758596061626364656667686970717273747576777879808182838485868788899091929394959697989910010110210310410510610710810911011111211311411511611711811912012112212312412512612712812913013113213313413513613713813914009-logger.md├── 一、设计原理│   ├── 1.1 模块定位│   ├── 1.2 设...</div></div></div></a><a class="pagination-related" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明"><img class="cover" src="/img/go.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-01-11</div><div class="info-item-2">Gorm-迁移功能模块原理说明</div></div><div class="info-2"><div class="info-item-1">迁移功能模块原理说明 基于1.31 本文档深入解析迁移功能模块的设计原理和核心实现，涵盖数据库结构管理、类型映射、约束管理等核心内容。学习完本文档后，您将能够彻底理解 GORM 迁移系统的工作机制，并能够在实际项目中安全高效地进行数据库迁移。  文档目录1234567891011121314151617181920212223242526272829303132333435363738394041424344454647484950515253545556575859606162636465666768697071727374757677787980818283848586878889909192939495969798991001011021031041051061071081091101111121131141151161171181191201211221231241251261271281291301311321331341351361371381391401411421431441451461471481491501511521531541551561571581591...</div></div></div></a><a class="pagination-related" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明"><img class="cover" src="/img/go.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-01-11</div><div class="info-item-2">Gorm-插件系统模块原理说明</div></div><div class="info-2"><div class="info-item-1">插件系统模块原理说明 基于1.31 本文档深入解析插件系统模块的设计原理和核心实现，涵盖扩展机制、插件开发、集成模式等核心内容。  目录 一、设计原理 1.1 模块定位 1.2 设计目的 1.3 结构安排依据 1.4 与其他模块的逻辑关系 1.5 插件类型分类   二、核心数据结构 2.1 Plugin 接口 2.2 Config 插件字段 2.3 Use() 方法   三、核心实现 3.1 插件注册机制 3.2 插件初始化流程 3.3 回调系统集成 3.4 插件状态管理   四、实战代码示例 4.1 基础插件开发 4.2 读写分离插件 4.3 查询缓存插件 4.4 性能监控插件 4.5 数据脱敏插件   五、可视化流程图 5.1 插件注册流程 5.2 插件初始化流程 5.3 回调集成流程 5.4 插件系统架构   六、最佳实践与故障排查 6.1 开发最佳实践 6.2 常见问题与解决方案 6.3 性能优化建议 6.4 安全建议   七、学习验证 7.1 知识自测 7.2 实践练习     一、设计原理1.1 模块定位在整体架构中的位置 插件系统是 GORM 的扩展机制，位于应用层...</div></div></div></a><a class="pagination-related" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明"><img class="cover" src="/img/go.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-01-11</div><div class="info-item-2">Gorm-事务处理模块原理说明</div></div><div class="info-2"><div class="info-item-1">事务处理模块原理说明 基于1.31 本文档深入解析事务处理模块的设计原理和核心实现，涵盖事务管理、嵌套事务、保存点机制等核心内容。通过阅读本文档，您将能够完全理解 GORM 事务处理模块的工作原理，无需额外阅读源码。   目录 一、设计原理 1.1 模块定位 1.2 设计目的 1.3 结构安排依据 1.4 与其他模块的逻辑关系   二、核心数据结构 2.1 事务相关接口 2.2 TxOptions 配置   三、事务核心实现 3.1 Transaction 函数完整实现 3.2 Begin 函数完整实现 3.3 Commit 和 Rollback 实现 3.4 SavePoint 和 RollbackTo 实现 3.5 事务执行流程图   四、默认事务机制 4.1 BeginTransaction 实现 4.2 CommitOrRollbackTransaction 实现 4.3 回调注册流程 4.4 默认事务流程图   五、实战代码示例 5.1 基础事务使用 5.2 嵌套事务使用 5.3 手动事务控制 5.4 保存点使用 5.5 隔离级别配置 5.6 复杂业务场景   六、最佳...</div></div></div></a><a class="pagination-related" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明"><img class="cover" src="/img/go.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-01-11</div><div class="info-item-2">Gorm-关联关系模块原理说明</div></div><div class="info-2"><div class="info-item-1">关联关系模块原理说明  基于1.31 本文档深入解析关联关系模块的设计原理和核心实现，涵盖关系推断、预加载机制、N+1 问题解决、Association API 等核心内容。通过阅读本文档，您将能够完全理解 GORM 关联关系模块的工作原理，无需额外阅读源码。   目录 一、设计原理 1.1 模块定位 1.2 设计目的 1.3 结构安排依据 1.4 与其他模块的逻辑关系   二、核心数据结构 2.1 Relationship 结构完整解析 2.2 Relationships 结构 2.3 Reference 结构 2.4 Polymorphic 结构   三、关系推断机制 3.1 parseRelation 函数完整实现 3.2 guessRelation 函数完整实现 3.3 buildPolymorphicRelation 实现 3.4 buildMany2ManyRelation 实现 3.5 关系推断决策树   四、预加载机制 4.1 preloadEntryPoint 完整实现 4.2 preload 函数完整实现 4.3 Preload 执行流程图 4.4 嵌套预加载...</div></div></div></a><a class="pagination-related" href="/2026/01/11/web/gorm/05-callback/" title="Gorm-回调钩子模块原理说明"><img class="cover" src="/img/go.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-01-11</div><div class="info-item-2">Gorm-回调钩子模块原理说明</div></div><div class="info-2"><div class="info-item-1">回调钩子模块原理说明 基于1.31 本文档深入解析回调钩子模块的设计原理和核心原理，涵盖事件驱动机制、责任链模式、钩子注册与执行等核心内容。   一、设计原理1.1 模块定位在整体架构中的位置 回调钩子模块是 GORM 的事件驱动层，位于查询构建和 SQL 执行之间，负责在数据操作的生命周期中插入自定义逻辑。 1234567891011121314151617181920212223242526272829303132333435┌─────────────────────────────────────────────────────────────┐│                    Finisher API                              ││                      db.Find(&amp;users)                         │└────────────────────────┬────────────────────────────────────┘                      ...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Git-%E8%A7%84%E8%8C%83"><span class="toc-number">1.</span> <span class="toc-text">Git 规范</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81git%E8%A7%84%E8%8C%83"><span class="toc-number">1.1.</span> <span class="toc-text">为什么需要git规范</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#git%E8%A7%84%E8%8C%83"><span class="toc-number">1.1.0.1.</span> <span class="toc-text">git规范</span></a></li></ol></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-日志系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明">Gorm-日志系统模块原理说明</a><time datetime="2026-01-11T11:56:27.000Z" title="发表于 2026-01-11 19:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-迁移功能模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明">Gorm-迁移功能模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-插件系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明">Gorm-插件系统模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-事务处理模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明">Gorm-事务处理模块原理说明</a><time datetime="2026-01-11T09:56:27.000Z" title="发表于 2026-01-11 17:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-关联关系模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明">Gorm-关联关系模块原理说明</a><time datetime="2026-01-11T08:56:27.000Z" title="发表于 2026-01-11 16:56:27">2026-01-11</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

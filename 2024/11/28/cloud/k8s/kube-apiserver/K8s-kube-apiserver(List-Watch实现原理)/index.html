@@ -1,0 +1,313 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>K8s-kube-apiserver(List-Watch实现原理) | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="K8s-kube-apiserver(List-Watch实现原理) 基于1.25  List-Watch是K8s的核心机制，基于List-Watch实现了资源变化的感知  List调用ListAPI列出所有资源，基于HTTP短链实现 Watch调用WatchAPI监听资源变更事件，基于HTTP长连接事件  长连接通信协议支持Watch操作碧玺实现客户端和服务端的长连接。 kube-apiserv">
+<meta property="og:type" content="article">
+<meta property="og:title" content="K8s-kube-apiserver(List-Watch实现原理)">
+<meta property="og:url" content="https://piwriw.github.io/2024/11/28/cloud/k8s/kube-apiserver/K8s-kube-apiserver(List-Watch%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86)/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="K8s-kube-apiserver(List-Watch实现原理) 基于1.25  List-Watch是K8s的核心机制，基于List-Watch实现了资源变化的感知  List调用ListAPI列出所有资源，基于HTTP短链实现 Watch调用WatchAPI监听资源变更事件，基于HTTP长连接事件  长连接通信协议支持Watch操作碧玺实现客户端和服务端的长连接。 kube-apiserv">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/k8sLogo.png">
+<meta property="article:published_time" content="2024-11-28T14:31:55.000Z">
+<meta property="article:modified_time" content="2026-02-28T13:29:12.666Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="k8s">
+<meta property="article:tag" content="cloud">
+<meta property="article:tag" content="K8s源码">
+<meta property="article:tag" content="kube-apiserver">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/k8sLogo.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "K8s-kube-apiserver(List-Watch实现原理)",
+  "url": "https://piwriw.github.io/2024/11/28/cloud/k8s/kube-apiserver/K8s-kube-apiserver(List-Watch%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86)/",
+  "image": "https://piwriw.github.io/img/k8sLogo.png",
+  "datePublished": "2024-11-28T14:31:55.000Z",
+  "dateModified": "2026-02-28T13:29:12.666Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2024/11/28/cloud/k8s/kube-apiserver/K8s-kube-apiserver(List-Watch%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86)/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'K8s-kube-apiserver(List-Watch实现原理)',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/k8sLogo.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">K8s-kube-apiserver(List-Watch实现原理)</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">K8s-kube-apiserver(List-Watch实现原理)</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2024-11-28T14:31:55.000Z" title="发表于 2024-11-28 22:31:55">2024-11-28</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-02-28T13:29:12.666Z" title="更新于 2026-02-28 21:29:12">2026-02-28</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/">k8s</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/apiserver/">apiserver</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">1.2k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>6分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-02-28 21:29:12&quot;}" hidden></div><h1 id="K8s-kube-apiserver-List-Watch实现原理"><a href="#K8s-kube-apiserver-List-Watch实现原理" class="headerlink" title="K8s-kube-apiserver(List-Watch实现原理)"></a>K8s-kube-apiserver(List-Watch实现原理)</h1><blockquote>
+<p>基于1.25</p>
+</blockquote>
+<p>List-Watch是K8s的核心机制，基于List-Watch实现了资源变化的感知</p>
+<ul>
+<li>List调用ListAPI列出所有资源，基于HTTP短链实现</li>
+<li>Watch调用WatchAPI监听资源变更事件，基于HTTP长连接事件</li>
+</ul>
+<h2 id="长连接通信协议"><a href="#长连接通信协议" class="headerlink" title="长连接通信协议"></a>长连接通信协议</h2><p>支持Watch操作碧玺实现客户端和服务端的长连接。</p>
+<p>kube-apiserver的Watch支持3种类型的长连接</p>
+<ul>
+<li>HTTP&#x2F;1.1 Chunked Transfer Encoding</li>
+<li>HTTP&#x2F;2</li>
+<li>WebSocket</li>
+</ul>
+<h3 id="HTTP-1-1-Chunked-Transfer-Encoding"><a href="#HTTP-1-1-Chunked-Transfer-Encoding" class="headerlink" title="HTTP&#x2F;1.1 Chunked Transfer Encoding"></a>HTTP&#x2F;1.1 Chunked Transfer Encoding</h3><p>HTTP&#x2F;1.1 Chunked Transfer Encoding（分块传输编码）是HTTP中数据传输的一种机制，允许吧服务端发送给客户端的数据分为多个部分，分批次发送</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">验证支持HTTP/1.1 Chunked</span></span><br><span class="line">curl -ik --http1.1 \</span><br><span class="line">--cert /etc/kubernetes/pki/apiserver-kubelet-client.crt \</span><br><span class="line">--key /etc/kubernetes/pki/apiserver-kubelet-cliet.key \</span><br><span class="line">https://127.0.0.1:6443/api/v1/pods?watch=true</span><br></pre></td></tr></table></figure>
+
+<h3 id="HTTP-2"><a href="#HTTP-2" class="headerlink" title="HTTP&#x2F;2"></a>HTTP&#x2F;2</h3><p>HTTP&#x2F;2,主要基于SPDY协议</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">验证支持HTTP2</span></span><br><span class="line">curl -ik --http \</span><br><span class="line">--cert /etc/kubernetes/pki/apiserver-kubelet-client.crt \</span><br><span class="line">--key /etc/kubernetes/pki/apiserver-kubelet-cliet.key \</span><br><span class="line">https://127.0.0.1:6443/api/v1/pods?watch=true</span><br></pre></td></tr></table></figure>
+
+<h3 id="WebSocket"><a href="#WebSocket" class="headerlink" title="WebSocket"></a>WebSocket</h3><p>WebSocket是一种网络传输协议，可以在单个TCP连接上进行双向同时通信</p>
+<p>WebSocket可以通过Upgrade Header从HTTP1.1升级到WebSocket协议</p>
+<ul>
+<li>WebSocket使用<code>ws</code>和<code>wss</code>作为统一资源标识符</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">验证支持WebSocket</span></span><br><span class="line">curl -ik --http/1.1 \</span><br><span class="line">--header &quot;Connection:Upgrade&quot; \</span><br><span class="line">--header &quot;Upgrade: websocket&quot; \</span><br><span class="line">--header &quot;Sec-WebSocket-Key: xxx&quot; \</span><br><span class="line">--header &quot;Sec-WebSocket-Version: 13&quot; \</span><br><span class="line">--header &quot;Host: 127.0.0.1:8001 &quot; \</span><br><span class="line">--header &quot;Origin: http://127.0.0.1:8001&quot; \</span><br><span class="line">--cert /etc/kubernetes/pki/apiserver-kubelet-client.crt \</span><br><span class="line">--key /etc/kubernetes/pki/apiserver-kubelet-cliet.key \</span><br><span class="line">https://127.0.0.1:6443/api/v1/pods?watch=true</span><br></pre></td></tr></table></figure>
+
+<h2 id="List-Watch核心原理"><a href="#List-Watch核心原理" class="headerlink" title="List-Watch核心原理"></a>List-Watch核心原理</h2><p>kube-apiserver的List-Watch是在etcd List-Watch基础上的封装，类似于etcd的代理层</p>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image202411292358831.png"></p>
+<p>Informer启动之后，内部Controller运行Reflector,Relector通过Run可以通过BackoffUntil的方式重复执行r.ListAndWatch func（确保在Watch连接断开之后，能自动重新执行List-Wacth）</p>
+<ul>
+<li><p>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/client-go/blob/4f1c2e7b9711846cf31255fd709616c66cb3cfea/tools/cache/reflector.go#L220">https://github.com/kubernetes/client-go/blob/4f1c2e7b9711846cf31255fd709616c66cb3cfea/tools/cache/reflector.go#L220</a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Run repeatedly uses the reflector&#x27;s ListAndWatch to fetch all the</span></span><br><span class="line"><span class="comment">// objects and subsequent deltas.</span></span><br><span class="line"><span class="comment">// Run will exit when stopCh is closed.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(r *Reflector)</span></span> Run(stopCh &lt;-<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;) &#123;</span><br><span class="line">	klog.V(<span class="number">3</span>).Infof(<span class="string">&quot;Starting reflector %s (%s) from %s&quot;</span>, r.expectedTypeName, r.resyncPeriod, r.name)</span><br><span class="line">	wait.BackoffUntil(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">if</span> err := r.ListAndWatch(stopCh); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			r.watchErrorHandler(r, err)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;, r.backoffManager, <span class="literal">true</span>, stopCh)</span><br><span class="line">	klog.V(<span class="number">3</span>).Infof(<span class="string">&quot;Stopping reflector %s (%s) from %s&quot;</span>, r.expectedTypeName, r.resyncPeriod, r.name)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<p>ListAndWatch func 首先执行List，把全量数据更新到DeltaFIFO队列中，然后从List中获取到最新的ResourceVersion开始Watch的后续的资源变化事件，通过Add&#x2F;Update&#x2F;Delete 方式传递到DeltaFIFO处理</p>
+<ul>
+<li><p>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/client-go/blob/4f1c2e7b9711846cf31255fd709616c66cb3cfea/tools/cache/reflector.go#L256">https://github.com/kubernetes/client-go/blob/4f1c2e7b9711846cf31255fd709616c66cb3cfea/tools/cache/reflector.go#L256</a></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="comment">// ListAndWatch first lists all items and get the resource version at the moment of call,</span></span><br><span class="line"><span class="comment">// and then use the resource version to watch.</span></span><br><span class="line"><span class="comment">// It returns error if ListAndWatch didn&#x27;t even try to initialize watch.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(r *Reflector)</span></span> ListAndWatch(stopCh &lt;-<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;) <span class="type">error</span> &#123;</span><br><span class="line">	klog.V(<span class="number">3</span>).Infof(<span class="string">&quot;Listing and watching %v from %s&quot;</span>, r.expectedTypeName, r.name)</span><br><span class="line"></span><br><span class="line">	err := r.list(stopCh)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	resyncerrc := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="type">error</span>, <span class="number">1</span>)</span><br><span class="line">	cancelCh := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line">	<span class="keyword">defer</span> <span class="built_in">close</span>(cancelCh)</span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		resyncCh, cleanup := r.resyncChan()</span><br><span class="line">		<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			cleanup() <span class="comment">// Call the last one written into cleanup</span></span><br><span class="line">		&#125;()</span><br><span class="line">		<span class="keyword">for</span> &#123;</span><br><span class="line">			<span class="keyword">select</span> &#123;</span><br><span class="line">			<span class="keyword">case</span> &lt;-resyncCh:</span><br><span class="line">			<span class="keyword">case</span> &lt;-stopCh:</span><br><span class="line">				<span class="keyword">return</span></span><br><span class="line">			<span class="keyword">case</span> &lt;-cancelCh:</span><br><span class="line">				<span class="keyword">return</span></span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">if</span> r.ShouldResync == <span class="literal">nil</span> || r.ShouldResync() &#123;</span><br><span class="line">				klog.V(<span class="number">4</span>).Infof(<span class="string">&quot;%s: forcing resync&quot;</span>, r.name)</span><br><span class="line">				<span class="keyword">if</span> err := r.store.Resync(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">					resyncerrc &lt;- err</span><br><span class="line">					<span class="keyword">return</span></span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">			cleanup()</span><br><span class="line">			resyncCh, cleanup = r.resyncChan()</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	retry := NewRetryWithDeadline(r.MaxInternalErrorRetryDuration, time.Minute, apierrors.IsInternalError, r.clock)</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		<span class="comment">// give the stopCh a chance to stop the loop, even in case of continue statements further down on errors</span></span><br><span class="line">		<span class="keyword">select</span> &#123;</span><br><span class="line">		<span class="keyword">case</span> &lt;-stopCh:</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">		<span class="keyword">default</span>:</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		timeoutSeconds := <span class="type">int64</span>(minWatchTimeout.Seconds() * (rand.Float64() + <span class="number">1.0</span>))</span><br><span class="line">		options := metav1.ListOptions&#123;</span><br><span class="line">			ResourceVersion: r.LastSyncResourceVersion(),</span><br><span class="line">			<span class="comment">// We want to avoid situations of hanging watchers. Stop any watchers that do not</span></span><br><span class="line">			<span class="comment">// receive any events within the timeout window.</span></span><br><span class="line">			TimeoutSeconds: &amp;timeoutSeconds,</span><br><span class="line">			<span class="comment">// To reduce load on kube-apiserver on watch restarts, you may enable watch bookmarks.</span></span><br><span class="line">			<span class="comment">// Reflector doesn&#x27;t assume bookmarks are returned at all (if the server do not support</span></span><br><span class="line">			<span class="comment">// watch bookmarks, it will ignore this field).</span></span><br><span class="line">			AllowWatchBookmarks: <span class="literal">true</span>,</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// start the clock before sending the request, since some proxies won&#x27;t flush headers until after the first watch event is sent</span></span><br><span class="line">		start := r.clock.Now()</span><br><span class="line">		w, err := r.listerWatcher.Watch(options)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="comment">// If this is &quot;connection refused&quot; error, it means that most likely apiserver is not responsive.</span></span><br><span class="line">			<span class="comment">// It doesn&#x27;t make sense to re-list all objects because most likely we will be able to restart</span></span><br><span class="line">			<span class="comment">// watch where we ended.</span></span><br><span class="line">			<span class="comment">// If that&#x27;s the case begin exponentially backing off and resend watch request.</span></span><br><span class="line">			<span class="comment">// Do the same for &quot;429&quot; errors.</span></span><br><span class="line">			<span class="keyword">if</span> utilnet.IsConnectionRefused(err) || apierrors.IsTooManyRequests(err) &#123;</span><br><span class="line">				&lt;-r.initConnBackoffManager.Backoff().C()</span><br><span class="line">				<span class="keyword">continue</span></span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		err = watchHandler(start, w, r.store, r.expectedType, r.expectedGVK, r.name, r.expectedTypeName, r.setLastSyncResourceVersion, r.clock, resyncerrc, stopCh)</span><br><span class="line">		retry.After(err)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">if</span> err != errorStopRequested &#123;</span><br><span class="line">				<span class="keyword">switch</span> &#123;</span><br><span class="line">				<span class="keyword">case</span> isExpiredError(err):</span><br><span class="line">					<span class="comment">// Don&#x27;t set LastSyncResourceVersionUnavailable - LIST call with ResourceVersion=RV already</span></span><br><span class="line">					<span class="comment">// has a semantic that it returns data at least as fresh as provided RV.</span></span><br><span class="line">					<span class="comment">// So first try to LIST with setting RV to resource version of last observed object.</span></span><br><span class="line">					klog.V(<span class="number">4</span>).Infof(<span class="string">&quot;%s: watch of %v closed with: %v&quot;</span>, r.name, r.expectedTypeName, err)</span><br><span class="line">				<span class="keyword">case</span> apierrors.IsTooManyRequests(err):</span><br><span class="line">					klog.V(<span class="number">2</span>).Infof(<span class="string">&quot;%s: watch of %v returned 429 - backing off&quot;</span>, r.name, r.expectedTypeName)</span><br><span class="line">					&lt;-r.initConnBackoffManager.Backoff().C()</span><br><span class="line">					<span class="keyword">continue</span></span><br><span class="line">				<span class="keyword">case</span> apierrors.IsInternalError(err) &amp;&amp; retry.ShouldRetry():</span><br><span class="line">					klog.V(<span class="number">2</span>).Infof(<span class="string">&quot;%s: retrying watch of %v internal error: %v&quot;</span>, r.name, r.expectedTypeName, err)</span><br><span class="line">					<span class="keyword">continue</span></span><br><span class="line">				<span class="keyword">default</span>:</span><br><span class="line">					klog.Warningf(<span class="string">&quot;%s: watch of %v ended with: %v&quot;</span>, r.name, r.expectedTypeName, err)</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2024/11/28/cloud/k8s/kube-apiserver/K8s-kube-apiserver(List-Watch%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86)/">https://piwriw.github.io/2024/11/28/cloud/k8s/kube-apiserver/K8s-kube-apiserver(List-Watch实现原理)/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a><a class="post-meta__tags" href="/tags/cloud/">cloud</a><a class="post-meta__tags" href="/tags/K8s%E6%BA%90%E7%A0%81/">K8s源码</a><a class="post-meta__tags" href="/tags/kube-apiserver/">kube-apiserver</a></div><div class="post-share"><div class="social-share" data-image="/img/k8sLogo.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2024/11/30/cloud/k8s/kube-schedule/Kube-scheduler(OverView)/" title="Kube-scheduler(OverView)"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">Kube-scheduler(OverView)</div></div><div class="info-2"><div class="info-item-1">Kube-scheduler(OverView) 基于1.25  Kube-schedule是K8s的控制平面组件之一，负责调度整个集群的Pod kube-scheduler调度模型kube-schedule的调度过程主要可以分为两个周期、三个阶段  两个周期主要是调度周期和绑定周期 三个阶段主要是预选（Filter）、优选（score）、绑定（Bind）三个阶段     kube-schedule在调度周期使用出串行策略，每次调度一个Pod 在绑定周期，使用并行策略  kube-scheduler调度Pod有俩种最优解：  全局最优解：执行调度策略会遍历所有的节点，找出全局最优节点 局部最优解，执行调度策略只遍历部分你节点，找出部分最优解   kube-schduler通过自动调度方法执行调度最优解，默认节点小于等于100，寻找最优解  kube-scheduler内部架构主要包含Informer、Scheduling Quque，Cache以及Scheduling Framework组件  Scheduling Queue主要是用于缓存待调度的Pod，以便在调度的时候高效获取...</div></div></div></a><a class="pagination-related" href="/2024/11/27/cloud/k8s/kube-apiserver/K8s-kube-apiserver(%E4%BF%A1%E5%8F%B7%E5%A4%84%E7%90%86%E6%9C%BA%E5%88%B6)/" title="K8s-kube-apiserver(信号处理机制)"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">K8s-kube-apiserver(信号处理机制)</div></div><div class="info-2"><div class="info-item-1">K8s-kube-apiserver(信号处理机制) 基于1.25  K8s基于UNIX信号实现常驻进程以及进程的优雅退出  例如，当kube-apiserver进程接收到SIGTERM或SIGINT信号时，先通知kube-apiserver内部的Gouroutine协程优先退出，再退出主线程退出 例如，Prometheus基于监听SIGHUP信号，实现热加载配置文件  常驻进程实现Kube-apiserver的实现如下，其他类似：  Ref:https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/cmd/kube-apiserver/app/server.go#L93 123456789101112131415161718192021222324252627282930313233343536373839404142// NewAPIServerCommand creates a *cobra.Command object with default parame...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2024/11/27/cloud/k8s/kube-apiserver/K8s-kube-apiserver(%E4%BF%A1%E5%8F%B7%E5%A4%84%E7%90%86%E6%9C%BA%E5%88%B6)/" title="K8s-kube-apiserver(信号处理机制)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-11-27</div><div class="info-item-2">K8s-kube-apiserver(信号处理机制)</div></div><div class="info-2"><div class="info-item-1">K8s-kube-apiserver(信号处理机制) 基于1.25  K8s基于UNIX信号实现常驻进程以及进程的优雅退出  例如，当kube-apiserver进程接收到SIGTERM或SIGINT信号时，先通知kube-apiserver内部的Gouroutine协程优先退出，再退出主线程退出 例如，Prometheus基于监听SIGHUP信号，实现热加载配置文件  常驻进程实现Kube-apiserver的实现如下，其他类似：  Ref:https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/cmd/kube-apiserver/app/server.go#L93 123456789101112131415161718192021222324252627282930313233343536373839404142// NewAPIServerCommand creates a *cobra.Command object with default parame...</div></div></div></a><a class="pagination-related" href="/2024/11/26/cloud/k8s/kube-apiserver/K8s-kube-apiserver(%E5%87%86%E5%85%A5%E6%8E%A7%E5%88%B6%E5%99%A8)/" title="K8s-kube-apiserver(准入控制器)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-11-26</div><div class="info-item-2">K8s-kube-apiserver(准入控制器)</div></div><div class="info-2"><div class="info-item-1">K8s-kube-apiserver(准入控制器) 基于1.25  准入控制器会通过在请求经过认证、授权等前置检查后，对象被真正持久化前行最后的拦截，对请求的资源对象进行存储前的变更或验证  准入控制器以插件的形式，支持有命令行参数动态启用(–enable-adminssion-plugins)或禁用(–disable-adminssion-pkugins)指定准入控制器插件  内置插件介绍   名称 说明    AlwaysAdmit 已弃用，允许所有的请求   NamespaceAutoProvsion 检查所有进入的具备命名空间的资源请求，如果引用的命令空间不存在，则自动创建命名空间   NamespaceLifecycle 禁止在一个正在被终止的空间中创建新对象，确保对不存在的命名空间的请求被拒绝。在删除一个命名空间时，触发删除该命名空间下的所有对象（如Pod、Service等）的操作。同时，禁止删除系统保留的命令空间（default、kube-system、kube-public）   NamespaceExists 检查所有进入的具备命名空间的资源请求，如果其引用的命...</div></div></div></a><a class="pagination-related" href="/2024/11/25/cloud/k8s/kube-apiserver/K8s-kube-apiserver(%E6%8E%88%E6%9D%83)/" title="K8s-kube-apiserver(授权)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-11-25</div><div class="info-item-2">K8s-kube-apiserver(授权)</div></div><div class="info-2"><div class="info-item-1">K8s-kube-apiserver(授权) 基于1.25  kube-apiserver的授权客户端请求通过认证之后，进入授权阶段，校验对应用户是否具有对应数据读写的权限  支持多种授权机制，并且支持开启多个授权功能 如果开启多个授权，按照授权顺序执行 只要有一个授权器通过，授权就成功  目前支持六种授权模式：  AlwaysAllow：允许所有请求 AlwaysDeny：阻止所有请求 ABAC：基于属性的访问控制 Webhook：基于Webhook的一种HTTP回调，远程授权管理 RBAC：基于角色的访问控制 Node：节点模式，专门授权kubelet发出的API请求 集群默认开启Node和RBAC模式  在kube-apiserver中，Authorization授权有三个概念，分别是Decision决策状态、授权器接口和Rule Resolver规则解析器  Decision决策状态 Decision决策状态类似于身份认证中的true和false，用来表示授权是否成功  Ref:https://github.com/kubernetes/apiserver/blob/ba...</div></div></div></a><a class="pagination-related" href="/2024/11/24/cloud/k8s/kube-apiserver/K8s-kube-apiserver(%E8%AF%B7%E6%B1%82%E4%B8%8E%E8%AE%A4%E8%AF%81)/" title="K8s-kube-apiserver(请求与认证)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-11-24</div><div class="info-item-2">K8s-kube-apiserver(请求与认证)</div></div><div class="info-2"><div class="info-item-1">K8s-kube-apiserver(请求与认证) 基于1.25  kube-apiserver请求处理流程：  权限控制体系 认证kube-apiserver支持多种认证机制，并且支持同时开启多个认证功能，组成认证链路 目前支持8种：  RequestHeader ClientCA TokenAuth ServiceAccountAuht BootstrrapToken OIDC WebHookTokenAuth Anonymous  RequestHeader认证kubeapiserver通过制定以下参数开启RequestHeader认证  --requestheader-client-ca-file制定认证代理客户端证书签发所使用的CA证书，必选 --requestheader-allowed-names：指定允许的通用名称（CN）列表。如果设置则客户端中列表中，不然任选 --requestheader-username-headers:指定HTTP Header中用于设置用户名的字段名称列表，API Server按照顺序检查用户身份，第一个匹配结果作为用户名，必选 --r...</div></div></div></a><a class="pagination-related" href="/2024/11/23/cloud/k8s/kube-apiserver/K8s-kube-apiserver(%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B)/" title="K8s-kube-apiserver(启动流程)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-11-23</div><div class="info-item-2">K8s-kube-apiserver(启动流程)</div></div><div class="info-2"><div class="info-item-1">K8s-kube-apiserver(启动流程) 基于1.25  APIServer启动流程：  Schema资源注册 Cobra命令桉树解析 创建API Server通用配置 创建API EXtensionsServer 创建KubeAPIServer 创建AggregatorServer GenericAPIServer初始化 准备和启动HTTPS服务   Scheme资源注册使用Scheme所有资源注册到APIServer中 Scheme资源注册不算使用显式代码触发，通过init注册。 初始化Scheme资源注册表 Ref:https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/api/legacyscheme/scheme.go#L24 1234567891011121314151617var (	// Scheme is the default instance of runtime.Scheme to which types in the Ku...</div></div></div></a><a class="pagination-related" href="/2024/11/22/cloud/k8s/kube-apiserver/K8s-kube-apiserver(Overview)/" title="K8s-kube-apiserver(Overview)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-11-22</div><div class="info-item-2">K8s-kube-apiserver(Overview)</div></div><div class="info-2"><div class="info-item-1">K8s-kube-apiserver(Overview) 基于1.25  什么是Kube-apiserverkube-apiserver是K8s控制面的组件之一  主要提供集群管理的RESTAPI接口，包括认证授权、数据校验、配置变更 只有kube-apiserver才能直接操作etcd集群中的数据  Pod创建的关键流程：  用户通过客户端向kube-apiserver发起Pod请求 kube-apiserver验证请求的有效性，并将其持久化保存到etcd集群 kube- schedule基于Watch机制感知到新Pod创建的事件 kube- schedule执行调度算法 kube-apiserver验证Bind请求，将结果持久化道etcd集群 kubelet基于Watch机制感知到Pod完成绑定事件 kubelet对应节点的容器运行时交互，启动容器，并向kube-apiserver上报Pod的运行状态 kube-apiserver将Pod的最新状态持久化到etcd集群 用户通过客户端向kube-apiserver发起Pod查询请求   网络通信框架kube-apiserver...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#K8s-kube-apiserver-List-Watch%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86"><span class="toc-number">1.</span> <span class="toc-text">K8s-kube-apiserver(List-Watch实现原理)</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%95%BF%E8%BF%9E%E6%8E%A5%E9%80%9A%E4%BF%A1%E5%8D%8F%E8%AE%AE"><span class="toc-number">1.1.</span> <span class="toc-text">长连接通信协议</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#HTTP-1-1-Chunked-Transfer-Encoding"><span class="toc-number">1.1.1.</span> <span class="toc-text">HTTP&#x2F;1.1 Chunked Transfer Encoding</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#HTTP-2"><span class="toc-number">1.1.2.</span> <span class="toc-text">HTTP&#x2F;2</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#WebSocket"><span class="toc-number">1.1.3.</span> <span class="toc-text">WebSocket</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#List-Watch%E6%A0%B8%E5%BF%83%E5%8E%9F%E7%90%86"><span class="toc-number">1.2.</span> <span class="toc-text">List-Watch核心原理</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-日志系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明">Gorm-日志系统模块原理说明</a><time datetime="2026-01-11T11:56:27.000Z" title="发表于 2026-01-11 19:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-迁移功能模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明">Gorm-迁移功能模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-插件系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明">Gorm-插件系统模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-事务处理模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明">Gorm-事务处理模块原理说明</a><time datetime="2026-01-11T09:56:27.000Z" title="发表于 2026-01-11 17:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-关联关系模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明">Gorm-关联关系模块原理说明</a><time datetime="2026-01-11T08:56:27.000Z" title="发表于 2026-01-11 16:56:27">2026-01-11</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

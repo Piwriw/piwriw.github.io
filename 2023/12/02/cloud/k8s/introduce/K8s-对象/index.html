@@ -1,0 +1,334 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>K8s-对象 | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="K8s-对象对象的spec和status spec：操作员所期望的状态 status：实际上集群中的状态  必填字段在上述的 .yaml 文件中，如下字段是必须填写的：  apiVersion 用来创建对象时所使用的Kubernetes API版本 kind 被创建对象的类型 metadata 用于唯一确定该对象的元数据：包括 name 和 namespace，如果 namespace 为空，则默">
+<meta property="og:type" content="article">
+<meta property="og:title" content="K8s-对象">
+<meta property="og:url" content="https://piwriw.github.io/2023/12/02/cloud/k8s/introduce/K8s-%E5%AF%B9%E8%B1%A1/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="K8s-对象对象的spec和status spec：操作员所期望的状态 status：实际上集群中的状态  必填字段在上述的 .yaml 文件中，如下字段是必须填写的：  apiVersion 用来创建对象时所使用的Kubernetes API版本 kind 被创建对象的类型 metadata 用于唯一确定该对象的元数据：包括 name 和 namespace，如果 namespace 为空，则默">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/k8s-go.jpg">
+<meta property="article:published_time" content="2023-12-02T04:08:55.000Z">
+<meta property="article:modified_time" content="2026-02-28T13:29:12.665Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="k8s">
+<meta property="article:tag" content="cloud">
+<meta property="article:tag" content="introduce">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/k8s-go.jpg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "K8s-对象",
+  "url": "https://piwriw.github.io/2023/12/02/cloud/k8s/introduce/K8s-%E5%AF%B9%E8%B1%A1/",
+  "image": "https://piwriw.github.io/img/k8s-go.jpg",
+  "datePublished": "2023-12-02T04:08:55.000Z",
+  "dateModified": "2026-02-28T13:29:12.665Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2023/12/02/cloud/k8s/introduce/K8s-%E5%AF%B9%E8%B1%A1/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'K8s-对象',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/k8s-go.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">K8s-对象</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">K8s-对象</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2023-12-02T04:08:55.000Z" title="发表于 2023-12-02 12:08:55">2023-12-02</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-02-28T13:29:12.665Z" title="更新于 2026-02-28 21:29:12">2026-02-28</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/">k8s</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/introduce/">introduce</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">1.3k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>4分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-02-28 21:29:12&quot;}" hidden></div><h1 id="K8s-对象"><a href="#K8s-对象" class="headerlink" title="K8s-对象"></a>K8s-对象</h1><h2 id="对象的spec和status"><a href="#对象的spec和status" class="headerlink" title="对象的spec和status"></a>对象的spec和status</h2><ul>
+<li>spec：操作员所期望的状态</li>
+<li>status：实际上集群中的状态</li>
+</ul>
+<h2 id="必填字段"><a href="#必填字段" class="headerlink" title="必填字段"></a>必填字段</h2><p>在上述的 <code>.yaml</code> 文件中，如下字段是必须填写的：</p>
+<ul>
+<li><strong>apiVersion</strong> 用来创建对象时所使用的Kubernetes API版本</li>
+<li><strong>kind</strong> 被创建对象的类型</li>
+<li><strong>metadata</strong> 用于唯一确定该对象的元数据：包括 <code>name</code> 和 <code>namespace</code>，如果 <code>namespace</code> 为空，则默认值为 <code>default</code></li>
+<li><strong>spec</strong> 描述您对该对象的期望状态</li>
+</ul>
+<h2 id="名称"><a href="#名称" class="headerlink" title="名称"></a>名称</h2><p>Kubernetes REST API 中，所有的对象都是通过 <code>name</code> 和 <code>UID</code> 唯一性确定。</p>
+<h3 id="Names"><a href="#Names" class="headerlink" title="Names"></a>Names</h3><p>可以通过 <code>namespace</code> + <code>name</code> 唯一性地确定一个 RESTFUL 对象，例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/api/v1/namespaces/&#123;namespace&#125;/pods/&#123;name&#125;</span><br></pre></td></tr></table></figure>
+
+<p>同一个名称空间下，同一个类型的对象，可以通过 <code>name</code> 唯一性确定。如果删除该对象之后，可以再重新创建一个同名对象。</p>
+<p>下面是三种广泛使用的资源名称的限制类型:</p>
+<h4 id="DNS-Subdomain-Names"><a href="#DNS-Subdomain-Names" class="headerlink" title="DNS Subdomain Names"></a>DNS Subdomain Names</h4><p>绝大部分资源类型的名称必须符合 DNS subdomain 命名规则 <a target="_blank" rel="noopener" href="https://tools.ietf.org/html/rfc1123">RFC 1123 (opens new window)</a>，具体如下：</p>
+<ul>
+<li>最长不超过 253个字符</li>
+<li>必须由小写字母、数字、减号 <code>-</code>、小数点 <code>.</code> 组成</li>
+<li>由字母开始</li>
+<li>由字母结束</li>
+</ul>
+<h4 id="DNS-Label-Names"><a href="#DNS-Label-Names" class="headerlink" title="DNS Label Names"></a>DNS Label Names</h4><p>部分类型的资源要求其名称符合 DNS Label 的命名规则 <a target="_blank" rel="noopener" href="https://tools.ietf.org/html/rfc1123">RFC 1123 (opens new window)</a>，具体如下：</p>
+<ul>
+<li>最长不超过 63个字符</li>
+<li>必须由小写字母、数字、减号 <code>-</code>、小数点 <code>.</code> 组成</li>
+<li>由字母开始</li>
+<li>由字母结束</li>
+</ul>
+<h4 id="Path-Segment-Names"><a href="#Path-Segment-Names" class="headerlink" title="Path Segment Names"></a>Path Segment Names</h4><p>部分类型的资源要求其名称可以被编码到路径中。换句话说，名称中不能包含 <code>.</code>、<code>..</code>、<code>/</code>、<code>%</code>。</p>
+<h3 id="UIDs"><a href="#UIDs" class="headerlink" title="UIDs"></a>UIDs</h3><p>UID 是由 Kubernetes 系统生成的，唯一标识某个 Kubernetes 对象的字符串。</p>
+<p>Kubernetes集群中，每创建一个对象，都有一个唯一的 UID。用于区分多次创建的同名对象（如前所述，<strong>按照名字删除对象后，重新再创建同名对象时，两次创建的对象 name 相同，但是 UID 不同</strong>。）</p>
+<p>Kubernetes 中的 UID 是全局唯一的标识符（UUIDs，符合规范 ISO&#x2F;IEC 9834-8 以及 ITU-T X.667）</p>
+<h2 id="名称（命名）空间"><a href="#名称（命名）空间" class="headerlink" title="名称（命名）空间"></a>名称（命名）空间</h2><p>可以通过 <code>set-context</code> 命令改变当前 <a target="_blank" rel="noopener" href="https://kuboard.cn/install/config-kubectl.html#%E5%88%87%E6%8D%A2%E5%BD%93%E5%89%8D%E8%AE%BF%E9%97%AE%E7%9A%84%E9%9B%86%E7%BE%A4">kubectl 上下文</a> 的名称空间，后续所有命令都默认在此名称空间下执行。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">kubectl config set-context --current --namespace=&lt;您的名称空间&gt;</span><br><span class="line"><span class="comment"># 验证结果</span></span><br><span class="line">kubectl config view --minify | grep namespace:</span><br></pre></td></tr></table></figure>
+
+<h4 id="名称空间与DNS"><a href="#名称空间与DNS" class="headerlink" title="名称空间与DNS"></a>名称空间与DNS</h4><p>当您创建一个 Service 时，Kubernetes 为其创建一个对应的 <a target="_blank" rel="noopener" href="https://kuboard.cn/learning/k8s-intermediate/service/dns.html">DNS 条目</a>。该 DNS 记录的格式为 <code>&lt;service-name&gt;.&lt;namespace-name&gt;.svc.cluster.local</code>，也就是说，如果在容器中只使用 <code>&lt;service-name&gt;</code>，其DNS将解析到同名称空间下的 Service。这个特点在多环境的情况下非常有用，例如将开发环境、测试环境、生产环境部署在不同的名称空间下，应用程序只需要使用 <code>&lt;service-name&gt;</code> 即可进行服务发现，无需为不同的环境修改配置。如果您想跨名称空间访问服务，则必须使用完整的域名（fully qualified domain name，FQDN</p>
+<h4 id="并非所有对象都在名称空间里"><a href="#并非所有对象都在名称空间里" class="headerlink" title="并非所有对象都在名称空间里"></a>并非所有对象都在名称空间里</h4><p>大部分的 Kubernetes 对象（例如，Pod、Service、Deployment、StatefulSet等）都必须在名称空间里。但是某些更低层级的对象，是不在任何名称空间中的，例如 <a target="_blank" rel="noopener" href="https://kuboard.cn/learning/k8s-bg/architecture/nodes.html">nodes</a>、<a target="_blank" rel="noopener" href="https://kuboard.cn/learning/k8s-intermediate/persistent/pv.html">persistentVolumes</a>、<a target="_blank" rel="noopener" href="https://kuboard.cn/learning/k8s-intermediate/persistent/storage-class.html">storageClass</a> 等</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 在名称空间里</span></span><br><span class="line">kubectl api-resources --namespaced=<span class="literal">true</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 不在名称空间里</span></span><br><span class="line">kubectl api-resources --namespaced=<span class="literal">false</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="使用命名空间共享集群"><a href="#使用命名空间共享集群" class="headerlink" title="使用命名空间共享集群"></a>使用命名空间共享集群</h3><p>Kubernetes 安装成功后，默认有初始化了三个名称空间：</p>
+<ul>
+<li><strong>default</strong> 默认名称空间，如果 Kubernetes 对象中不定义 <code>metadata.namespace</code> 字段，该对象将放在此名称空间下</li>
+<li><strong>kube-system</strong> Kubernetes系统创建的对象放在此名称空间下</li>
+<li><strong>kube-public</strong> 此名称空间自动在安装集群是自动创建，并且所有用户都是可以读取的（即使是那些未登录的用户）。主要是为集群预留的，例如，某些情况下，某些Kubernetes对象应该被所有集群用户看到。</li>
+</ul>
+<p>命名空间拥有Resource Quota 和 resource limit range：</p>
+<ul>
+<li>Resource quota 汇总了名称空间中使用的资源总量，并指定了集群管理员定义该名称空间最多可以使用的资源量</li>
+<li>Limit range 定义了名称空间中某种具体的资源类型的最大、最小值</li>
+</ul>
+<h2 id="注解annotation"><a href="#注解annotation" class="headerlink" title="注解annotation"></a>注解annotation</h2><p>注解（annotation）可以用来向 Kubernetes 对象的 <code>metadata.annotations</code> 字段添加任意的信息。Kubernetes 的客户端或者自动化工具可以存取这些信息以实现其自定义的逻辑</p>
+<p>Example:</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Pod</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">annotations-demo</span></span><br><span class="line">  <span class="attr">annotations:</span></span><br><span class="line">    <span class="attr">imageregistry:</span> <span class="string">&quot;https://hub.docker.com/&quot;</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">containers:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">nginx</span></span><br><span class="line">    <span class="attr">image:</span> <span class="string">nginx:1.7.9</span></span><br><span class="line">    <span class="attr">ports:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">80</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="字段选择器"><a href="#字段选择器" class="headerlink" title="字段选择器"></a>字段选择器</h2><p>字段选择器（Field Selector）可以用来基于的一个或多个字段的取值来选取一组Kubernetes对象。下面有一些示例性的字段选择器：</p>
+ <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 下面的 kubectl 命令选择了所有字段 status.phase 的取值为 Running 的 Pod：</span></span><br><span class="line">不一样。所有的对象类型都支持的两个字段是 metadata.name 和 metadata.namespace</span><br><span class="line">kubectl get pods --field-selector status.phase=Running</span><br></pre></td></tr></table></figure>
+
+
+
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2023/12/02/cloud/k8s/introduce/K8s-%E5%AF%B9%E8%B1%A1/">https://piwriw.github.io/2023/12/02/cloud/k8s/introduce/K8s-对象/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a><a class="post-meta__tags" href="/tags/cloud/">cloud</a><a class="post-meta__tags" href="/tags/introduce/">introduce</a></div><div class="post-share"><div class="social-share" data-image="/img/k8s-go.jpg" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2023/12/04/cloud/k8s/K8s-%E9%9B%86%E7%BE%A4%E5%86%85%E7%9A%84%E9%80%9A%E4%BF%A1/" title="K8s-集群内的通信"><img class="cover" src="/img/k8s-go.jpg" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">K8s-集群内的通信</div></div><div class="info-2"><div class="info-item-1">K8s-集群内的通信Master-WorkNodeCluster to Master集群访问K8s Master，其实本质就是对于apiserver的通信（通信不是节点之间的通信，而是进程之间的通信）  K8s安装K8s，apiserver默认是监听HTTPS端口（443），并且配置了客户端认证模式，提供授权模式.节点上必须配置集群（apiserver）的公钥根证书（public root certificate），此时，在提供有效的客户端身份认证的情况下，节点可以安全地访问 APIServer。  kubelet提供TLS认证过程  对于需要调用 APIServer 接口的 Pod，应该为其关联 Service Account，此时，Kubernetes将在创建Pod时自动为其注入公钥根证书（public root certificate）以及一个有效的 bearer token（放在HTTP请求头Authorization字段）。所有名称空间中，都默认配置了名为 kubernetes Kubernetes Service，该 Service对应一个虚拟 IP（默认为 10.9...</div></div></div></a><a class="pagination-related" href="/2023/12/01/cloud/k8s/K8s-%E5%AE%B9%E5%99%A8/" title="K8s-容器"><img class="cover" src="/img/k8s-go.jpg" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">K8s-容器</div></div><div class="info-2"><div class="info-item-1">K8s-容器镜像在 Kubernetes 的 Pod 中使用容器镜像之前，您必须将其推送到一个镜像仓库（或者使用仓库中已经有的容器镜像）。在 Kubernetes 的 Pod 定义中定义容器时，必须指定容器所使用的镜像，容器中的 image 字段支持与 docker 命令一样的语法，包括私有镜像仓库和标签。 例如：my-registry.example.com:5000/example/web-example:v1.0.1 由如下几个部分组成： my-registry.example.com:5000&#x2F;example&#x2F;web-example:v1.0.1  my-registry.example.com：registry 地址 5000：registry 端口 example：repository 名字 web-example：image 名字 v1.0.1：image 标签  如果您使用 hub.dokcer.com Registry 中的镜像，可以省略 registry 地址和 registry 端口。例如：nginx:latest，eipwork/kub...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2025/01/07/cloud/k8s/introduce/K8s%E4%B8%AD%E7%9A%84%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/" title="K8s中的垃圾回收"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-01-07</div><div class="info-item-2">K8s中的垃圾回收</div></div><div class="info-2"><div class="info-item-1">K8s中的垃圾回收 基于1.29  K8s的垃圾回收主要是以下的问题  结束的Pod对象 完结的Job对象 无主对象，这类的对象的Owner不存在 不再使用的容器和镜像 不再使用的动态创建的PV对象，对应的StorageClass声明了回收策略Delete 下列场景中被删除的Node 控制器的集群   Node Lease对象  Pod对象垃圾回收对于我阶段为Failed的Pod，对应的容器虽然已经停止，但是其资源对象依旧存在API Server，需要被Pod控制器或者运维人员手动删除 kube-controller-manager中有一个名为PodGC的组件专门负责自动清理“垃圾类”Pod  孤儿Pod，绑定的Node已经不存在 未调度就结束的Pod 终结中的Pod，这类Pod满足，它们被绑定到NotReady的Node，该Node有一个污点node.kubernetes.io&#x2F;out-of-service，并且NodeOutOfServiceVolumeDetach特性门控开启  对于孤儿Pod，如果它们的阶段不少终结阶段，则PodGC会把它们设置为Failed，此...</div></div></div></a><a class="pagination-related" href="/2023/12/23/cloud/k8s/introduce/K8s%5B%E5%86%85%E6%A0%B8%E4%BC%98%E5%8C%96%5D-%E5%A4%A7%E8%A7%84%E6%A8%A1%E4%B8%8B%E9%9B%86%E7%BE%A4%E4%BC%98%E5%8C%96/" title="K8s[内核优化]-大规模下集群优化"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2023-12-23</div><div class="info-item-2">K8s[内核优化]-大规模下集群优化</div></div><div class="info-2"><div class="info-item-1">K8s[内核优化]-大规模下集群优化最大线程数和文件打开数。 编辑 &#x2F;etc&#x2F;security&#x2F;limits.conf 。 12345678root soft nofile 655350root hard nofile 655350root soft nproc 655350root hard nproc 655350* soft nofile 655350* hard nofile 655350* soft nproc 655350* hard nproc 655350  内核优化，重点优化以下参数。 编辑 &#x2F;etc&#x2F;sysctl.conf  1234567891011121314151617181920212223242526272829303132333435363738# 容器环境下，优化这些参数可以避免 NAT 过的 TCP 连接带宽上不去。net.netfilter.nf_conntrack_tcp_be_liberal = 1 net.netfilter.nf_conntrack_tcp_loose = 1 net....</div></div></div></a><a class="pagination-related" href="/2023/11/07/cloud/k8s/introduce/K8s-%E6%A0%B8%E5%BF%83%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-scheme%E8%B5%84%E6%BA%90%E6%B3%A8%E5%86%8C%E8%A1%A8/" title="K8s-核心数据结构-scheme资源注册表"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2023-11-07</div><div class="info-item-2">K8s-核心数据结构-scheme资源注册表</div></div><div class="info-2"><div class="info-item-1">K8s-核心数据结构-scheme资源注册表所有的K8s资源类型都会注册到Scheme资源注册表中，有如下的特点：  支持多种资源类型，包括内部版本和外部版本 支持多种版本转换机制 支持不同资源的的序列化&#x2F;反序列化  Scheme资源注册支持俩种类型，分别是UnversionedType和KnowType资源类型。  UnversionedType:无版本资源类型，这类资源对象不需要进行转换。目前比少 KnowType：目前K8s最常用资源类型，UnversionedType通过scheme.AddUnversionedTypes方法进行注册，Knowtype通过scheme.AddKnowType	进行注册  Scheme资源注册表结构字段说明如下：  gvToType:存储GVK与Type的映射关系  typeToGVK:存储type与GVK的映射关系，一个Type会对应一个或多个GVK  unversionedTypes：存储UnversionedType与GVK的映射关系  unversionedKind:存储kind名称和UnversionedType的映射关...</div></div></div></a><a class="pagination-related" href="/2023/10/26/cloud/k8s/introduce/K8s%E7%9A%84%E4%BA%94%E7%A7%8D%E4%BB%A3%E7%A0%81%E7%94%9F%E6%88%90%E5%99%A8/" title="K8s的五种代码生成器"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2023-10-26</div><div class="info-item-2">K8s的五种代码生成器</div></div><div class="info-2"><div class="info-item-1">K8s的五种代码生成器概述   代码生成器 说明    Conversion-gen 自动生成convert函数的代码是生成器，用于资源对象的版本转换函数   deepcopy-gen 自动生成deepcopy的函数代码生成器，用于资源对象的深复制函数   defaulter-gen 自动生成defaulter的函数代码生成器，用于资源对象的默认值函数   prerelese- lifecycle-gen 自动生成api-status.csv文件的工具   openapi-gen 自动生成openapi定义文件的代码生成器   除了上述之外，其实还支持很多，比如client-gen、lister-gen、informer-gen Conversion-gen自动生成convert函数的代码是生成器，用于资源对象的版本转换函数 常规引入tag1+k8s:conversion-gen=&lt;peer-pkg&gt;  生成规则https://github.com/kubernetes/kubernetes/blob/master/staging/src/k8s.io/code-ge...</div></div></div></a><a class="pagination-related" href="/2025/08/24/cloud/k8s/K8s%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97-%E5%AE%A2%E6%88%B7%E7%AB%AF/" title="K8s开发指南-客户端"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-08-24</div><div class="info-item-2">K8s开发指南-客户端</div></div><div class="info-2"><div class="info-item-1">K8s开发指南-客户端 基于K8s v1.29  API客户端 Ref：https://github.com/kubernetes/client-go  K8s认证方式主要一下俩类：  集群外的认证：客户端程序运行在集群外，以独立进程访问API Server 集群内的认证：客户端在K8s内以Pod形式运行，通过内部服务名访问API Server  客户端访问API Server常见的认证方式有以下的几种  数字证书方式 ServiceAccount方式 BearerToken方式  对于运行在K8s集群之外的客户端，建议使用数字证书方式连接API Server，客户端需要配置的信息包括CA根证书、客户端证书、客户段私钥以及API Server地址 对于运行在集群内的Pod，建议使用ServiceAccount认证方式，需要为Pod增加ServiceAccount资源，并为ServiceAccount配置好正确的RBAC权限 基于kubeconfig文件的配置方式有以下几种：  用户HOME目录中的约定目录，例如$HOME&#x2F;.kube&#x2F;config 在环境变量K...</div></div></div></a><a class="pagination-related" href="/2025/08/23/cloud/k8s/K8s%E5%BC%80%E5%8F%91-API%E8%AF%A6%E8%A7%A3/" title="K8s开发-API详解"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-08-23</div><div class="info-item-2">K8s开发-API详解</div></div><div class="info-2"><div class="info-item-1">K8s开发-API详解 基于K8s v1.29  资源对象一个K8s资源对象描述一般是kind、apiVersion、metadata、spec和status五个部分 资源对象的类型资源对象的类型用Kind属性表示，总体分为3个类型：  对象（Object）、代表系统中永久资源实体，比如Pod、RC 列表（List）：资源对象的合集 简单类别（Simple）：作用于资源对象或非持久辅助实体的特定操作，比如Status、Scale、ListOptions等  资源对象的元数据metadata是资源对象的元数据定义，由一组属性来定义，在K8s中，每个资源对象都必须包含以下元数据属性：  namespec：对象所属的命名空间，如果不指定，则昔日会将对象置于名为default中 name：对象的名称、在一个ns下，唯一性 uid：系统为每个对象生成唯一的ID，符合RFC4122 labels：自定义标签 annotations：用户自定义注解，被K8s内部进程或者外部工具使用 resourceVersion：用于识别资源内部斑斑的字符串，在Watch操作，可以避免Get和下一次Watch...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#K8s-%E5%AF%B9%E8%B1%A1"><span class="toc-number">1.</span> <span class="toc-text">K8s-对象</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AF%B9%E8%B1%A1%E7%9A%84spec%E5%92%8Cstatus"><span class="toc-number">1.1.</span> <span class="toc-text">对象的spec和status</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%BF%85%E5%A1%AB%E5%AD%97%E6%AE%B5"><span class="toc-number">1.2.</span> <span class="toc-text">必填字段</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%90%8D%E7%A7%B0"><span class="toc-number">1.3.</span> <span class="toc-text">名称</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Names"><span class="toc-number">1.3.1.</span> <span class="toc-text">Names</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#DNS-Subdomain-Names"><span class="toc-number">1.3.1.1.</span> <span class="toc-text">DNS Subdomain Names</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#DNS-Label-Names"><span class="toc-number">1.3.1.2.</span> <span class="toc-text">DNS Label Names</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Path-Segment-Names"><span class="toc-number">1.3.1.3.</span> <span class="toc-text">Path Segment Names</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#UIDs"><span class="toc-number">1.3.2.</span> <span class="toc-text">UIDs</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%90%8D%E7%A7%B0%EF%BC%88%E5%91%BD%E5%90%8D%EF%BC%89%E7%A9%BA%E9%97%B4"><span class="toc-number">1.4.</span> <span class="toc-text">名称（命名）空间</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%90%8D%E7%A7%B0%E7%A9%BA%E9%97%B4%E4%B8%8EDNS"><span class="toc-number">1.4.0.1.</span> <span class="toc-text">名称空间与DNS</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%B9%B6%E9%9D%9E%E6%89%80%E6%9C%89%E5%AF%B9%E8%B1%A1%E9%83%BD%E5%9C%A8%E5%90%8D%E7%A7%B0%E7%A9%BA%E9%97%B4%E9%87%8C"><span class="toc-number">1.4.0.2.</span> <span class="toc-text">并非所有对象都在名称空间里</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8%E5%91%BD%E5%90%8D%E7%A9%BA%E9%97%B4%E5%85%B1%E4%BA%AB%E9%9B%86%E7%BE%A4"><span class="toc-number">1.4.1.</span> <span class="toc-text">使用命名空间共享集群</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%B3%A8%E8%A7%A3annotation"><span class="toc-number">1.5.</span> <span class="toc-text">注解annotation</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AD%97%E6%AE%B5%E9%80%89%E6%8B%A9%E5%99%A8"><span class="toc-number">1.6.</span> <span class="toc-text">字段选择器</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-日志系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明">Gorm-日志系统模块原理说明</a><time datetime="2026-01-11T11:56:27.000Z" title="发表于 2026-01-11 19:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-迁移功能模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明">Gorm-迁移功能模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-插件系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明">Gorm-插件系统模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-事务处理模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明">Gorm-事务处理模块原理说明</a><time datetime="2026-01-11T09:56:27.000Z" title="发表于 2026-01-11 17:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-关联关系模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明">Gorm-关联关系模块原理说明</a><time datetime="2026-01-11T08:56:27.000Z" title="发表于 2026-01-11 16:56:27">2026-01-11</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

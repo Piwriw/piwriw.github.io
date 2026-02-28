@@ -1,0 +1,173 @@
+/* ============================================
+   SWISS MODERNISM 2.0 - Tags Cloud Page
+   ============================================ */
+
+/* === Light Mode Variables === */
+:root {
+  --tag-primary: #0891B2;
+  --tag-primary-rgb: 8, 145, 178;
+  --tag-secondary: #22D3EE;
+  --tag-cta: #22C55E;
+  --tag-bg: #ECFEFF;
+  --tag-surface: #FFFFFF;
+  --tag-text: #164E63;
+  --tag-text-muted: #64748B;
+  --tag-border: #CCFBF1;
+  --tag-shadow-sm: 0 1px 3px rgba(8, 145, 178, 0.08);
+  --tag-shadow-md: 0 4px 12px rgba(8, 145, 178, 0.12);
+  --tag-shadow-lg: 0 12px 32px rgba(8, 145, 178, 0.15);
+  --tag-radius-sm: 4px;
+  --tag-radius-md: 8px;
+  --tag-radius-lg: 12px;
+  --tag-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --tag-duration: 200ms;
+}
+
+/* === Dark Mode === */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --tag-primary: #22D3EE;
+    --tag-primary-rgb: 34, 211, 238;
+    --tag-secondary: #0891B2;
+    --tag-cta: #4ADE80;
+    --tag-bg: #0F172A;
+    --tag-surface: #1E293B;
+    --tag-text: #F1F5F9;
+    --tag-text-muted: #94A3B8;
+    --tag-border: #334155;
+    --tag-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --tag-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+    --tag-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* === Tag Cloud Container === */
+.page.type-tags {
+  min-height: 100vh;
+  padding: 60px 20px;
+  background: var(--tag-bg);
+  color: var(--tag-text);
+  position: relative;
+}
+
+/* Grid Background Pattern */
+.page.type-tags::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, var(--tag-border) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--tag-border) 1px, transparent 1px);
+  background-size: 32px 32px;
+  opacity: 0.4;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.page.type-tags #page {
+  position: relative;
+  z-index: 1;
+}
+
+/* === Tag Cloud Title === */
+.page.type-tags .page-title {
+  font-family: 'Poppins', -apple-system, sans-serif;
+  font-size: clamp(2.5rem, 8vw, 4rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  text-align: center;
+  margin-bottom: 48px;
+  color: var(--tag-text);
+  position: relative;
+}
+
+/* Add gradient underline */
+.page.type-tags .page-title::after {
+  content: '';
+  display: block;
+  width: 80px;
+  height: 4px;
+  margin: 16px auto 0;
+  background: linear-gradient(90deg, var(--tag-primary), var(--tag-secondary), var(--tag-cta));
+  border-radius: 4px;
+}
+
+/* === Tag Cloud List === */
+.page.type-tags .tag-cloud-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 32px;
+  background: var(--tag-surface);
+  border-radius: var(--tag-radius-lg);
+  box-shadow: var(--tag-shadow-md);
+  border: 1px solid var(--tag-border);
+}
+
+/* === Tag Links === */
+.page.type-tags .tag-cloud-list a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-family: 'Open Sans', -apple-system, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--tag-text);
+  text-decoration: none;
+  background: var(--tag-bg);
+  border: 1px solid var(--tag-border);
+  border-radius: var(--tag-radius-md);
+  transition: all var(--tag-duration) var(--tag-ease);
+  position: relative;
+}
+
+/* Hover State */
+.page.type-tags .tag-cloud-list a:hover {
+  color: var(--tag-surface);
+  background: linear-gradient(135deg, var(--tag-primary), var(--tag-secondary));
+  border-color: transparent;
+  box-shadow: var(--tag-shadow-md);
+  transform: translateY(-2px);
+}
+
+/* Active/Focus State */
+.page.type-tags .tag-cloud-list a:focus-visible {
+  outline: 2px solid var(--tag-primary);
+  outline-offset: 2px;
+}
+
+/* === Reduced Motion === */
+@media (prefers-reduced-motion: reduce) {
+  .page.type-tags .tag-cloud-list a {
+    transition: none;
+  }
+
+  .page.type-tags .tag-cloud-list a:hover {
+    transform: none;
+  }
+}
+
+/* === Responsive === */
+@media (max-width: 768px) {
+  .page.type-tags {
+    padding: 40px 16px;
+  }
+
+  .page.type-tags .tag-cloud-list {
+    gap: 10px;
+    padding: 24px 16px;
+  }
+
+  .page.type-tags .tag-cloud-list a {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+  }
+
+  .page.type-tags .page-title {
+    margin-bottom: 32px;
+  }
+}

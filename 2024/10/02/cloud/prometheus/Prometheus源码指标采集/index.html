@@ -1,0 +1,287 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Prometheus源码:指标采集 | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="Prometheus源码:指标采集 基于release-3.0  指标采集的流程 构造ScrapeManager实例 加载配置 启动ScrapeManger实例  ScrapeManager负责维护scrapePool，并且管理scrape组件的生命周期。 ScrapeManager调用NewManager方法完成对ScrapeManager实例的创建： 123456789101112131415">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Prometheus源码:指标采集">
+<meta property="og:url" content="https://piwriw.github.io/2024/10/02/cloud/prometheus/Prometheus%E6%BA%90%E7%A0%81%E6%8C%87%E6%A0%87%E9%87%87%E9%9B%86/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="Prometheus源码:指标采集 基于release-3.0  指标采集的流程 构造ScrapeManager实例 加载配置 启动ScrapeManger实例  ScrapeManager负责维护scrapePool，并且管理scrape组件的生命周期。 ScrapeManager调用NewManager方法完成对ScrapeManager实例的创建： 123456789101112131415">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/prometheus.png">
+<meta property="article:published_time" content="2024-10-02T11:08:55.000Z">
+<meta property="article:modified_time" content="2026-02-28T13:29:12.673Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="prometheus">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/prometheus.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Prometheus源码:指标采集",
+  "url": "https://piwriw.github.io/2024/10/02/cloud/prometheus/Prometheus%E6%BA%90%E7%A0%81%E6%8C%87%E6%A0%87%E9%87%87%E9%9B%86/",
+  "image": "https://piwriw.github.io/img/prometheus.png",
+  "datePublished": "2024-10-02T11:08:55.000Z",
+  "dateModified": "2026-02-28T13:29:12.673Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2024/10/02/cloud/prometheus/Prometheus%E6%BA%90%E7%A0%81%E6%8C%87%E6%A0%87%E9%87%87%E9%9B%86/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Prometheus源码:指标采集',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/prometheus.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">Prometheus源码:指标采集</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">Prometheus源码:指标采集</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2024-10-02T11:08:55.000Z" title="发表于 2024-10-02 19:08:55">2024-10-02</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-02-28T13:29:12.673Z" title="更新于 2026-02-28 21:29:12">2026-02-28</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/prometheus/">prometheus</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">1.1k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>6分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-02-28 21:29:12&quot;}" hidden></div><h1 id="Prometheus源码-指标采集"><a href="#Prometheus源码-指标采集" class="headerlink" title="Prometheus源码:指标采集"></a>Prometheus源码:指标采集</h1><blockquote>
+<p>基于release-3.0</p>
+</blockquote>
+<h2 id="指标采集的流程"><a href="#指标采集的流程" class="headerlink" title="指标采集的流程"></a>指标采集的流程</h2><ol>
+<li>构造ScrapeManager实例</li>
+<li>加载配置</li>
+<li>启动ScrapeManger实例</li>
+</ol>
+<p>ScrapeManager负责维护scrapePool，并且管理scrape组件的生命周期。</p>
+<p>ScrapeManager调用NewManager方法完成对ScrapeManager实例的创建：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// FILE PATH：scrape/manager.go</span></span><br><span class="line"><span class="keyword">type</span> Manager <span class="keyword">struct</span> &#123;</span><br><span class="line">    opts      *Options</span><br><span class="line">    <span class="comment">// 系统日志记录</span></span><br><span class="line">    logger    log.Logger</span><br><span class="line">    <span class="comment">// 指标存储器</span></span><br><span class="line">    <span class="built_in">append</span>    storage.Appendable</span><br><span class="line">    graceShut <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">    offsetSeed    <span class="type">uint64</span>     <span class="comment">// Global offsetSeed seed is used to spread scrape workload across HA setup.</span></span><br><span class="line">    <span class="comment">// 同步访问控制锁(读写锁)</span></span><br><span class="line">    mtxScrape     sync.Mutex <span class="comment">// Guards the fields below.</span></span><br><span class="line">    <span class="comment">// [job_name][scrape配置]</span></span><br><span class="line">    scrapeConfigs <span class="keyword">map</span>[<span class="type">string</span>]*config.ScrapeConfig</span><br><span class="line">    <span class="comment">// [job_name][指标采集]</span></span><br><span class="line">    scrapePools   <span class="keyword">map</span>[<span class="type">string</span>]*scrapePool</span><br><span class="line">    targetSets    <span class="keyword">map</span>[<span class="type">string</span>][]*targetgroup.Group</span><br><span class="line">    buffers       *pool.Pool</span><br><span class="line"></span><br><span class="line">    triggerReload <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">    metrics *scrapeMetrics</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="指标的配置加载"><a href="#指标的配置加载" class="headerlink" title="指标的配置加载"></a>指标的配置加载</h2><p>根据Prometheus.yaml中的scrape_configs（ScrapeConfig）配置项，对scrape服务进行配置更新，调用ApplyConfg</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// file path：config/config.go</span></span><br><span class="line"><span class="keyword">type</span> ScrapeConfig <span class="keyword">struct</span> &#123;</span><br><span class="line">    <span class="comment">// The job name to which the job label is set by default.</span></span><br><span class="line">    <span class="comment">// 作业名称</span></span><br><span class="line">    JobName <span class="type">string</span> <span class="string">`yaml:&quot;job_name&quot;`</span></span><br><span class="line">    <span class="comment">// Indicator whether the scraped metrics should remain unmodified.</span></span><br><span class="line">    <span class="comment">// 添加label时若已经发现同名Label，是否保留原有标签不被覆盖</span></span><br><span class="line">    HonorLabels <span class="type">bool</span> <span class="string">`yaml:&quot;honor_labels,omitempty&quot;`</span></span><br><span class="line">    <span class="comment">// Indicator whether the scraped timestamps should be respected.</span></span><br><span class="line">    HonorTimestamps <span class="type">bool</span> <span class="string">`yaml:&quot;honor_timestamps&quot;`</span></span><br><span class="line">    <span class="comment">// Indicator whether to track the staleness of the scraped timestamps.</span></span><br><span class="line">    TrackTimestampsStaleness <span class="type">bool</span> <span class="string">`yaml:&quot;track_timestamps_staleness&quot;`</span></span><br><span class="line">    <span class="comment">// A set of query parameters with which the target is scraped.</span></span><br><span class="line">    <span class="comment">// 指标采集URL参数</span></span><br><span class="line">    Params url.Values <span class="string">`yaml:&quot;params,omitempty&quot;`</span></span><br><span class="line">    <span class="comment">// How frequently to scrape the targets of this scrape config.</span></span><br><span class="line">    <span class="comment">// 指标采集周期</span></span><br><span class="line">    ScrapeInterval model.Duration <span class="string">`yaml:&quot;scrape_interval,omitempty&quot;`</span></span><br><span class="line">    <span class="comment">// The timeout for scraping targets of this config.</span></span><br><span class="line">    <span class="comment">// 指标采集超时时间</span></span><br><span class="line">    ScrapeTimeout model.Duration <span class="string">`yaml:&quot;scrape_timeout,omitempty&quot;`</span></span><br><span class="line">    <span class="comment">// The protocols to negotiate during a scrape. It tells clients what</span></span><br><span class="line">    <span class="comment">// protocol are accepted by Prometheus and with what preference (most wanted is first).</span></span><br><span class="line">    <span class="comment">// Supported values (case sensitive): PrometheusProto, OpenMetricsText0.0.1,</span></span><br><span class="line">    <span class="comment">// OpenMetricsText1.0.0, PrometheusText0.0.4.</span></span><br><span class="line">    ScrapeProtocols []ScrapeProtocol <span class="string">`yaml:&quot;scrape_protocols,omitempty&quot;`</span></span><br><span class="line">    <span class="comment">// Whether to scrape a classic histogram that is also exposed as a native histogram.</span></span><br><span class="line">    ScrapeClassicHistograms <span class="type">bool</span> <span class="string">`yaml:&quot;scrape_classic_histograms,omitempty&quot;`</span></span><br><span class="line">    <span class="comment">// The HTTP resource path on which to fetch metrics from targets.</span></span><br><span class="line">    <span class="comment">// 指标采集路径</span></span><br><span class="line">    MetricsPath <span class="type">string</span> <span class="string">`yaml:&quot;metrics_path,omitempty&quot;`</span></span><br><span class="line">    <span class="comment">// The URL scheme with which to fetch metrics from targets.</span></span><br><span class="line">    <span class="comment">// 指标采集协议</span></span><br><span class="line">    Scheme <span class="type">string</span> <span class="string">`yaml:&quot;scheme,omitempty&quot;`</span></span><br><span class="line">    <span class="comment">// Indicator whether to request compressed response from the target.</span></span><br><span class="line">    EnableCompression <span class="type">bool</span> <span class="string">`yaml:&quot;enable_compression&quot;`</span></span><br><span class="line">    <span class="comment">// An uncompressed response body larger than this many bytes will cause the</span></span><br><span class="line">    <span class="comment">// scrape to fail. 0 means no limit.</span></span><br><span class="line">    BodySizeLimit units.Base2Bytes <span class="string">`yaml:&quot;body_size_limit,omitempty&quot;`</span></span><br><span class="line">    <span class="comment">// More than this many samples post metric-relabeling will cause the scrape to</span></span><br><span class="line">    <span class="comment">// fail. 0 means no limit.</span></span><br><span class="line">    <span class="comment">// 每批次采集的指标个数上线</span></span><br><span class="line">    <span class="comment">// 如果指标重置之后label，超出限制，依旧抓取失败</span></span><br><span class="line">    <span class="comment">// 0表示不限制</span></span><br><span class="line">    SampleLimit <span class="type">uint</span> <span class="string">`yaml:&quot;sample_limit,omitempty&quot;`</span></span><br><span class="line">    <span class="comment">// More than this many targets after the target relabeling will cause the</span></span><br><span class="line">    <span class="comment">// scrapes to fail. 0 means no limit.</span></span><br><span class="line">    TargetLimit <span class="type">uint</span> <span class="string">`yaml:&quot;target_limit,omitempty&quot;`</span></span><br><span class="line">    <span class="comment">// More than this many labels post metric-relabeling will cause the scrape to</span></span><br><span class="line">    <span class="comment">// fail. 0 means no limit.</span></span><br><span class="line">    LabelLimit <span class="type">uint</span> <span class="string">`yaml:&quot;label_limit,omitempty&quot;`</span></span><br><span class="line">    <span class="comment">// More than this label name length post metric-relabeling will cause the</span></span><br><span class="line">    <span class="comment">// scrape to fail. 0 means no limit.</span></span><br><span class="line">    LabelNameLengthLimit <span class="type">uint</span> <span class="string">`yaml:&quot;label_name_length_limit,omitempty&quot;`</span></span><br><span class="line">    <span class="comment">// More than this label value length post metric-relabeling will cause the</span></span><br><span class="line">    <span class="comment">// scrape to fail. 0 means no limit.</span></span><br><span class="line">    LabelValueLengthLimit <span class="type">uint</span> <span class="string">`yaml:&quot;label_value_length_limit,omitempty&quot;`</span></span><br><span class="line">    <span class="comment">// If there are more than this many buckets in a native histogram,</span></span><br><span class="line">    <span class="comment">// buckets will be merged to stay within the limit.</span></span><br><span class="line">    NativeHistogramBucketLimit <span class="type">uint</span> <span class="string">`yaml:&quot;native_histogram_bucket_limit,omitempty&quot;`</span></span><br><span class="line">    <span class="comment">// If the growth factor of one bucket to the next is smaller than this,</span></span><br><span class="line">    <span class="comment">// buckets will be merged to increase the factor sufficiently.</span></span><br><span class="line">    NativeHistogramMinBucketFactor <span class="type">float64</span> <span class="string">`yaml:&quot;native_histogram_min_bucket_factor,omitempty&quot;`</span></span><br><span class="line">    <span class="comment">// Keep no more than this many dropped targets per job.</span></span><br><span class="line">    <span class="comment">// 0 means no limit.</span></span><br><span class="line">    KeepDroppedTargets <span class="type">uint</span> <span class="string">`yaml:&quot;keep_dropped_targets,omitempty&quot;`</span></span><br><span class="line">    <span class="comment">// Allow UTF8 Metric and Label Names.</span></span><br><span class="line">    MetricNameValidationScheme <span class="type">string</span> <span class="string">`yaml:&quot;metric_name_validation_scheme,omitempty&quot;`</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// We cannot do proper Go type embedding below as the parser will then parse</span></span><br><span class="line">    <span class="comment">// values arbitrarily into the overflow maps of further-down types.</span></span><br><span class="line">	<span class="comment">// 发现服务配置</span></span><br><span class="line">    ServiceDiscoveryConfigs discovery.Configs       <span class="string">`yaml:&quot;-&quot;`</span></span><br><span class="line">    <span class="comment">// HTTP客户端的参数设置</span></span><br><span class="line">    HTTPClientConfig        config.HTTPClientConfig <span class="string">`yaml:&quot;,inline&quot;`</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// List of target relabel configurations.</span></span><br><span class="line">    <span class="comment">// 目标重置label规则</span></span><br><span class="line">    RelabelConfigs []*relabel.Config <span class="string">`yaml:&quot;relabel_configs,omitempty&quot;`</span></span><br><span class="line">    <span class="comment">// List of metric relabel configurations.</span></span><br><span class="line">    <span class="comment">// 指标重置label规则</span></span><br><span class="line">    MetricRelabelConfigs []*relabel.Config <span class="string">`yaml:&quot;metric_relabel_configs,omitempty&quot;`</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 加载配置文件</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *Manager)</span></span> ApplyConfig(cfg *config.Config) <span class="type">error</span> &#123;</span><br><span class="line">	m.mtxScrape.Lock()</span><br><span class="line">	<span class="keyword">defer</span> m.mtxScrape.Unlock()</span><br><span class="line"></span><br><span class="line">	scfgs, err := cfg.GetScrapeConfigs()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	c := <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="type">string</span>]*config.ScrapeConfig)</span><br><span class="line">	<span class="keyword">for</span> _, scfg := <span class="keyword">range</span> scfgs &#123;</span><br><span class="line">		c[scfg.JobName] = scfg</span><br><span class="line">	&#125;</span><br><span class="line">	m.scrapeConfigs = c</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> err := m.setOffsetSeed(cfg.GlobalConfig.ExternalLabels); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Cleanup and reload pool if the configuration has changed.</span></span><br><span class="line">	<span class="keyword">var</span> failed <span class="type">bool</span></span><br><span class="line">	<span class="keyword">for</span> name, sp := <span class="keyword">range</span> m.scrapePools &#123;</span><br><span class="line">		<span class="keyword">switch</span> cfg, ok := m.scrapeConfigs[name]; &#123;</span><br><span class="line">		<span class="keyword">case</span> !ok:</span><br><span class="line">			sp.stop()</span><br><span class="line">			<span class="built_in">delete</span>(m.scrapePools, name)</span><br><span class="line">		<span class="keyword">case</span> !reflect.DeepEqual(sp.config, cfg):</span><br><span class="line">			err := sp.reload(cfg)</span><br><span class="line">			<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">				level.Error(m.logger).Log(<span class="string">&quot;msg&quot;</span>, <span class="string">&quot;error reloading scrape pool&quot;</span>, <span class="string">&quot;err&quot;</span>, err, <span class="string">&quot;scrape_pool&quot;</span>, name)</span><br><span class="line">				failed = <span class="literal">true</span></span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> failed &#123;</span><br><span class="line">		<span class="keyword">return</span> errors.New(<span class="string">&quot;failed to apply the new configuration&quot;</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="重新加载配置"><a href="#重新加载配置" class="headerlink" title="重新加载配置"></a>重新加载配置</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// File Path: scrape/scrape.go</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(sp *scrapePool)</span></span> reload(cfg *config.ScrapeConfig) <span class="type">error</span> &#123;</span><br><span class="line">	sp.mtx.Lock()</span><br><span class="line">	<span class="keyword">defer</span> sp.mtx.Unlock()</span><br><span class="line">	sp.metrics.targetScrapePoolReloads.Inc()</span><br><span class="line">	start := time.Now()</span><br><span class="line"></span><br><span class="line">	client, err := config_util.NewClientFromConfig(cfg.HTTPClientConfig, cfg.JobName, sp.httpOpts...)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		sp.metrics.targetScrapePoolReloadsFailed.Inc()</span><br><span class="line">		<span class="keyword">return</span> fmt.Errorf(<span class="string">&quot;error creating HTTP client: %w&quot;</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	reuseCache := reusableCache(sp.config, cfg)</span><br><span class="line">	sp.config = cfg</span><br><span class="line">	oldClient := sp.client</span><br><span class="line">	sp.client = client</span><br><span class="line"></span><br><span class="line">	sp.metrics.targetScrapePoolTargetLimit.WithLabelValues(sp.config.JobName).Set(<span class="type">float64</span>(sp.config.TargetLimit))</span><br><span class="line"></span><br><span class="line">	sp.restartLoops(reuseCache)</span><br><span class="line">	oldClient.CloseIdleConnections()</span><br><span class="line">	sp.metrics.targetReloadIntervalLength.WithLabelValues(time.Duration(sp.config.ScrapeInterval).String()).Observe(</span><br><span class="line">		time.Since(start).Seconds(),</span><br><span class="line">	)</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2024/10/02/cloud/prometheus/Prometheus%E6%BA%90%E7%A0%81%E6%8C%87%E6%A0%87%E9%87%87%E9%9B%86/">https://piwriw.github.io/2024/10/02/cloud/prometheus/Prometheus源码指标采集/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/prometheus/">prometheus</a></div><div class="post-share"><div class="social-share" data-image="/img/prometheus.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2024/10/07/cloud/prometheus/Prometheus%E6%BA%90%E7%A0%81%E5%AD%98%E5%82%A8%E6%8C%87%E6%A0%87/" title="Prometheus源码:存储指标"><img class="cover" src="/img/prometheus.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">Prometheus源码:存储指标</div></div><div class="info-2"><div class="info-item-1">Prometheus源码:存储指标 基于release-3.0  存储指标结构1234567891011121314151617181920212223242526272829// File Path: scrape/scrapetype scrapeCache struct &#123;    // 被缓存的批次数	iter uint64 // Current scrape iteration.	    // 上次成功时有多少序列和元数据条目。	// How many series and metadata entries there were at the last success.	successfulCount int	// Parsed string to an entry with information about the actual label set	// and its storage reference.	series map[string]*cacheEntry	// Cache of dropped metric strings and their i...</div></div></div></a><a class="pagination-related" href="/2024/10/01/cloud/prometheus/Prometheus%E6%BA%90%E7%A0%81%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0/" title="Prometheus源码:服务发现"><img class="cover" src="/img/prometheus.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">Prometheus源码:服务发现</div></div><div class="info-2"><div class="info-item-1">Prometheus源码:服务发现服务发现的定义流程：  scrape发现服务进行统一管理，Prometheus对所支持的发 现服务都抽象出Discoverer接口，各scrape发现服务都必须实现该接 口并用于服务发现 Discover接口定义了Run()接口： 1234567// FILE Path:prometheus/discovery/discoverytype Discoverer interface &#123;    // Run hands a channel to the discovery provider (Consul, DNS, etc.) through which    // it can send updated target groups. It must return when the context is canceled.    // It should not close the update channel on returning.    Run(ctx context.Context, up chan&lt;- []*target...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2025/09/24/cloud/prometheus/Prometheus%E6%BA%90%E7%A0%81-Relabel%20address/" title="Prometheus源码-Relabel"><img class="cover" src="/img/prometheus.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-09-24</div><div class="info-item-2">Prometheus源码-Relabel</div></div><div class="info-2"><div class="info-item-1">Prometheus源码-Relabel 基于3.5  relabel address流程 Prometheus读取Job中的targets，把target赋值给__address__标签，此标签代表采集地址 将__address__赋值给__param_target标签，因为Promehrues访问采集地址需要传参，__param_target代表target参数 将__param_target标签赋值给instance标签 将__param_target替换为真实的采集地址  核心解析Label Re123456789101112131415161718192021222324252627282930313233343536373839404142434445464748495051525354555657585960616263646566676869707172737475767778798081828384858687888990919293949596979899100101102103104105106107108109110111112113114// Popul...</div></div></div></a><a class="pagination-related" href="/2025/08/05/cloud/prometheus/Prometheus-PromQL/" title="Prometheus-PromQL"><img class="cover" src="/img/prometheus.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-08-05</div><div class="info-item-2">Prometheus-PromQL</div></div><div class="info-2"><div class="info-item-1">Prometheus-PromQL 基于v3.5  工作原理graph TD     A[Query Input] --&gt; B[Parser]     B --&gt; C[Engine]     C --&gt; D[Query Execution]     D --&gt; E[Result Output]      %% Parser Module     subgraph Parser[&quot;Parser (parser/)&quot;]         B1[Lexical Analysis] --&gt; B2[Syntax Parsing]         B2 --&gt; B3[AST Generation]         B3 --&gt; B4[Validation]     end      %% Engine Module     subgraph Engine[&quot;Engine (engine.go)&quot;]         C1[Query Initialization] --&gt; C2[Query Planning]...</div></div></div></a><a class="pagination-related" href="/2025/07/26/cloud/prometheus/Prometheus-Rules%E5%91%8A%E8%AD%A6%E8%AF%84%E4%BC%B0/" title="Prometheus-Rules告警评估"><img class="cover" src="/img/prometheus.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-07-26</div><div class="info-item-2">Prometheus-Rules告警评估</div></div><div class="info-2"><div class="info-item-1">Prometheus-Rules告警评估 基于v3.5  工作原理graph TD     A[Rule Files] --&gt; B[Manager.LoadGroups]     B --&gt; C[Parse Rule Groups]     C --&gt; D[Create Rule Objects]     D --&gt; E[Analyse Rule Dependencies]     E --&gt; F[Build Dependency Map]     F --&gt; G[Set Rule Dependencies]          H[Manager.Run] --&gt; I[Group Evaluation Loop]     I --&gt; J[Split Rules into Batches]     J --&gt; K&#123;Concurrent Evaluation Enabled?&#125;     K --&gt;|Yes| L[Concurrent Rule Execution]     K --&gt;|No| M[S...</div></div></div></a><a class="pagination-related" href="/2025/07/25/cloud/prometheus/Prometheus-Srape%E6%8C%87%E6%A0%87%E6%8A%93%E5%8F%96/" title="Prometheus-Scrape指标抓取"><img class="cover" src="/img/prometheus.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-07-25</div><div class="info-item-2">Prometheus-Scrape指标抓取</div></div><div class="info-2"><div class="info-item-1">Prometheus-Scrape指标抓取 基于v3.5  工作原理graph TD     A[ScrapePool] --&gt; B[Target Discovery]     A --&gt; C[Scrape Loop Management]     A --&gt; D[HTTP Client] B --&gt; B1[Sync Targets] B1 --&gt; B2[Target Group Processing] B2 --&gt; B3[Target Creation/Deduplication] B3 --&gt; B4[Active Targets Update]  C --&gt; C1[Loop Creation] C1 --&gt; C2[Scrape Interval Setup] C2 --&gt; C3[Scraper Initialization]  D --&gt; D1[Target Scraper] D1 --&gt; D2[HTTP Request] D2 --&gt; D3[Metrics Endpoint]  C3 --&gt;...</div></div></div></a><a class="pagination-related" href="/2025/07/24/cloud/prometheus/Prometheus-notifier%E5%91%8A%E8%AD%A6%E6%8E%A8%E9%80%81/" title="Prometheus-notifier告警推送"><img class="cover" src="/img/prometheus.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-07-24</div><div class="info-item-2">Prometheus-notifier告警推送</div></div><div class="info-2"><div class="info-item-1">Prometheus-notifier告警推送 基于v3.5  工作原理sequenceDiagram     participant Q as Queue     participant M as Manager     participant AM as Alertmanager     participant AL as Alertmanager API Q-&gt;&gt;M: nextBatch() M-&gt;&gt;M: 分批处理告警 M-&gt;&gt;AM: sendAll() AM-&gt;&gt;AM: 应用特定于 AM 的 relabel AM-&gt;&gt;AL: HTTP POST /api/v2/alerts AL--&gt;&gt;AM: Response AM-&gt;&gt;M: 返回发送结果  关键特性  告警队列管理 有界队列，防止内存无限增长 支持队列满时的丢弃策略 可配置的批处理大小 Relabeling（重新标记） 发送前对告警应用 relabel 配置 支持每个 Alertmanager 集合的特定 relabel 规则 高可用性...</div></div></div></a><a class="pagination-related" href="/2025/07/23/cloud/prometheus/Prometheus-Discoverer%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0/" title="Prometheus-Discoverer服务发现"><img class="cover" src="/img/prometheus.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-07-23</div><div class="info-item-2">Prometheus-Discoverer服务发现</div></div><div class="info-2"><div class="info-item-1">Prometheus-Discoverer服务发现 基于v3.5  启动流程sequenceDiagram     participant main.go     participant Manager     participant Provider     participant Discoverer     participant TargetGroup main.go-&gt;&gt;Manager: NewManager()  main.go-&gt;&gt;Manager: ApplyConfig()  Manager-&gt;&gt;Provider: 创建Provider实例 Manager-&gt;&gt;Provider: startProvider()  Provider-&gt;&gt;Discoverer: 初始化具体发现器(如K8s/Consul等) Provider-&gt;&gt;Discoverer: Run(ctx, updatesCh)  loop 发现循环     Discoverer-&gt;&gt;TargetGroup: 获取目标组 ...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Prometheus%E6%BA%90%E7%A0%81-%E6%8C%87%E6%A0%87%E9%87%87%E9%9B%86"><span class="toc-number">1.</span> <span class="toc-text">Prometheus源码:指标采集</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%8C%87%E6%A0%87%E9%87%87%E9%9B%86%E7%9A%84%E6%B5%81%E7%A8%8B"><span class="toc-number">1.1.</span> <span class="toc-text">指标采集的流程</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%8C%87%E6%A0%87%E7%9A%84%E9%85%8D%E7%BD%AE%E5%8A%A0%E8%BD%BD"><span class="toc-number">1.2.</span> <span class="toc-text">指标的配置加载</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%87%8D%E6%96%B0%E5%8A%A0%E8%BD%BD%E9%85%8D%E7%BD%AE"><span class="toc-number">1.2.1.</span> <span class="toc-text">重新加载配置</span></a></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-日志系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明">Gorm-日志系统模块原理说明</a><time datetime="2026-01-11T11:56:27.000Z" title="发表于 2026-01-11 19:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-迁移功能模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明">Gorm-迁移功能模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-插件系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明">Gorm-插件系统模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-事务处理模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明">Gorm-事务处理模块原理说明</a><time datetime="2026-01-11T09:56:27.000Z" title="发表于 2026-01-11 17:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-关联关系模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明">Gorm-关联关系模块原理说明</a><time datetime="2026-01-11T08:56:27.000Z" title="发表于 2026-01-11 16:56:27">2026-01-11</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

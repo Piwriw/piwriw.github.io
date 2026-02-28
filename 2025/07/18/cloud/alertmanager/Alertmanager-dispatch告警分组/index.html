@@ -1,0 +1,391 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Alertmanager-dispatch告警分组 | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="Alertmanager-dispatch告警分组 基于v0.28  总体流程flowchart TD     A[告警流入 Alertmanager] --&gt; B[dispatch 路由树匹配]     B --&gt; C&#123;匹配到哪些 Route?&#125;     C -- 无匹配 --&gt; Z[丢弃或默认处理]     C -- 有匹配 --&gt; D[分组聚合（按">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Alertmanager-dispatch告警分组">
+<meta property="og:url" content="https://piwriw.github.io/2025/07/18/cloud/alertmanager/Alertmanager-dispatch%E5%91%8A%E8%AD%A6%E5%88%86%E7%BB%84/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="Alertmanager-dispatch告警分组 基于v0.28  总体流程flowchart TD     A[告警流入 Alertmanager] --&gt; B[dispatch 路由树匹配]     B --&gt; C&#123;匹配到哪些 Route?&#125;     C -- 无匹配 --&gt; Z[丢弃或默认处理]     C -- 有匹配 --&gt; D[分组聚合（按">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/prometheus.png">
+<meta property="article:published_time" content="2025-07-18T13:08:55.000Z">
+<meta property="article:modified_time" content="2026-02-28T13:29:12.659Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="prometheus">
+<meta property="article:tag" content="alertmanager">
+<meta property="article:tag" content="alertmanager源码">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/prometheus.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Alertmanager-dispatch告警分组",
+  "url": "https://piwriw.github.io/2025/07/18/cloud/alertmanager/Alertmanager-dispatch%E5%91%8A%E8%AD%A6%E5%88%86%E7%BB%84/",
+  "image": "https://piwriw.github.io/img/prometheus.png",
+  "datePublished": "2025-07-18T13:08:55.000Z",
+  "dateModified": "2026-02-28T13:29:12.659Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2025/07/18/cloud/alertmanager/Alertmanager-dispatch%E5%91%8A%E8%AD%A6%E5%88%86%E7%BB%84/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Alertmanager-dispatch告警分组',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/prometheus.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">Alertmanager-dispatch告警分组</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">Alertmanager-dispatch告警分组</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2025-07-18T13:08:55.000Z" title="发表于 2025-07-18 21:08:55">2025-07-18</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-02-28T13:29:12.659Z" title="更新于 2026-02-28 21:29:12">2026-02-28</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/alertmanager/">alertmanager</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">2.3k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>10分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-02-28 21:29:12&quot;}" hidden></div><h1 id="Alertmanager-dispatch告警分组"><a href="#Alertmanager-dispatch告警分组" class="headerlink" title="Alertmanager-dispatch告警分组"></a>Alertmanager-dispatch告警分组</h1><blockquote>
+<p>基于v0.28</p>
+</blockquote>
+<h2 id="总体流程"><a href="#总体流程" class="headerlink" title="总体流程"></a>总体流程</h2><pre><code class="highlight mermaid">flowchart TD
+    A[告警流入 Alertmanager] --&gt; B[dispatch 路由树匹配]
+    B --&gt; C&#123;匹配到哪些 Route?&#125;
+    C -- 无匹配 --&gt; Z[丢弃或默认处理]
+    C -- 有匹配 --&gt; D[分组聚合（按 group_by 标签）]
+    D --&gt; E[分组等待 group_wait]
+    E --&gt; F[分组内聚合告警]
+    F --&gt; G&#123;到达 group_interval 或有新告警?&#125;
+    G -- 否 --&gt; F
+    G -- 是 --&gt; H[触发通知管道]
+    H --&gt; I[通知发送（邮件/微信/钉钉等）]
+    I --&gt; J[分组生命周期管理]
+    J --&gt; K&#123;分组内还有活跃告警?&#125;
+    K -- 有 --&gt; F
+    K -- 无 --&gt; L[销毁分组，释放资源]
+
+    subgraph 说明
+      direction LR
+      X1[Route: 路由规则，决定分组、接收器、静默等]
+      X2[group_by: 分组标签]
+      X3[group_wait: 首次通知等待]
+      X4[group_interval: 分组内通知间隔]
+      X5[repeat_interval: 重复通知间隔]
+      X1 --&gt; X2
+      X1 --&gt; X3
+      X1 --&gt; X4
+      X1 --&gt; X5
+    end
+
+    style H fill:#f9f,stroke:#333,stroke-width:2px
+    style I fill:#bbf,stroke:#333,stroke-width:2px
+    style D fill:#ffd,stroke:#333,stroke-width:1px
+    style F fill:#ffd,stroke:#333,stroke-width:1px
+    style G fill:#ffd,stroke:#333,stroke-width:1px
+    style J fill:#ffd,stroke:#333,stroke-width:1px
+    style K fill:#ffd,stroke:#333,stroke-width:1px
+    style L fill:#eee,stroke:#333,stroke-width:1px
+    style Z fill:#eee,stroke:#333,stroke-width:1px</code></pre>
+
+<h2 id="三大参数"><a href="#三大参数" class="headerlink" title="三大参数"></a>三大参数</h2><pre><code class="highlight mermaid">sequenceDiagram
+    participant Alert as 新告警到达
+    participant AM as Alertmanager
+    participant User as 通知接收者
+
+    Alert-&gt;&gt;AM: 新分组第1条告警
+    Note right of AM: 进入 group_wait 等待期
+    AM--&gt;&gt;AM: 收敛更多同分组告警
+    AM-&gt;&gt;User: group_wait 到期后首次通知
+
+    Alert-&gt;&gt;AM: 分组内又有新告警
+    Note right of AM: 若距离上次通知 &lt; group_interval，等待
+    AM-&gt;&gt;User: group_interval 到期后再次通知
+
+    loop 分组内有未恢复告警
+        AM-&gt;&gt;User: repeat_interval 到期后重复通知
+    end</code></pre>
+
+<pre><code class="highlight mermaid">graph LR
+A[group_wait] --&gt;|首次收敛窗口| B[首次通知]
+B --&gt;|新告警| C&#123;距离上次通知&#125;
+C -- &lt; group_interval --&gt; D[等待]
+C -- ≥ group_interval --&gt; E[追加通知]
+E --&gt;|未恢复| F&#123;距离上次重复&#125;
+F -- &lt; repeat_interval --&gt; G[等待]
+F -- ≥ repeat_interval --&gt; H[重复通知]</code></pre>
+
+<h2 id="运行原理"><a href="#运行原理" class="headerlink" title="运行原理"></a>运行原理</h2><h3 id="启动顺序"><a href="#启动顺序" class="headerlink" title="启动顺序"></a>启动顺序</h3><pre><code class="highlight mermaid">sequenceDiagram
+    participant Alert as 新告警
+    participant Dispatcher as Dispatcher
+    participant Route as Route
+    participant GroupMap as aggrGroupsPerRoute
+    participant AggrGroup as aggrGroup
+    participant Notify as 通知管道
+
+    Alert-&gt;&gt;Dispatcher: 新告警流入
+    Dispatcher-&gt;&gt;Route: 路由树匹配
+    Route--&gt;&gt;Dispatcher: 匹配到的 Route 列表
+    loop 对每个匹配 Route
+        Dispatcher-&gt;&gt;GroupMap: 查找/创建分组 (groupLabels)
+        alt 分组已存在
+            Dispatcher-&gt;&gt;AggrGroup: insert(alert)
+        else 新分组
+            Dispatcher-&gt;&gt;GroupMap: 新建 aggrGroup
+            Dispatcher-&gt;&gt;AggrGroup: insert(alert)
+            AggrGroup-&gt;&gt;AggrGroup: 启动 run 协程，定时通知
+        end
+    end
+    
+    Note over AggrGroup: run 协程定时触发通知
+    AggrGroup-&gt;&gt;Notify: flush(alerts...) 触发通知
+    Notify--&gt;&gt;AggrGroup: 通知结果
+    AggrGroup-&gt;&gt;AggrGroup: 删除已解决告警
+    
+    Note over Dispatcher,AggrGroup: Dispatcher 定期 doMaintenance 清理空分组
+    Dispatcher-&gt;&gt;GroupMap: 检查分组是否为空
+    alt 分组为空
+        Dispatcher-&gt;&gt;AggrGroup: stop()
+        Dispatcher-&gt;&gt;GroupMap: 删除分组
+    end</code></pre>
+
+
+
+<h3 id="分组告警器"><a href="#分组告警器" class="headerlink" title="分组告警器"></a>分组告警器</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Dispatcher 负责将告警分组、聚合、路由、分发到通知管道。</span></span><br><span class="line"><span class="keyword">type</span> Dispatcher <span class="keyword">struct</span> &#123;</span><br><span class="line">    route   *Route             <span class="comment">// 路由树根节点</span></span><br><span class="line">    alerts  provider.Alerts    <span class="comment">// 告警数据源</span></span><br><span class="line">    stage   notify.Stage       <span class="comment">// 通知管道（Stage）</span></span><br><span class="line">    marker  types.GroupMarker  <span class="comment">// 分组状态标记器</span></span><br><span class="line">    metrics *DispatcherMetrics <span class="comment">// 监控指标</span></span><br><span class="line">    limits  Limits             <span class="comment">// 分组数量限制</span></span><br><span class="line"></span><br><span class="line">    timeout <span class="function"><span class="keyword">func</span><span class="params">(time.Duration)</span></span> time.Duration <span class="comment">// 通知超时控制</span></span><br><span class="line"></span><br><span class="line">    mtx                sync.RWMutex</span><br><span class="line">    aggrGroupsPerRoute <span class="keyword">map</span>[*Route]<span class="keyword">map</span>[model.Fingerprint]*aggrGroup <span class="comment">// 路由-分组映射</span></span><br><span class="line">    aggrGroupsNum      <span class="type">int</span>                                         <span class="comment">// 当前分组总数</span></span><br><span class="line"></span><br><span class="line">    done   <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;   <span class="comment">// 停止信号</span></span><br><span class="line">    ctx    context.Context <span class="comment">// 主 context</span></span><br><span class="line">    cancel <span class="function"><span class="keyword">func</span><span class="params">()</span></span>          <span class="comment">// 停止函数</span></span><br><span class="line"></span><br><span class="line">    logger *slog.Logger <span class="comment">// 日志</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="万恶之源启动"><a href="#万恶之源启动" class="headerlink" title="万恶之源启动"></a>万恶之源启动</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line">	<span class="keyword">var</span> disp *dispatch.Dispatcher</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		disp.Stop()</span><br><span class="line">	&#125;()</span><br><span class="line"><span class="comment">// 启动dispatcher和inhibitor主循环</span></span><br><span class="line">		disp = dispatch.NewDispatcher(alerts, routes, pipeline, marker, timeoutFunc, <span class="literal">nil</span>, logger, dispMetrics)</span><br><span class="line">		routes.Walk(<span class="function"><span class="keyword">func</span><span class="params">(r *dispatch.Route)</span></span> &#123;</span><br><span class="line">			<span class="keyword">if</span> r.RouteOpts.RepeatInterval &gt; *retention &#123;</span><br><span class="line">				configLogger.Warn(</span><br><span class="line">					<span class="string">&quot;repeat_interval is greater than the data retention period. It can lead to notifications being repeated more often than expected.&quot;</span>,</span><br><span class="line">					<span class="string">&quot;repeat_interval&quot;</span>,</span><br><span class="line">					r.RouteOpts.RepeatInterval,</span><br><span class="line">					<span class="string">&quot;retention&quot;</span>,</span><br><span class="line">					*retention,</span><br><span class="line">					<span class="string">&quot;route&quot;</span>,</span><br><span class="line">					r.Key(),</span><br><span class="line">				)</span><br><span class="line">			&#125;</span><br><span class="line">      </span><br><span class="line">	<span class="keyword">go</span> disp.Run()</span><br><span class="line">      </span><br><span class="line">      </span><br><span class="line"><span class="comment">// Run 启动 Dispatcher，开始处理流入的告警。</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(d *Dispatcher)</span></span> Run() &#123;</span><br><span class="line">	d.done = <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line"></span><br><span class="line">	d.mtx.Lock()</span><br><span class="line">	d.aggrGroupsPerRoute = <span class="keyword">map</span>[*Route]<span class="keyword">map</span>[model.Fingerprint]*aggrGroup&#123;&#125;</span><br><span class="line">	d.aggrGroupsNum = <span class="number">0</span></span><br><span class="line">	d.metrics.aggrGroups.Set(<span class="number">0</span>)</span><br><span class="line">	d.ctx, d.cancel = context.WithCancel(context.Background())</span><br><span class="line">	d.mtx.Unlock()</span><br><span class="line"></span><br><span class="line">	d.run(d.alerts.Subscribe())</span><br><span class="line">	<span class="built_in">close</span>(d.done)</span><br><span class="line">&#125;      </span><br></pre></td></tr></table></figure>
+
+<h3 id="处理告警流"><a href="#处理告警流" class="headerlink" title="处理告警流"></a>处理告警流</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// run 主循环，处理告警流和定期维护。</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(d *Dispatcher)</span></span> run(it provider.AlertIterator) &#123;</span><br><span class="line">    maintenance := time.NewTicker(<span class="number">30</span> * time.Second)</span><br><span class="line">    <span class="keyword">defer</span> maintenance.Stop()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">defer</span> it.Close()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">       <span class="keyword">select</span> &#123;</span><br><span class="line">       <span class="keyword">case</span> alert, ok := &lt;-it.Next():</span><br><span class="line">          <span class="keyword">if</span> !ok &#123;</span><br><span class="line">             <span class="comment">// 迭代器关闭，可能是数据源关闭或出错</span></span><br><span class="line">             <span class="keyword">if</span> err := it.Err(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">                d.logger.Error(<span class="string">&quot;Error on alert update&quot;</span>, <span class="string">&quot;err&quot;</span>, err)</span><br><span class="line">             &#125;</span><br><span class="line">             <span class="keyword">return</span></span><br><span class="line">          &#125;</span><br><span class="line"></span><br><span class="line">          d.logger.Debug(<span class="string">&quot;Received alert&quot;</span>, <span class="string">&quot;alert&quot;</span>, alert)</span><br><span class="line"></span><br><span class="line">          <span class="comment">// 记录错误但继续处理</span></span><br><span class="line">          <span class="keyword">if</span> err := it.Err(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">             d.logger.Error(<span class="string">&quot;Error on alert update&quot;</span>, <span class="string">&quot;err&quot;</span>, err)</span><br><span class="line">             <span class="keyword">continue</span></span><br><span class="line">          &#125;</span><br><span class="line"></span><br><span class="line">          now := time.Now()</span><br><span class="line">          <span class="keyword">for</span> _, r := <span class="keyword">range</span> d.route.Match(alert.Labels) &#123;</span><br><span class="line">             d.processAlert(alert, r)</span><br><span class="line">          &#125;</span><br><span class="line">          d.metrics.processingDuration.Observe(time.Since(now).Seconds())</span><br><span class="line"></span><br><span class="line">       <span class="keyword">case</span> &lt;-maintenance.C:</span><br><span class="line">          d.doMaintenance()</span><br><span class="line">       <span class="keyword">case</span> &lt;-d.ctx.Done():</span><br><span class="line">          <span class="keyword">return</span></span><br><span class="line">       &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="路由匹配"><a href="#路由匹配" class="headerlink" title="路由匹配"></a>路由匹配</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Route 表示路由树中的一个节点，定义了如何匹配和处理告警。</span></span><br><span class="line"><span class="comment">// 每个 Route 可以有多个子路由，形成树状结构。</span></span><br><span class="line"><span class="keyword">type</span> Route <span class="keyword">struct</span> &#123;</span><br><span class="line">	parent *Route <span class="comment">// 父节点指针，便于递归和路径生成</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// 当前路由节点的配置参数（如分组、接收器、时间区间等）</span></span><br><span class="line">	RouteOpts RouteOpts</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 匹配器集合，只有满足这些匹配条件的告警才会被此路由处理</span></span><br><span class="line">	Matchers labels.Matchers</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Continue 表示如果为 true，告警匹配到本节点后还会继续匹配同级其他路由</span></span><br><span class="line">	Continue <span class="type">bool</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// 子路由列表，按配置顺序排列</span></span><br><span class="line">	Routes []*Route</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Match 对路由树进行深度优先（左-右）搜索，返回所有匹配给定标签集的路由节点。</span></span><br><span class="line"><span class="comment">// lset: 告警的标签集合</span></span><br><span class="line"><span class="comment">// 返回: 匹配到的所有路由节点（可能有多个，按树结构顺序）</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(r *Route)</span></span> Match(lset model.LabelSet) []*Route &#123;</span><br><span class="line">    <span class="keyword">if</span> !r.Matchers.Matches(lset) &#123;</span><br><span class="line">       <span class="keyword">return</span> <span class="literal">nil</span> <span class="comment">// 当前节点不匹配，直接返回</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">var</span> all []*Route</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> _, cr := <span class="keyword">range</span> r.Routes &#123;</span><br><span class="line">       matches := cr.Match(lset)</span><br><span class="line"></span><br><span class="line">       all = <span class="built_in">append</span>(all, matches...)</span><br><span class="line"></span><br><span class="line">       <span class="comment">// 如果子节点匹配且 Continue=false，则不再继续同级其他子节点</span></span><br><span class="line">       <span class="keyword">if</span> matches != <span class="literal">nil</span> &amp;&amp; !cr.Continue &#123;</span><br><span class="line">          <span class="keyword">break</span></span><br><span class="line">       &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 如果没有任何子节点匹配，则当前节点本身为匹配节点</span></span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(all) == <span class="number">0</span> &#123;</span><br><span class="line">       all = <span class="built_in">append</span>(all, r)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> all</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="告警插入"><a href="#告警插入" class="headerlink" title="告警插入"></a>告警插入</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// processAlert 负责将告警插入到对应分组（aggrGroup），如无则新建分组。</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(d *Dispatcher)</span></span> processAlert(alert *types.Alert, route *Route) &#123;</span><br><span class="line">    groupLabels := getGroupLabels(alert, route)</span><br><span class="line"></span><br><span class="line">    fp := groupLabels.Fingerprint()</span><br><span class="line"></span><br><span class="line">    d.mtx.Lock()</span><br><span class="line">    <span class="keyword">defer</span> d.mtx.Unlock()</span><br><span class="line"></span><br><span class="line">    routeGroups, ok := d.aggrGroupsPerRoute[route]</span><br><span class="line">    <span class="keyword">if</span> !ok &#123;</span><br><span class="line">       routeGroups = <span class="keyword">map</span>[model.Fingerprint]*aggrGroup&#123;&#125;</span><br><span class="line">       d.aggrGroupsPerRoute[route] = routeGroups</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    ag, ok := routeGroups[fp]</span><br><span class="line">    <span class="keyword">if</span> ok &#123;</span><br><span class="line">       ag.insert(alert)</span><br><span class="line">       <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 新分组前先检查分组上限</span></span><br><span class="line">    <span class="keyword">if</span> limit := d.limits.MaxNumberOfAggregationGroups(); limit &gt; <span class="number">0</span> &amp;&amp; d.aggrGroupsNum &gt;= limit &#123;</span><br><span class="line">       d.metrics.aggrGroupLimitReached.Inc()</span><br><span class="line">       d.logger.Error(<span class="string">&quot;Too many aggregation groups, cannot create new group for alert&quot;</span>, <span class="string">&quot;groups&quot;</span>, d.aggrGroupsNum, <span class="string">&quot;limit&quot;</span>, limit, <span class="string">&quot;alert&quot;</span>, alert.Name())</span><br><span class="line">       <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    ag = newAggrGroup(d.ctx, groupLabels, route, d.timeout, d.logger)</span><br><span class="line">    routeGroups[fp] = ag</span><br><span class="line">    d.aggrGroupsNum++</span><br><span class="line">    d.metrics.aggrGroups.Inc()</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 先插入首条告警，再启动分组的 run 协程，保证 run 时分组已存在告警</span></span><br><span class="line">    ag.insert(alert)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">go</span> ag.run(<span class="function"><span class="keyword">func</span><span class="params">(ctx context.Context, alerts ...*types.Alert)</span></span> <span class="type">bool</span> &#123;</span><br><span class="line">       _, _, err := d.stage.Exec(ctx, d.logger, alerts...)</span><br><span class="line">       <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">          logger := d.logger.With(<span class="string">&quot;num_alerts&quot;</span>, <span class="built_in">len</span>(alerts), <span class="string">&quot;err&quot;</span>, err)</span><br><span class="line">          <span class="keyword">if</span> errors.Is(ctx.Err(), context.Canceled) &#123;</span><br><span class="line">             <span class="comment">// reload/shutdown 时 context 被取消，降级为 debug 日志</span></span><br><span class="line">             logger.Debug(<span class="string">&quot;Notify for alerts failed&quot;</span>)</span><br><span class="line">          &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">             logger.Error(<span class="string">&quot;Notify for alerts failed&quot;</span>)</span><br><span class="line">          &#125;</span><br><span class="line">       &#125;</span><br><span class="line">       <span class="keyword">return</span> err == <span class="literal">nil</span></span><br><span class="line">    &#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// insert 插入告警到分组。</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(ag *aggrGroup)</span></span> insert(alert *types.Alert) &#123;</span><br><span class="line">	<span class="keyword">if</span> err := ag.alerts.Set(alert); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		ag.logger.Error(<span class="string">&quot;error on set alert&quot;</span>, <span class="string">&quot;err&quot;</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 如果该告警的等待时间已过，立即触发通知</span></span><br><span class="line">	ag.mtx.Lock()</span><br><span class="line">	<span class="keyword">defer</span> ag.mtx.Unlock()</span><br><span class="line">	<span class="keyword">if</span> !ag.hasFlushed &amp;&amp; alert.StartsAt.Add(ag.opts.GroupWait).Before(time.Now()) &#123;</span><br><span class="line">		ag.next.Reset(<span class="number">0</span>)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="定时触发"><a href="#定时触发" class="headerlink" title="定时触发"></a>定时触发</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// run 启动分组的通知循环，定时触发通知。</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(ag *aggrGroup)</span></span> run(nf notifyFunc) &#123;</span><br><span class="line">    <span class="keyword">defer</span> <span class="built_in">close</span>(ag.done)</span><br><span class="line">    <span class="keyword">defer</span> ag.next.Stop()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">       <span class="keyword">select</span> &#123;</span><br><span class="line">       <span class="keyword">case</span> now := &lt;-ag.next.C:</span><br><span class="line">          <span class="comment">// 到达通知时间，构造 context 并触发通知</span></span><br><span class="line">          ctx, cancel := context.WithTimeout(ag.ctx, ag.timeout(ag.opts.GroupInterval))</span><br><span class="line"></span><br><span class="line">          <span class="comment">// 以定时器时间为准，保证通知时序一致</span></span><br><span class="line">          ctx = notify.WithNow(ctx, now)</span><br><span class="line"></span><br><span class="line">          <span class="comment">// 填充通知上下文信息</span></span><br><span class="line">          ctx = notify.WithGroupKey(ctx, ag.GroupKey())</span><br><span class="line">          ctx = notify.WithGroupLabels(ctx, ag.labels)</span><br><span class="line">          ctx = notify.WithReceiverName(ctx, ag.opts.Receiver)</span><br><span class="line">          ctx = notify.WithRepeatInterval(ctx, ag.opts.RepeatInterval)</span><br><span class="line">          ctx = notify.WithMuteTimeIntervals(ctx, ag.opts.MuteTimeIntervals)</span><br><span class="line">          ctx = notify.WithActiveTimeIntervals(ctx, ag.opts.ActiveTimeIntervals)</span><br><span class="line">          ctx = notify.WithRouteID(ctx, ag.routeID)</span><br><span class="line"></span><br><span class="line">          <span class="comment">// 重置定时器，准备下次通知</span></span><br><span class="line">          ag.mtx.Lock()</span><br><span class="line">          ag.next.Reset(ag.opts.GroupInterval)</span><br><span class="line">          ag.hasFlushed = <span class="literal">true</span></span><br><span class="line">          ag.mtx.Unlock()</span><br><span class="line"></span><br><span class="line">          ag.flush(<span class="function"><span class="keyword">func</span><span class="params">(alerts ...*types.Alert)</span></span> <span class="type">bool</span> &#123;</span><br><span class="line">             <span class="keyword">return</span> nf(ctx, alerts...)</span><br><span class="line">          &#125;)</span><br><span class="line"></span><br><span class="line">          cancel()</span><br><span class="line"></span><br><span class="line">       <span class="keyword">case</span> &lt;-ag.ctx.Done():</span><br><span class="line">          <span class="keyword">return</span></span><br><span class="line">       &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="触发告警"><a href="#触发告警" class="headerlink" title="触发告警"></a>触发告警</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// flush 触发通知并清理已解决的告警。</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(ag *aggrGroup)</span></span> flush(notify <span class="function"><span class="keyword">func</span><span class="params">(...*types.Alert)</span></span> <span class="type">bool</span>) &#123;</span><br><span class="line">    <span class="keyword">if</span> ag.empty() &#123;</span><br><span class="line">       <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">var</span> (</span><br><span class="line">       alerts        = ag.alerts.List()</span><br><span class="line">       alertsSlice   = <span class="built_in">make</span>(types.AlertSlice, <span class="number">0</span>, <span class="built_in">len</span>(alerts))</span><br><span class="line">       resolvedSlice = <span class="built_in">make</span>(types.AlertSlice, <span class="number">0</span>, <span class="built_in">len</span>(alerts))</span><br><span class="line">       now           = time.Now()</span><br><span class="line">    )</span><br><span class="line">    <span class="keyword">for</span> _, alert := <span class="keyword">range</span> alerts &#123;</span><br><span class="line">       a := *alert</span><br><span class="line">       <span class="comment">// 保证已解决的告警不会再次被通知</span></span><br><span class="line">       <span class="keyword">if</span> a.ResolvedAt(now) &#123;</span><br><span class="line">          resolvedSlice = <span class="built_in">append</span>(resolvedSlice, &amp;a)</span><br><span class="line">       &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">          a.EndsAt = time.Time&#123;&#125;</span><br><span class="line">       &#125;</span><br><span class="line">       alertsSlice = <span class="built_in">append</span>(alertsSlice, &amp;a)</span><br><span class="line">    &#125;</span><br><span class="line">    sort.Stable(alertsSlice)</span><br><span class="line"></span><br><span class="line">    ag.logger.Debug(<span class="string">&quot;flushing&quot;</span>, <span class="string">&quot;alerts&quot;</span>, fmt.Sprintf(<span class="string">&quot;%v&quot;</span>, alertsSlice))</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> notify(alertsSlice...) &#123;</span><br><span class="line">       <span class="comment">// 通知成功后，删除所有已解决的告警，避免重复通知</span></span><br><span class="line">       <span class="keyword">if</span> err := ag.alerts.DeleteIfNotModified(resolvedSlice); err != <span class="literal">nil</span> &#123;</span><br><span class="line">          ag.logger.Error(<span class="string">&quot;error on delete alerts&quot;</span>, <span class="string">&quot;err&quot;</span>, err)</span><br><span class="line">       &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2025/07/18/cloud/alertmanager/Alertmanager-dispatch%E5%91%8A%E8%AD%A6%E5%88%86%E7%BB%84/">https://piwriw.github.io/2025/07/18/cloud/alertmanager/Alertmanager-dispatch告警分组/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/prometheus/">prometheus</a><a class="post-meta__tags" href="/tags/alertmanager/">alertmanager</a><a class="post-meta__tags" href="/tags/alertmanager%E6%BA%90%E7%A0%81/">alertmanager源码</a></div><div class="post-share"><div class="social-share" data-image="/img/prometheus.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2025/07/20/cloud/alertmanager/Alertmanager-%E5%91%8A%E8%AD%A6%E5%8F%91%E9%80%81/" title="Alertmanager-告警发送"><img class="cover" src="/img/prometheus.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">Alertmanager-告警发送</div></div><div class="info-2"><div class="info-item-1">Alertmanager-告警发送 基于v0.28  启动顺序sequenceDiagram     participant Alert as 新告警     participant Dispatcher as Dispatcher     participant Route as Route     participant AggrGroup as aggrGroup     participant NotifyStage as notify.Stage     participant Notifier as Notifier(邮件/微信等)      Alert-&gt;&gt;Dispatcher: 新告警流入     Dispatcher-&gt;&gt;Route: 路由树匹配     Route--&gt;&gt;Dispatcher: 匹配到的 Route     Dispatcher-&gt;&gt;AggrGroup: 插入/创建分组     Note over AggrGroup: run 协程定时触发通知     AggrGroup-&gt;&gt;Noti...</div></div></div></a><a class="pagination-related" href="/2025/07/17/cloud/alertmanager/Alertmanager-silencer%E5%91%8A%E8%AD%A6%E9%9D%99%E9%BB%98/" title="Alertmanager-silencer告警静默"><img class="cover" src="/img/prometheus.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">Alertmanager-silencer告警静默</div></div><div class="info-2"><div class="info-item-1">Alertmanager-silencer告警静默 基于v0.28  总体流程sequenceDiagram     participant Alert as 告警(Labels)     participant Silencer as Silencer     participant Silences as Silences     participant Store as state(存储)     participant Marker as AlertMarker      Alert-&gt;&gt;Silencer: 新告警流入，调用 Mutes(lset)     Silencer-&gt;&gt;Marker: 查询该告警指纹的静默状态     alt Marker 版本与 Silences 一致         Silencer-&gt;&gt;Silences: 仅查询已知静默ID是否仍然有效     else Marker 版本不一致         Silencer-&gt;&gt;Silences: 全量查询所有匹配该告警的静默     end     S...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2025/07/20/cloud/alertmanager/Alertmanager-%E5%91%8A%E8%AD%A6%E5%8F%91%E9%80%81/" title="Alertmanager-告警发送"><img class="cover" src="/img/prometheus.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-07-20</div><div class="info-item-2">Alertmanager-告警发送</div></div><div class="info-2"><div class="info-item-1">Alertmanager-告警发送 基于v0.28  启动顺序sequenceDiagram     participant Alert as 新告警     participant Dispatcher as Dispatcher     participant Route as Route     participant AggrGroup as aggrGroup     participant NotifyStage as notify.Stage     participant Notifier as Notifier(邮件/微信等)      Alert-&gt;&gt;Dispatcher: 新告警流入     Dispatcher-&gt;&gt;Route: 路由树匹配     Route--&gt;&gt;Dispatcher: 匹配到的 Route     Dispatcher-&gt;&gt;AggrGroup: 插入/创建分组     Note over AggrGroup: run 协程定时触发通知     AggrGroup-&gt;&gt;Noti...</div></div></div></a><a class="pagination-related" href="/2025/07/17/cloud/alertmanager/Alertmanager-silencer%E5%91%8A%E8%AD%A6%E9%9D%99%E9%BB%98/" title="Alertmanager-silencer告警静默"><img class="cover" src="/img/prometheus.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-07-17</div><div class="info-item-2">Alertmanager-silencer告警静默</div></div><div class="info-2"><div class="info-item-1">Alertmanager-silencer告警静默 基于v0.28  总体流程sequenceDiagram     participant Alert as 告警(Labels)     participant Silencer as Silencer     participant Silences as Silences     participant Store as state(存储)     participant Marker as AlertMarker      Alert-&gt;&gt;Silencer: 新告警流入，调用 Mutes(lset)     Silencer-&gt;&gt;Marker: 查询该告警指纹的静默状态     alt Marker 版本与 Silences 一致         Silencer-&gt;&gt;Silences: 仅查询已知静默ID是否仍然有效     else Marker 版本不一致         Silencer-&gt;&gt;Silences: 全量查询所有匹配该告警的静默     end     S...</div></div></div></a><a class="pagination-related" href="/2025/07/16/cloud/alertmanager/Alertmanager-%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%E5%8A%A0%E8%BD%BD/" title="Alertmanager-inhibitor告警抑制"><img class="cover" src="/img/prometheus.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-07-16</div><div class="info-item-2">Alertmanager-inhibitor告警抑制</div></div><div class="info-2"><div class="info-item-1">Alertmanager-inhibitor告警抑制 基于v0.28  总体流程flowchart TD     A[告警流入 Alertmanager] --&gt; B&#123;是否匹配抑制规则?&#125;     B -- 否 --&gt; E[正常进入分发/通知流程]     B -- 是 --&gt; C[遍历所有 InhibitRule]     C --&gt; D&#123;目标告警是否匹配 TargetMatchers?&#125;     D -- 否 --&gt; C     D -- 是 --&gt; F&#123;是否存在源告警满足 SourceMatchers 且 Equal 标签相等?&#125;     F -- 否 --&gt; C     F -- 是 --&gt; G[该告警被抑制, 不再通知]     C --&gt;|遍历完所有规则| H&#123;是否被抑制?&#125;     H -- 是 --&gt; G     H -- 否 --&gt; E          subgraph 规则说明       direction LR...</div></div></div></a><a class="pagination-related" href="/2025/07/15/cloud/alertmanager/Alertmanager-%E6%A0%B8%E5%BF%83%E6%A8%A1%E5%9D%97/" title="Alertmanager-主入口main.go"><img class="cover" src="/img/prometheus.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-07-15</div><div class="info-item-2">Alertmanager-主入口main.go</div></div><div class="info-2"><div class="info-item-1">Alertmanager-主入口main.go 基于v0.28  关键模块说明 API  入口：api/v2/ 功能：接收Prometheus警报、提供管理接口   AlertRouter  路径：/dispatch  处理流程： 1func (r *Route) Match(lset model.LabelSet) bool   Inhibitor  路径：/inhibit  核心逻辑： 1func (ih *Inhibitor) Mutes(lset model.LabelSet) bool   DispatchTree  路径：/dispatch 特性：多级路由树结构   Notification Pipeline  路径：/notify 阶段： GroupWait GroupInterval RepeatInterval     Notifier  集成：/notify/&lt;type&gt;  实现示例： 1234type EmailNotifier struct &#123;    conf *config.EmailConfig    tmpl *template...</div></div></div></a><a class="pagination-related" href="/2024/10/27/cloud/alertmanager/Alertmanger-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3%E5%91%8A%E8%AD%A6%E5%8E%9F%E7%90%86/" title="Alertmanger-深入理解告警原理"><img class="cover" src="/img/prometheus.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-10-27</div><div class="info-item-2">Alertmanger-深入理解告警原理</div></div><div class="info-2"><div class="info-item-1">Alertmanger-深入理解告警原理AlertManager架构图  Alert Provider：API收到来自Prometheus的告警，存储到Alert Provider  原理是内置了Map   Dispatcher组件: 这是一个单独的goroutine，不断地通过订阅的方式从Alert Provider获取新的告警，并且根据YAML配置的Routing Tree将告警通过Label路由到不同的分组中，以实现告警信息的分组处理  Notification Pipeline组件:顾名思义，这是一个责任链模式的组件，它通过一系列逻辑(如抑制、静默、去重等)来优化告警质量。 在源码中，它是通过一个个实现Stage接口的具有不同功能的实例串联 起来得到的  Silence Provider组件:API层将来自Prometheus服务端的告警信息 存储到Silence Provider上，然后由这个组件实现去重逻辑处理。静默规 则用来关闭部分告警的通知  Notify Provider组件:它是Silence Provider组件的下游，会在本地记录日志，Peers的方式将日...</div></div></div></a><a class="pagination-related" href="/2025/09/24/cloud/prometheus/Prometheus%E6%BA%90%E7%A0%81-Relabel%20address/" title="Prometheus源码-Relabel"><img class="cover" src="/img/prometheus.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-09-24</div><div class="info-item-2">Prometheus源码-Relabel</div></div><div class="info-2"><div class="info-item-1">Prometheus源码-Relabel 基于3.5  relabel address流程 Prometheus读取Job中的targets，把target赋值给__address__标签，此标签代表采集地址 将__address__赋值给__param_target标签，因为Promehrues访问采集地址需要传参，__param_target代表target参数 将__param_target标签赋值给instance标签 将__param_target替换为真实的采集地址  核心解析Label Re123456789101112131415161718192021222324252627282930313233343536373839404142434445464748495051525354555657585960616263646566676869707172737475767778798081828384858687888990919293949596979899100101102103104105106107108109110111112113114// Popul...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Alertmanager-dispatch%E5%91%8A%E8%AD%A6%E5%88%86%E7%BB%84"><span class="toc-number">1.</span> <span class="toc-text">Alertmanager-dispatch告警分组</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E4%BD%93%E6%B5%81%E7%A8%8B"><span class="toc-number">1.1.</span> <span class="toc-text">总体流程</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%89%E5%A4%A7%E5%8F%82%E6%95%B0"><span class="toc-number">1.2.</span> <span class="toc-text">三大参数</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%BF%90%E8%A1%8C%E5%8E%9F%E7%90%86"><span class="toc-number">1.3.</span> <span class="toc-text">运行原理</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%90%AF%E5%8A%A8%E9%A1%BA%E5%BA%8F"><span class="toc-number">1.3.1.</span> <span class="toc-text">启动顺序</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%86%E7%BB%84%E5%91%8A%E8%AD%A6%E5%99%A8"><span class="toc-number">1.3.2.</span> <span class="toc-text">分组告警器</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%87%E6%81%B6%E4%B9%8B%E6%BA%90%E5%90%AF%E5%8A%A8"><span class="toc-number">1.3.3.</span> <span class="toc-text">万恶之源启动</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%A4%84%E7%90%86%E5%91%8A%E8%AD%A6%E6%B5%81"><span class="toc-number">1.3.4.</span> <span class="toc-text">处理告警流</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%B7%AF%E7%94%B1%E5%8C%B9%E9%85%8D"><span class="toc-number">1.3.5.</span> <span class="toc-text">路由匹配</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%91%8A%E8%AD%A6%E6%8F%92%E5%85%A5"><span class="toc-number">1.3.6.</span> <span class="toc-text">告警插入</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%9A%E6%97%B6%E8%A7%A6%E5%8F%91"><span class="toc-number">1.3.7.</span> <span class="toc-text">定时触发</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%A7%A6%E5%8F%91%E5%91%8A%E8%AD%A6"><span class="toc-number">1.3.8.</span> <span class="toc-text">触发告警</span></a></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-日志系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明">Gorm-日志系统模块原理说明</a><time datetime="2026-01-11T11:56:27.000Z" title="发表于 2026-01-11 19:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-迁移功能模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明">Gorm-迁移功能模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-插件系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明">Gorm-插件系统模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-事务处理模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明">Gorm-事务处理模块原理说明</a><time datetime="2026-01-11T09:56:27.000Z" title="发表于 2026-01-11 17:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-关联关系模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明">Gorm-关联关系模块原理说明</a><time datetime="2026-01-11T08:56:27.000Z" title="发表于 2026-01-11 16:56:27">2026-01-11</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

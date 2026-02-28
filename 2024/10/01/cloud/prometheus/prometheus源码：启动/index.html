@@ -1,0 +1,336 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Prometheus源码：启动 | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="Prometheus源码：启动 基于release-3.0  目录结构 cmd主程序入口 config 默认配置参数设置及配置文件解析 discovery 服务发现方式的实现，如 consul ，kubernetes ，dns 等 notifier 生成告警信息及告警信息发送 promql 目录为 规则计算的具体实现，根据载入的规则进行规则计算，并生成告警配置 prompb 目录定义了三种协议，远">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Prometheus源码：启动">
+<meta property="og:url" content="https://piwriw.github.io/2024/10/01/cloud/prometheus/prometheus%E6%BA%90%E7%A0%81%EF%BC%9A%E5%90%AF%E5%8A%A8/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="Prometheus源码：启动 基于release-3.0  目录结构 cmd主程序入口 config 默认配置参数设置及配置文件解析 discovery 服务发现方式的实现，如 consul ，kubernetes ，dns 等 notifier 生成告警信息及告警信息发送 promql 目录为 规则计算的具体实现，根据载入的规则进行规则计算，并生成告警配置 prompb 目录定义了三种协议，远">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/prometheus.png">
+<meta property="article:published_time" content="2024-10-01T04:08:55.000Z">
+<meta property="article:modified_time" content="2026-02-28T13:29:12.674Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="prometheus">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/prometheus.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Prometheus源码：启动",
+  "url": "https://piwriw.github.io/2024/10/01/cloud/prometheus/prometheus%E6%BA%90%E7%A0%81%EF%BC%9A%E5%90%AF%E5%8A%A8/",
+  "image": "https://piwriw.github.io/img/prometheus.png",
+  "datePublished": "2024-10-01T04:08:55.000Z",
+  "dateModified": "2026-02-28T13:29:12.674Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2024/10/01/cloud/prometheus/prometheus%E6%BA%90%E7%A0%81%EF%BC%9A%E5%90%AF%E5%8A%A8/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Prometheus源码：启动',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/prometheus.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">Prometheus源码：启动</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">Prometheus源码：启动</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2024-10-01T04:08:55.000Z" title="发表于 2024-10-01 12:08:55">2024-10-01</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-02-28T13:29:12.674Z" title="更新于 2026-02-28 21:29:12">2026-02-28</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/prometheus/">prometheus</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">1.5k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>6分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-02-28 21:29:12&quot;}" hidden></div><h1 id="Prometheus源码：启动"><a href="#Prometheus源码：启动" class="headerlink" title="Prometheus源码：启动"></a>Prometheus源码：启动</h1><blockquote>
+<p>基于release-3.0</p>
+</blockquote>
+<h2 id="目录结构"><a href="#目录结构" class="headerlink" title="目录结构"></a>目录结构</h2><ul>
+<li>cmd主程序入口</li>
+<li>config 默认配置参数设置及配置文件解析</li>
+<li>discovery 服务发现方式的实现，如 consul ，kubernetes ，dns 等</li>
+<li>notifier 生成告警信息及告警信息发送</li>
+<li>promql 目录为 规则计算的具体实现，根据载入的规则进行规则计算，并生成告警配置</li>
+<li>prompb 目录定义了三种协议，远程存储协议、rpc通信协议和types协议</li>
+<li>scrape 指标采集</li>
+<li>relabel 目录实现了对指标维度（label）的重置处理，根据promtheus.yaml中配置文件中relabel_config配置项内容重置指标维度</li>
+<li>retrieval 目录为Prometheus的数据采集模块，实现了对采集服务的调度和对指标数据的采集</li>
+<li>rules 目录为Prometheus的规则管理模块，用于实现规则加载、计算调度和告警信息的回调；</li>
+<li>storage 目录为Prometheus的指标存储模块，又remote、tsdb存储俩种</li>
+<li>tsdb 数据存储相关</li>
+<li>web 目录是 Prometheus Web服务模块</li>
+</ul>
+<h2 id="组件启动"><a href="#组件启动" class="headerlink" title="组件启动"></a>组件启动</h2><h3 id="存储组件"><a href="#存储组件" class="headerlink" title="存储组件"></a>存储组件</h3><p>localStorage 用于指标的本地存储；remoteStorage 用于指标的 远程存储；fanoutStorage为localStorage与remoteStorage的读写代 理器，且remoteStorage可以有多个传入，如下所示：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> (</span><br><span class="line">    localStorage  = &amp;readyStorage&#123;stats: tsdb.NewDBStats()&#125;</span><br><span class="line">    scraper       = &amp;readyScrapeManager&#123;&#125;</span><br><span class="line">    remoteStorage = remote.NewStorage(log.With(logger, <span class="string">&quot;component&quot;</span>, <span class="string">&quot;remote&quot;</span>), prometheus.DefaultRegisterer, localStorage.StartTime, localStoragePath, time.Duration(cfg.RemoteFlushDeadline), scraper, cfg.scrape.AppendMetadata)</span><br><span class="line">    fanoutStorage = storage.NewFanout(logger, localStorage, remoteStorage)</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<h3 id="notifier组件"><a href="#notifier组件" class="headerlink" title="notifier组件"></a>notifier组件</h3><p>notifier组件用于告警通知，在完成初始化后，notifier组件内 部 会 构 建 一 个 告 警 通 知 队 列 ， 队 列 的 大 小 由 命 令 行 参 数 – alertmanager.notification-queue-capacity确定，默认值为10000， 且告警信息通过sendAlerts方法发送给AlertManager</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">notifierManager = notifier.NewManager(&amp;cfg.notifier, log.With(logger, <span class="string">&quot;component&quot;</span>, <span class="string">&quot;notifier&quot;</span>))</span><br></pre></td></tr></table></figure>
+
+<h3 id="discoveryManagerScrape组件"><a href="#discoveryManagerScrape组件" class="headerlink" title="discoveryManagerScrape组件"></a>discoveryManagerScrape组件</h3><p>discoveryManagerScrape 组 件 用 于 发 现 指 标 采 集 服 务 ， 对 应 prometheus.yml配置文件中scrape_configs节点下的各种指标采集器 （static_config、kubernetes_sd_config、openstack_sd_config、 consul_sd_config 等 </p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">discMgr := discovery.NewManager(ctxScrape, log.With(logger, <span class="string">&quot;component&quot;</span>, <span class="string">&quot;discovery manager scrape&quot;</span>), prometheus.DefaultRegisterer, sdMetrics, discovery.Name(<span class="string">&quot;scrape&quot;</span>))</span><br><span class="line"><span class="keyword">if</span> discMgr == <span class="literal">nil</span> &#123;</span><br><span class="line">    level.Error(logger).Log(<span class="string">&quot;msg&quot;</span>, <span class="string">&quot;failed to create a discovery manager scrape&quot;</span>)</span><br><span class="line">    os.Exit(<span class="number">1</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="discoveryManagerNotify组件"><a href="#discoveryManagerNotify组件" class="headerlink" title="discoveryManagerNotify组件"></a>discoveryManagerNotify组件</h3><p>discoveryManagerNotify组件的构建与 discoveryManagerScrape 组件的构建方式一样，不同的是前者服务于 notify，后者服务于 scrape</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    discMgr := discovery.NewManager(ctxNotify, log.With(logger, <span class="string">&quot;component&quot;</span>, <span class="string">&quot;discovery manager notify&quot;</span>), prometheus.DefaultRegisterer, sdMetrics, discovery.Name(<span class="string">&quot;notify&quot;</span>))</span><br><span class="line">    <span class="keyword">if</span> discMgr == <span class="literal">nil</span> &#123;</span><br><span class="line">       level.Error(logger).Log(<span class="string">&quot;msg&quot;</span>, <span class="string">&quot;failed to create a discovery manager notify&quot;</span>)</span><br><span class="line">       os.Exit(<span class="number">1</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    discoveryManagerNotify = discMgr</span><br></pre></td></tr></table></figure>
+
+<h3 id="scrapeManager组件"><a href="#scrapeManager组件" class="headerlink" title="scrapeManager组件"></a>scrapeManager组件</h3><p>scrapeManager组件用于管理对指标的采集，并将所采集的指标存 储到fanoutStorage中。</p>
+<p>scrapeManager组件的采集周期在prometheus.yml配置文件中由 global 节 点 下 的 scrape_interval 指 定 ， 且 各 个 job_name 可 以 在 scrape_configs 下 进 行 个 性 化 设 置 ， 设 置 符 合 自 身 应 用 场 景 的 scrape_interval</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">discMgr := legacymanager.NewManager(ctxScrape, log.With(logger, <span class="string">&quot;component&quot;</span>, <span class="string">&quot;discovery manager scrape&quot;</span>), prometheus.DefaultRegisterer, sdMetrics, legacymanager.Name(<span class="string">&quot;scrape&quot;</span>))</span><br></pre></td></tr></table></figure>
+
+<h3 id="queryEngine组件"><a href="#queryEngine组件" class="headerlink" title="queryEngine组件"></a>queryEngine组件</h3><p>queryEngine 组件为规则查询计算引擎，在初始化时会对查询超时时间 （ cfg.query Timeout ） 和并发查询个数 （cfg.queryEngine.MaxConcurrentQueries）进行设置。 queryEngine 组件的构建调用 promql.NewEngine 方法完成， fanoutStorage 为指标存储器，cfg.queryEngine为组件对应的配置参数</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">queryEngine = promql.NewEngine(opts)</span><br></pre></td></tr></table></figure>
+
+<h3 id="ruleManager组件"><a href="#ruleManager组件" class="headerlink" title="ruleManager组件"></a>ruleManager组件</h3><p>ruleManager组件整合了 fanoutStorage组件、queryEngine组件 和 notifier组件，完成了从规则运算到告警发送的流程。</p>
+<p> 规则运算周期在 prometheus.yml 配置文件中由 global 节点下 的 evaluation_interval 指 定 ， 各个job_name 还 可 以 在 scrape_configs下进行个性化设置，设置符合自身应用场景的规则运 算周期（evaluation_interval）</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">ruleManager = rules.NewManager(&amp;rules.ManagerOptions&#123;</span><br><span class="line">    Appendable:             fanoutStorage,</span><br><span class="line">    Queryable:              localStorage,</span><br><span class="line">    QueryFunc:              rules.EngineQueryFunc(queryEngine, fanoutStorage),</span><br><span class="line">    NotifyFunc:             rules.SendAlerts(notifierManager, cfg.web.ExternalURL.String()),</span><br><span class="line">    Context:                ctxRule,</span><br><span class="line">    ExternalURL:            cfg.web.ExternalURL,</span><br><span class="line">    Registerer:             prometheus.DefaultRegisterer,</span><br><span class="line">    Logger:                 log.With(logger, <span class="string">&quot;component&quot;</span>, <span class="string">&quot;rule manager&quot;</span>),</span><br><span class="line">    OutageTolerance:        time.Duration(cfg.outageTolerance),</span><br><span class="line">    ForGracePeriod:         time.Duration(cfg.forGracePeriod),</span><br><span class="line">    ResendDelay:            time.Duration(cfg.resendDelay),</span><br><span class="line">    MaxConcurrentEvals:     cfg.maxConcurrentEvals,</span><br><span class="line">    ConcurrentEvalsEnabled: cfg.enableConcurrentRuleEval,</span><br><span class="line">    DefaultRuleQueryOffset: <span class="function"><span class="keyword">func</span><span class="params">()</span></span> time.Duration &#123;</span><br><span class="line">       <span class="keyword">return</span> time.Duration(cfgFile.GlobalConfig.RuleQueryOffset)</span><br><span class="line">    &#125;,</span><br></pre></td></tr></table></figure>
+
+<h3 id="启动服务组件"><a href="#启动服务组件" class="headerlink" title="启动服务组件"></a>启动服务组件</h3><p>将各个组件服务的启动入口，通过github.com&#x2F;oklog&#x2F;oklog&#x2F;pkg&#x2F;group中的Add方法</p>
+<p>Add方法如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(g *Group)</span></span> Add(execute <span class="function"><span class="keyword">func</span><span class="params">()</span></span> <span class="type">error</span>, interrupt <span class="function"><span class="keyword">func</span><span class="params">(<span class="type">error</span>)</span></span>) &#123;</span><br><span class="line">    g.actors = <span class="built_in">append</span>(g.actors, actor&#123;execute, interrupt&#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// execute方法为所对应服务组件的启动入口方法；</span></span><br><span class="line"><span class="comment">// interrupt方法在组件退出时被调用，通常用于资源释放</span></span><br></pre></td></tr></table></figure>
+
+<p> 最后通过Run()启动</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> err := g.Run(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">    level.Error(logger).Log(<span class="string">&quot;err&quot;</span>, err)</span><br><span class="line">    os.Exit(<span class="number">1</span>)</span><br><span class="line">&#125;</span><br><span class="line">level.Info(logger).Log(<span class="string">&quot;msg&quot;</span>, <span class="string">&quot;See you next time!&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+<p>Run()的实现：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(g *Group)</span></span> Run() <span class="type">error</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">len</span>(g.actors) == <span class="number">0</span> &#123;</span><br><span class="line">       <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Run each actor.</span></span><br><span class="line">    errors := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="type">error</span>, <span class="built_in">len</span>(g.actors))</span><br><span class="line">    <span class="keyword">for</span> _, a := <span class="keyword">range</span> g.actors &#123;</span><br><span class="line">       <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(a actor)</span></span> &#123;</span><br><span class="line">          errors &lt;- a.execute()</span><br><span class="line">       &#125;(a)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Wait for the first actor to stop.</span></span><br><span class="line">    err := &lt;-errors</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Signal all actors to stop.</span></span><br><span class="line">    <span class="keyword">for</span> _, a := <span class="keyword">range</span> g.actors &#123;</span><br><span class="line">       a.interrupt(err)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Wait for all actors to stop.</span></span><br><span class="line">    <span class="keyword">for</span> i := <span class="number">1</span>; i &lt; <span class="built_in">cap</span>(errors); i++ &#123;</span><br><span class="line">       &lt;-errors</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Return the original error.</span></span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>一共十个Add（）：</p>
+<ul>
+<li>第一个：Add用于控制 Prometheus程序的退出。当满足以下任一 条件时将退出：Prometheus接收到 SIGTERM系统信号；Prometheus程 序设置了–web.enable-lifecycle参数来启动且收到curl -X POST localhost:9090&#x2F;-&#x2F;quit请求</li>
+<li>第二个：用于启动discoveryManagerScrape服务。</li>
+<li>第三个：用于启动discoveryManagerNotify服务</li>
+<li>第四个：根据在第2个 Add中 discoveryManagerScrape发现 的 scrape服务启动且采集指标数据</li>
+<li>第五个：系统配置的热加载，reloadConfig方法用于加载 系统配置文件，且当 Prometheus 进程收到 SIGHUP 信号或者收到 curl -X POST localhost:9090&#x2F;-&#x2F;reload请求（Prometheus启动参数- -web.enable-lifecycle）时，reloadConfig方法会被调用</li>
+<li>第六个：用于初始化系统配置的参数和设置Web可用的服务状 态</li>
+<li>第七个：启动存储组件，Prometheus 指标的存储采用的是 时序数据库，所以在初始化启动时会设置开始时间和储存路径</li>
+<li>第八个：用于启动Web服务组件</li>
+<li>第九个：用于启动规则管理组件ruleManager</li>
+<li>第十个：根据在第3个 Add 中 discoveryManagerNotify 发现的AlertManager启动notifier组件服务</li>
+</ul>
+<p>组件关系如图:</p>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image/202409252219259.png"></p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2024/10/01/cloud/prometheus/prometheus%E6%BA%90%E7%A0%81%EF%BC%9A%E5%90%AF%E5%8A%A8/">https://piwriw.github.io/2024/10/01/cloud/prometheus/prometheus源码：启动/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/prometheus/">prometheus</a></div><div class="post-share"><div class="social-share" data-image="/img/prometheus.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2024/10/01/cloud/prometheus/Prometheus%E6%BA%90%E7%A0%81%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0/" title="Prometheus源码:服务发现"><img class="cover" src="/img/prometheus.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">Prometheus源码:服务发现</div></div><div class="info-2"><div class="info-item-1">Prometheus源码:服务发现服务发现的定义流程：  scrape发现服务进行统一管理，Prometheus对所支持的发 现服务都抽象出Discoverer接口，各scrape发现服务都必须实现该接 口并用于服务发现 Discover接口定义了Run()接口： 1234567// FILE Path:prometheus/discovery/discoverytype Discoverer interface &#123;    // Run hands a channel to the discovery provider (Consul, DNS, etc.) through which    // it can send updated target groups. It must return when the context is canceled.    // It should not close the update channel on returning.    Run(ctx context.Context, up chan&lt;- []*target...</div></div></div></a><a class="pagination-related" href="/2024/09/23/cloud/docker/Docker-Linux%20Cgroups/" title="Docker-Linux Cgroups"><img class="cover" src="/img/docker.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">Docker-Linux Cgroups</div></div><div class="info-2"><div class="info-item-1">Docker-Linux Cgroups什么是Linux CgroupsLinux Cgroups提供了对一组进程以及将来子进程的资源限制、控制和统计的能力，包含CPU、内存、存储、网络等。通过Cgroups，可以方便的限制某个进程的资源占用，并且可以实时统计监控进程和统计消息。 Cgroups的组件cgroupcgroup是对进程分组管理的一种机制，一个cgroup包含一组进程，并且在cgroup 上增加Linux subsystem的各种参数配置，将一组进程和一组subsystem系统参数关联起来 subsystemsubsystem是一组资源控制模块，有下面的几个模块  blkio设置对块设备（比如硬盘）输入输出的访问控制  cpu设置cgroup中进程的CPU被调度的策略  cpuacct可以统计cgroup中进程调度的CPu占用  cpuset在多核机器上设置cgroup中进程可以使用的CPU和内存（此内存仅适用于NUMA架构）  devices控制cgroup中进程对于设备的访问  freezer用于挂起（suspend)和恢复（resume)cgroup中的进程  ...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2025/09/24/cloud/prometheus/Prometheus%E6%BA%90%E7%A0%81-Relabel%20address/" title="Prometheus源码-Relabel"><img class="cover" src="/img/prometheus.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-09-24</div><div class="info-item-2">Prometheus源码-Relabel</div></div><div class="info-2"><div class="info-item-1">Prometheus源码-Relabel 基于3.5  relabel address流程 Prometheus读取Job中的targets，把target赋值给__address__标签，此标签代表采集地址 将__address__赋值给__param_target标签，因为Promehrues访问采集地址需要传参，__param_target代表target参数 将__param_target标签赋值给instance标签 将__param_target替换为真实的采集地址  核心解析Label Re123456789101112131415161718192021222324252627282930313233343536373839404142434445464748495051525354555657585960616263646566676869707172737475767778798081828384858687888990919293949596979899100101102103104105106107108109110111112113114// Popul...</div></div></div></a><a class="pagination-related" href="/2025/08/05/cloud/prometheus/Prometheus-PromQL/" title="Prometheus-PromQL"><img class="cover" src="/img/prometheus.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-08-05</div><div class="info-item-2">Prometheus-PromQL</div></div><div class="info-2"><div class="info-item-1">Prometheus-PromQL 基于v3.5  工作原理graph TD     A[Query Input] --&gt; B[Parser]     B --&gt; C[Engine]     C --&gt; D[Query Execution]     D --&gt; E[Result Output]      %% Parser Module     subgraph Parser[&quot;Parser (parser/)&quot;]         B1[Lexical Analysis] --&gt; B2[Syntax Parsing]         B2 --&gt; B3[AST Generation]         B3 --&gt; B4[Validation]     end      %% Engine Module     subgraph Engine[&quot;Engine (engine.go)&quot;]         C1[Query Initialization] --&gt; C2[Query Planning]...</div></div></div></a><a class="pagination-related" href="/2025/07/26/cloud/prometheus/Prometheus-Rules%E5%91%8A%E8%AD%A6%E8%AF%84%E4%BC%B0/" title="Prometheus-Rules告警评估"><img class="cover" src="/img/prometheus.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-07-26</div><div class="info-item-2">Prometheus-Rules告警评估</div></div><div class="info-2"><div class="info-item-1">Prometheus-Rules告警评估 基于v3.5  工作原理graph TD     A[Rule Files] --&gt; B[Manager.LoadGroups]     B --&gt; C[Parse Rule Groups]     C --&gt; D[Create Rule Objects]     D --&gt; E[Analyse Rule Dependencies]     E --&gt; F[Build Dependency Map]     F --&gt; G[Set Rule Dependencies]          H[Manager.Run] --&gt; I[Group Evaluation Loop]     I --&gt; J[Split Rules into Batches]     J --&gt; K&#123;Concurrent Evaluation Enabled?&#125;     K --&gt;|Yes| L[Concurrent Rule Execution]     K --&gt;|No| M[S...</div></div></div></a><a class="pagination-related" href="/2025/07/25/cloud/prometheus/Prometheus-Srape%E6%8C%87%E6%A0%87%E6%8A%93%E5%8F%96/" title="Prometheus-Scrape指标抓取"><img class="cover" src="/img/prometheus.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-07-25</div><div class="info-item-2">Prometheus-Scrape指标抓取</div></div><div class="info-2"><div class="info-item-1">Prometheus-Scrape指标抓取 基于v3.5  工作原理graph TD     A[ScrapePool] --&gt; B[Target Discovery]     A --&gt; C[Scrape Loop Management]     A --&gt; D[HTTP Client] B --&gt; B1[Sync Targets] B1 --&gt; B2[Target Group Processing] B2 --&gt; B3[Target Creation/Deduplication] B3 --&gt; B4[Active Targets Update]  C --&gt; C1[Loop Creation] C1 --&gt; C2[Scrape Interval Setup] C2 --&gt; C3[Scraper Initialization]  D --&gt; D1[Target Scraper] D1 --&gt; D2[HTTP Request] D2 --&gt; D3[Metrics Endpoint]  C3 --&gt;...</div></div></div></a><a class="pagination-related" href="/2025/07/24/cloud/prometheus/Prometheus-notifier%E5%91%8A%E8%AD%A6%E6%8E%A8%E9%80%81/" title="Prometheus-notifier告警推送"><img class="cover" src="/img/prometheus.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-07-24</div><div class="info-item-2">Prometheus-notifier告警推送</div></div><div class="info-2"><div class="info-item-1">Prometheus-notifier告警推送 基于v3.5  工作原理sequenceDiagram     participant Q as Queue     participant M as Manager     participant AM as Alertmanager     participant AL as Alertmanager API Q-&gt;&gt;M: nextBatch() M-&gt;&gt;M: 分批处理告警 M-&gt;&gt;AM: sendAll() AM-&gt;&gt;AM: 应用特定于 AM 的 relabel AM-&gt;&gt;AL: HTTP POST /api/v2/alerts AL--&gt;&gt;AM: Response AM-&gt;&gt;M: 返回发送结果  关键特性  告警队列管理 有界队列，防止内存无限增长 支持队列满时的丢弃策略 可配置的批处理大小 Relabeling（重新标记） 发送前对告警应用 relabel 配置 支持每个 Alertmanager 集合的特定 relabel 规则 高可用性...</div></div></div></a><a class="pagination-related" href="/2025/07/23/cloud/prometheus/Prometheus-Discoverer%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0/" title="Prometheus-Discoverer服务发现"><img class="cover" src="/img/prometheus.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-07-23</div><div class="info-item-2">Prometheus-Discoverer服务发现</div></div><div class="info-2"><div class="info-item-1">Prometheus-Discoverer服务发现 基于v3.5  启动流程sequenceDiagram     participant main.go     participant Manager     participant Provider     participant Discoverer     participant TargetGroup main.go-&gt;&gt;Manager: NewManager()  main.go-&gt;&gt;Manager: ApplyConfig()  Manager-&gt;&gt;Provider: 创建Provider实例 Manager-&gt;&gt;Provider: startProvider()  Provider-&gt;&gt;Discoverer: 初始化具体发现器(如K8s/Consul等) Provider-&gt;&gt;Discoverer: Run(ctx, updatesCh)  loop 发现循环     Discoverer-&gt;&gt;TargetGroup: 获取目标组 ...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Prometheus%E6%BA%90%E7%A0%81%EF%BC%9A%E5%90%AF%E5%8A%A8"><span class="toc-number">1.</span> <span class="toc-text">Prometheus源码：启动</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%9B%AE%E5%BD%95%E7%BB%93%E6%9E%84"><span class="toc-number">1.1.</span> <span class="toc-text">目录结构</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BB%84%E4%BB%B6%E5%90%AF%E5%8A%A8"><span class="toc-number">1.2.</span> <span class="toc-text">组件启动</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AD%98%E5%82%A8%E7%BB%84%E4%BB%B6"><span class="toc-number">1.2.1.</span> <span class="toc-text">存储组件</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#notifier%E7%BB%84%E4%BB%B6"><span class="toc-number">1.2.2.</span> <span class="toc-text">notifier组件</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#discoveryManagerScrape%E7%BB%84%E4%BB%B6"><span class="toc-number">1.2.3.</span> <span class="toc-text">discoveryManagerScrape组件</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#discoveryManagerNotify%E7%BB%84%E4%BB%B6"><span class="toc-number">1.2.4.</span> <span class="toc-text">discoveryManagerNotify组件</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#scrapeManager%E7%BB%84%E4%BB%B6"><span class="toc-number">1.2.5.</span> <span class="toc-text">scrapeManager组件</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#queryEngine%E7%BB%84%E4%BB%B6"><span class="toc-number">1.2.6.</span> <span class="toc-text">queryEngine组件</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#ruleManager%E7%BB%84%E4%BB%B6"><span class="toc-number">1.2.7.</span> <span class="toc-text">ruleManager组件</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%90%AF%E5%8A%A8%E6%9C%8D%E5%8A%A1%E7%BB%84%E4%BB%B6"><span class="toc-number">1.2.8.</span> <span class="toc-text">启动服务组件</span></a></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-日志系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明">Gorm-日志系统模块原理说明</a><time datetime="2026-01-11T11:56:27.000Z" title="发表于 2026-01-11 19:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-迁移功能模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明">Gorm-迁移功能模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-插件系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明">Gorm-插件系统模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-事务处理模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明">Gorm-事务处理模块原理说明</a><time datetime="2026-01-11T09:56:27.000Z" title="发表于 2026-01-11 17:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-关联关系模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明">Gorm-关联关系模块原理说明</a><time datetime="2026-01-11T08:56:27.000Z" title="发表于 2026-01-11 16:56:27">2026-01-11</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

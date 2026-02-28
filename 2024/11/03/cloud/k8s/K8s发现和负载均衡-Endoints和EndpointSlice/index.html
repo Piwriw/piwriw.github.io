@@ -1,0 +1,416 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>K8s发现和负载均衡-Endpoints和EndpointSlice | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="K8s发现和负载均衡-Endpoints和EndpointSlice 基于1.25  什么是EndPointsEndPoints定义了网络端点的列表  K8s限制单个EndPoints对象容纳的端点数量  Endpoints字段 Ref:https:&#x2F;&#x2F;github.com&#x2F;kubernetes&#x2F;api&#x2F;blob&#x2F;f7b7ea4f0fcc6cb8c8dd42eb46a94c7e163d1b9d&#x2F;c">
+<meta property="og:type" content="article">
+<meta property="og:title" content="K8s发现和负载均衡-Endpoints和EndpointSlice">
+<meta property="og:url" content="https://piwriw.github.io/2024/11/03/cloud/k8s/K8s%E5%8F%91%E7%8E%B0%E5%92%8C%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1-Endoints%E5%92%8CEndpointSlice/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="K8s发现和负载均衡-Endpoints和EndpointSlice 基于1.25  什么是EndPointsEndPoints定义了网络端点的列表  K8s限制单个EndPoints对象容纳的端点数量  Endpoints字段 Ref:https:&#x2F;&#x2F;github.com&#x2F;kubernetes&#x2F;api&#x2F;blob&#x2F;f7b7ea4f0fcc6cb8c8dd42eb46a94c7e163d1b9d&#x2F;c">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/k8sLogo.png">
+<meta property="article:published_time" content="2024-11-03T08:57:55.000Z">
+<meta property="article:modified_time" content="2026-02-28T13:29:12.661Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="k8s">
+<meta property="article:tag" content="cloud">
+<meta property="article:tag" content="K8s源码">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/k8sLogo.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "K8s发现和负载均衡-Endpoints和EndpointSlice",
+  "url": "https://piwriw.github.io/2024/11/03/cloud/k8s/K8s%E5%8F%91%E7%8E%B0%E5%92%8C%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1-Endoints%E5%92%8CEndpointSlice/",
+  "image": "https://piwriw.github.io/img/k8sLogo.png",
+  "datePublished": "2024-11-03T08:57:55.000Z",
+  "dateModified": "2026-02-28T13:29:12.661Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2024/11/03/cloud/k8s/K8s%E5%8F%91%E7%8E%B0%E5%92%8C%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1-Endoints%E5%92%8CEndpointSlice/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'K8s发现和负载均衡-Endpoints和EndpointSlice',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/k8sLogo.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">K8s发现和负载均衡-Endpoints和EndpointSlice</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">K8s发现和负载均衡-Endpoints和EndpointSlice</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2024-11-03T08:57:55.000Z" title="发表于 2024-11-03 16:57:55">2024-11-03</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-02-28T13:29:12.661Z" title="更新于 2026-02-28 21:29:12">2026-02-28</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/">k8s</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">2.3k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>11分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-02-28 21:29:12&quot;}" hidden></div><h1 id="K8s发现和负载均衡-Endpoints和EndpointSlice"><a href="#K8s发现和负载均衡-Endpoints和EndpointSlice" class="headerlink" title="K8s发现和负载均衡-Endpoints和EndpointSlice"></a>K8s发现和负载均衡-Endpoints和EndpointSlice</h1><blockquote>
+<p>基于1.25</p>
+</blockquote>
+<h2 id="什么是EndPoints"><a href="#什么是EndPoints" class="headerlink" title="什么是EndPoints"></a>什么是EndPoints</h2><p>EndPoints定义了网络端点的列表</p>
+<ul>
+<li>K8s限制单个EndPoints对象容纳的端点数量</li>
+</ul>
+<h3 id="Endpoints字段"><a href="#Endpoints字段" class="headerlink" title="Endpoints字段"></a>Endpoints字段</h3><ul>
+<li>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/api/blob/f7b7ea4f0fcc6cb8c8dd42eb46a94c7e163d1b9d/core/v1/types.go#L4768">https://github.com/kubernetes/api/blob/f7b7ea4f0fcc6cb8c8dd42eb46a94c7e163d1b9d/core/v1/types.go#L4768</a></li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Endpoints is a collection of endpoints that implement the actual service. Example:</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">//	 Name: &quot;mysvc&quot;,</span></span><br><span class="line"><span class="comment">//	 Subsets: [</span></span><br><span class="line"><span class="comment">//	   &#123;</span></span><br><span class="line"><span class="comment">//	     Addresses: [&#123;&quot;ip&quot;: &quot;10.10.1.1&quot;&#125;, &#123;&quot;ip&quot;: &quot;10.10.2.2&quot;&#125;],</span></span><br><span class="line"><span class="comment">//	     Ports: [&#123;&quot;name&quot;: &quot;a&quot;, &quot;port&quot;: 8675&#125;, &#123;&quot;name&quot;: &quot;b&quot;, &quot;port&quot;: 309&#125;]</span></span><br><span class="line"><span class="comment">//	   &#125;,</span></span><br><span class="line"><span class="comment">//	   &#123;</span></span><br><span class="line"><span class="comment">//	     Addresses: [&#123;&quot;ip&quot;: &quot;10.10.3.3&quot;&#125;],</span></span><br><span class="line"><span class="comment">//	     Ports: [&#123;&quot;name&quot;: &quot;a&quot;, &quot;port&quot;: 93&#125;, &#123;&quot;name&quot;: &quot;b&quot;, &quot;port&quot;: 76&#125;]</span></span><br><span class="line"><span class="comment">//	   &#125;,</span></span><br><span class="line"><span class="comment">//	]</span></span><br><span class="line"><span class="keyword">type</span> Endpoints <span class="keyword">struct</span> &#123;</span><br><span class="line">	metav1.TypeMeta <span class="string">`json:&quot;,inline&quot;`</span></span><br><span class="line">	<span class="comment">// Standard object&#x27;s metadata.</span></span><br><span class="line">	<span class="comment">// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">	metav1.ObjectMeta <span class="string">`json:&quot;metadata,omitempty&quot; protobuf:&quot;bytes,1,opt,name=metadata&quot;`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// The set of all endpoints is the union of all subsets. Addresses are placed into</span></span><br><span class="line">	<span class="comment">// subsets according to the IPs they share. A single address with multiple ports,</span></span><br><span class="line">	<span class="comment">// some of which are ready and some of which are not (because they come from</span></span><br><span class="line">	<span class="comment">// different containers) will result in the address being displayed in different</span></span><br><span class="line">	<span class="comment">// subsets for the different ports. No address will appear in both Addresses and</span></span><br><span class="line">	<span class="comment">// NotReadyAddresses in the same subset.</span></span><br><span class="line">	<span class="comment">// Sets of addresses and ports that comprise a service.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">	Subsets []EndpointSubset <span class="string">`json:&quot;subsets,omitempty&quot; protobuf:&quot;bytes,2,rep,name=subsets&quot;`</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// EndpointSubset is a group of addresses with a common set of ports. The</span></span><br><span class="line"><span class="comment">// expanded set of endpoints is the Cartesian product of Addresses x Ports.</span></span><br><span class="line"><span class="comment">// For example, given:</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">//	&#123;</span></span><br><span class="line"><span class="comment">//	  Addresses: [&#123;&quot;ip&quot;: &quot;10.10.1.1&quot;&#125;, &#123;&quot;ip&quot;: &quot;10.10.2.2&quot;&#125;],</span></span><br><span class="line"><span class="comment">//	  Ports:     [&#123;&quot;name&quot;: &quot;a&quot;, &quot;port&quot;: 8675&#125;, &#123;&quot;name&quot;: &quot;b&quot;, &quot;port&quot;: 309&#125;]</span></span><br><span class="line"><span class="comment">//	&#125;</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// The resulting set of endpoints can be viewed as:</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">//	a: [ 10.10.1.1:8675, 10.10.2.2:8675 ],</span></span><br><span class="line"><span class="comment">//	b: [ 10.10.1.1:309, 10.10.2.2:309 ]</span></span><br><span class="line"><span class="keyword">type</span> EndpointSubset <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// IP addresses which offer the related ports that are marked as ready. These endpoints</span></span><br><span class="line">	<span class="comment">// should be considered safe for load balancers and clients to utilize.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 标记为提供就绪的相关端口的IP地址</span></span><br><span class="line">	Addresses []EndpointAddress <span class="string">`json:&quot;addresses,omitempty&quot; protobuf:&quot;bytes,1,rep,name=addresses&quot;`</span></span><br><span class="line">	<span class="comment">// IP addresses which offer the related ports but are not currently marked as ready</span></span><br><span class="line">	<span class="comment">// because they have not yet finished starting, have recently failed a readiness check,</span></span><br><span class="line">	<span class="comment">// or have recently failed a liveness check.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 还没准备就绪的IP地址</span></span><br><span class="line">	NotReadyAddresses []EndpointAddress <span class="string">`json:&quot;notReadyAddresses,omitempty&quot; protobuf:&quot;bytes,2,rep,name=notReadyAddresses&quot;`</span></span><br><span class="line">	<span class="comment">// Port numbers available on the related IP addresses.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 相关IP地址上可用的端口号消息，包括名称、端口值、端口协议</span></span><br><span class="line">	Ports []EndpointPort <span class="string">`json:&quot;ports,omitempty&quot; protobuf:&quot;bytes,3,rep,name=ports&quot;`</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="Endpoints初始化"><a href="#Endpoints初始化" class="headerlink" title="Endpoints初始化"></a>Endpoints初始化</h3><p>Endpoint控制器监听Service和Pod的变化：</p>
+<ul>
+<li>根据Service指定的LabelSekector筛选符合条件的Pod，在根据条件判断是否Ready<ul>
+<li>如果设置&#96;service.Spec.PublishNotReadyAddressre:true，不管Pod是否就绪都加入Address</li>
+<li>不然就判断就绪状态</li>
+</ul>
+</li>
+<li>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/6cb5ea56cb96f6a4ddec677d3d94faf07179368d/pkg/controller/endpoint/endpoints_controller.go#L611">https://github.com/kubernetes/kubernetes/blob/6cb5ea56cb96f6a4ddec677d3d94faf07179368d/pkg/controller/endpoint/endpoints_controller.go#L611</a></li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// addEndpointSubset add the endpoints addresses and ports to the EndpointSubset.</span></span><br><span class="line"><span class="comment">// The addresses are added to the corresponding field, ready or not ready, depending</span></span><br><span class="line"><span class="comment">// on the pod status and the Service PublishNotReadyAddresses field value.</span></span><br><span class="line"><span class="comment">// The pod passed to this function must have already been filtered through ShouldPodBeInEndpoints.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">addEndpointSubset</span><span class="params">(logger klog.Logger, subsets []v1.EndpointSubset, pod *v1.Pod, epa v1.EndpointAddress,</span></span></span><br><span class="line"><span class="params"><span class="function">	epp *v1.EndpointPort, tolerateUnreadyEndpoints <span class="type">bool</span>)</span></span> ([]v1.EndpointSubset, <span class="type">int</span>, <span class="type">int</span>) &#123;</span><br><span class="line">	<span class="keyword">var</span> readyEps <span class="type">int</span></span><br><span class="line">	<span class="keyword">var</span> notReadyEps <span class="type">int</span></span><br><span class="line">	ports := []v1.EndpointPort&#123;&#125;</span><br><span class="line">	<span class="keyword">if</span> epp != <span class="literal">nil</span> &#123;</span><br><span class="line">		ports = <span class="built_in">append</span>(ports, *epp)</span><br><span class="line">	&#125;</span><br><span class="line">  <span class="comment">//  如果设置`service.Spec.PublishNotReadyAddressre:true，不管Pod是否就绪都加入Address</span></span><br><span class="line">  <span class="comment">//  不然就判断就绪状态</span></span><br><span class="line">	<span class="keyword">if</span> tolerateUnreadyEndpoints || podutil.IsPodReady(pod) &#123;</span><br><span class="line">		subsets = <span class="built_in">append</span>(subsets, v1.EndpointSubset&#123;</span><br><span class="line">			Addresses: []v1.EndpointAddress&#123;epa&#125;,</span><br><span class="line">			Ports:     ports,</span><br><span class="line">		&#125;)</span><br><span class="line">		readyEps++</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123; <span class="comment">// if it is not a ready address it has to be not ready</span></span><br><span class="line">		logger.V(<span class="number">5</span>).Info(<span class="string">&quot;Pod is out of service&quot;</span>, <span class="string">&quot;pod&quot;</span>, klog.KObj(pod))</span><br><span class="line">		subsets = <span class="built_in">append</span>(subsets, v1.EndpointSubset&#123;</span><br><span class="line">			NotReadyAddresses: []v1.EndpointAddress&#123;epa&#125;,</span><br><span class="line">			Ports:             ports,</span><br><span class="line">		&#125;)</span><br><span class="line">		notReadyEps++</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> subsets, readyEps, notReadyEps</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="追加注释和标签"><a href="#追加注释和标签" class="headerlink" title="追加注释和标签"></a>追加注释和标签</h3><p>在生成过程中，会自动追加标签、注释</p>
+<blockquote>
+<p> 追加的注释</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th align="center">注解key</th>
+<th align="center">注解value</th>
+<th align="center">说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">endpoints.kubernetes.io&#x2F;over-capacity</td>
+<td align="center">truncated</td>
+<td align="center">当Endpoints超过1000个端点，就会截断</td>
+</tr>
+<tr>
+<td align="center">endpoints.kubernetes.io&#x2F;last-change-trigger-time</td>
+<td align="center">时间戳</td>
+<td align="center">表示某些Pod或者Service最后一次触发Endpoints对象的时间戳</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p> 追加的标签</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th align="center">标签key</th>
+<th align="center">标签value</th>
+<th align="center">说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">service.kubernetes.io&#x2F;headless</td>
+<td align="center">“”</td>
+<td align="center">Headless Service对应的Endpoints</td>
+</tr>
+</tbody></table>
+<h2 id="什么是EndpointSlice"><a href="#什么是EndpointSlice" class="headerlink" title="什么是EndpointSlice"></a>什么是EndpointSlice</h2><p>原来EndpointAPI上提供了在K8s网络端点中的一种简单而且直接的方法，但是随着K8s服务端点变动，要处理大量网络端点带来挑战。</p>
+<p>EndpointSlice包含了一组网络端点的引用</p>
+<ul>
+<li>默认情况下，管理端点不超过100个</li>
+<li>通过修改<code>kube-controller-manager</code>的<code>--max-endpoints-per-slice</code>可以修改数量</li>
+</ul>
+<h3 id="EndpointSlice字段说明"><a href="#EndpointSlice字段说明" class="headerlink" title="EndpointSlice字段说明"></a>EndpointSlice字段说明</h3><ul>
+<li>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/6cb5ea56cb96f6a4ddec677d3d94faf07179368d/pkg/apis/discovery/types.go#L29">https://github.com/kubernetes/kubernetes/blob/6cb5ea56cb96f6a4ddec677d3d94faf07179368d/pkg/apis/discovery/types.go#L29</a></li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// EndpointSlice represents a subset of the endpoints that implement a service.</span></span><br><span class="line"><span class="comment">// For a given service there may be multiple EndpointSlice objects, selected by</span></span><br><span class="line"><span class="comment">// labels, which must be joined to produce the full set of endpoints.</span></span><br><span class="line"><span class="keyword">type</span> EndpointSlice <span class="keyword">struct</span> &#123;</span><br><span class="line">	metav1.TypeMeta</span><br><span class="line">	<span class="comment">// Standard object&#x27;s metadata.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">	metav1.ObjectMeta</span><br><span class="line">	<span class="comment">// addressType specifies the type of address carried by this EndpointSlice.</span></span><br><span class="line">	<span class="comment">// All addresses in this slice must be the same type. This field is</span></span><br><span class="line">	<span class="comment">// immutable after creation. The following address types are currently</span></span><br><span class="line">	<span class="comment">// supported:</span></span><br><span class="line">	<span class="comment">// * IPv4: Represents an IPv4 Address.</span></span><br><span class="line">	<span class="comment">// * IPv6: Represents an IPv6 Address.</span></span><br><span class="line">	<span class="comment">// * FQDN: Represents a Fully Qualified Domain Name. [DEPRECATED]</span></span><br><span class="line">  <span class="comment">// 指定Endpoint携带的地址类型</span></span><br><span class="line">  <span class="comment">// IPv4 地址</span></span><br><span class="line">  <span class="comment">// Ipv6 地址</span></span><br><span class="line">  <span class="comment">// FQDN 完全合格的域名</span></span><br><span class="line">	AddressType AddressType</span><br><span class="line">	<span class="comment">// endpoints is a list of unique endpoints in this slice. Each slice may</span></span><br><span class="line">	<span class="comment">// include a maximum of 1000 endpoints.</span></span><br><span class="line">	<span class="comment">// +listType=atomic</span></span><br><span class="line">  <span class="comment">// 切片中唯一端点列表</span></span><br><span class="line">	Endpoints []Endpoint</span><br><span class="line">	<span class="comment">// ports specifies the list of network ports exposed by each endpoint in</span></span><br><span class="line">	<span class="comment">// this slice. Each port must have a unique name. When ports is empty, it</span></span><br><span class="line">	<span class="comment">// indicates that there are no defined ports. When a port is defined with a</span></span><br><span class="line">	<span class="comment">// nil port value, it indicates &quot;all ports&quot;. Each slice may include a</span></span><br><span class="line">	<span class="comment">// maximum of 100 ports.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">	<span class="comment">// +listType=atomic</span></span><br><span class="line">  <span class="comment">// 切片中每一个端点公开的网络端口列表，端口为nil 表示所有端口</span></span><br><span class="line">	Ports []EndpointPort</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Endpoint represents a single logical &quot;backend&quot; implementing a service.</span></span><br><span class="line"><span class="keyword">type</span> Endpoint <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// addresses of this endpoint. The contents of this field are interpreted</span></span><br><span class="line">	<span class="comment">// according to the corresponding EndpointSlice addressType field. Consumers</span></span><br><span class="line">	<span class="comment">// must handle different types of addresses in the context of their own</span></span><br><span class="line">	<span class="comment">// capabilities. This must contain at least one address but no more than</span></span><br><span class="line">	<span class="comment">// 100.</span></span><br><span class="line">	<span class="comment">// +listType=set</span></span><br><span class="line">  <span class="comment">// 端点对应的地址</span></span><br><span class="line">	Addresses []<span class="type">string</span></span><br><span class="line">	<span class="comment">// conditions contains information about the current status of the endpoint.</span></span><br><span class="line">  <span class="comment">// 当前端点的状态</span></span><br><span class="line">	Conditions EndpointConditions</span><br><span class="line">	<span class="comment">// hostname of this endpoint. This field may be used by consumers of</span></span><br><span class="line">	<span class="comment">// endpoints to distinguish endpoints from each other (e.g. in DNS names).</span></span><br><span class="line">	<span class="comment">// Multiple endpoints which use the same hostname should be considered</span></span><br><span class="line">	<span class="comment">// fungible (e.g. multiple A values in DNS). Must pass DNS Label (RFC 1123)</span></span><br><span class="line">	<span class="comment">// validation.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 端点的主机名</span></span><br><span class="line">	Hostname *<span class="type">string</span></span><br><span class="line">	<span class="comment">// targetRef is a reference to a Kubernetes object that represents this</span></span><br><span class="line">	<span class="comment">// endpoint.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 对此端点的对象引用</span></span><br><span class="line">	TargetRef *api.ObjectReference</span><br><span class="line">	<span class="comment">// deprecatedTopology is deprecated and only retained for round-trip</span></span><br><span class="line">	<span class="comment">// compatibility with v1beta1 Topology field.  When v1beta1 is removed, this</span></span><br><span class="line">	<span class="comment">// should be removed, too.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 已经弃用</span></span><br><span class="line">	DeprecatedTopology <span class="keyword">map</span>[<span class="type">string</span>]<span class="type">string</span></span><br><span class="line">	<span class="comment">// nodeName represents the name of the Node hosting this endpoint. This can</span></span><br><span class="line">	<span class="comment">// be used to determine endpoints local to a Node.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 端点所在的节点</span></span><br><span class="line">	NodeName *<span class="type">string</span></span><br><span class="line">	<span class="comment">// zone is the name of the Zone this endpoint exists in.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 时区</span></span><br><span class="line">	Zone *<span class="type">string</span></span><br><span class="line">	<span class="comment">// hints contains information associated with how an endpoint should be</span></span><br><span class="line">	<span class="comment">// consumed.</span></span><br><span class="line">	<span class="comment">// +featureGate=TopologyAwareHints</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 提示描述，实现拓扑感知提示</span></span><br><span class="line">	Hints *EndpointHints</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="拓扑感知提示"><a href="#拓扑感知提示" class="headerlink" title="拓扑感知提示"></a>拓扑感知提示</h3><p>拓扑感知提示提供了一种将流量限制到它发起区域之内的机制，也称拓扑感知路由</p>
+<ul>
+<li><p>在计算Service的端点的时候，EndpointSlice控制器会评估每个端点的拓扑，填充提示字段。kube-proxy就可以使用这些提示信息来影响流量的路由（倾向于拓扑上相邻的端点）</p>
+</li>
+<li><p>用户可以通过把Service的<code>service.kubernetes.io/topology-aware-hinits</code>设置为auto来开启拓扑感知提示（并不保证一定设置，只有在安全的时候）</p>
+</li>
+<li><p>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/controller/endpointslice/utils.go#L43">https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/controller/endpointslice/utils.go#L43</a></p>
+</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// podToEndpoint returns an Endpoint object generated from a Pod, a Node, and a Service for a particular addressType.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">podToEndpoint</span><span class="params">(pod *v1.Pod, node *v1.Node, service *v1.Service, addressType discovery.AddressType)</span></span> discovery.Endpoint &#123;</span><br><span class="line">	serving := podutil.IsPodReady(pod)</span><br><span class="line">	terminating := pod.DeletionTimestamp != <span class="literal">nil</span></span><br><span class="line">	<span class="comment">// For compatibility reasons, &quot;ready&quot; should never be &quot;true&quot; if a pod is terminatng, unless</span></span><br><span class="line">	<span class="comment">// publishNotReadyAddresses was set.</span></span><br><span class="line">	ready := service.Spec.PublishNotReadyAddresses || (serving &amp;&amp; !terminating)</span><br><span class="line">	ep := discovery.Endpoint&#123;</span><br><span class="line">		Addresses: getEndpointAddresses(pod.Status, service, addressType),</span><br><span class="line">		Conditions: discovery.EndpointConditions&#123;</span><br><span class="line">			Ready: &amp;ready,</span><br><span class="line">		&#125;,</span><br><span class="line">		TargetRef: &amp;v1.ObjectReference&#123;</span><br><span class="line">			Kind:      <span class="string">&quot;Pod&quot;</span>,</span><br><span class="line">			Namespace: pod.ObjectMeta.Namespace,</span><br><span class="line">			Name:      pod.ObjectMeta.Name,</span><br><span class="line">			UID:       pod.ObjectMeta.UID,</span><br><span class="line">		&#125;,</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> utilfeature.DefaultFeatureGate.Enabled(features.EndpointSliceTerminatingCondition) &#123;</span><br><span class="line">		ep.Conditions.Serving = &amp;serving</span><br><span class="line">		ep.Conditions.Terminating = &amp;terminating</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> pod.Spec.NodeName != <span class="string">&quot;&quot;</span> &#123;</span><br><span class="line">		ep.NodeName = &amp;pod.Spec.NodeName</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> node != <span class="literal">nil</span> &amp;&amp; node.Labels[v1.LabelTopologyZone] != <span class="string">&quot;&quot;</span> &#123;</span><br><span class="line">		zone := node.Labels[v1.LabelTopologyZone]</span><br><span class="line">		ep.Zone = &amp;zone</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> endpointutil.ShouldSetHostname(pod, service) &#123;</span><br><span class="line">		ep.Hostname = &amp;pod.Spec.Hostname</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> ep</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="复制功能"><a href="#复制功能" class="headerlink" title="复制功能"></a>复制功能</h3><p>控制平面会把Endpoints资源复制为EndpointSlice资源</p>
+<ul>
+<li>从K8s1.19默认开启</li>
+</ul>
+<p>但是在以下情况不会复制：</p>
+<ol>
+<li>Endpoints资源设置了Label：endpointslice.kubernetes.io&#x2F;skip-mirror&#x3D;true</li>
+<li>Endpoints资源设置了Annation：control-plane.alpha.kubernetes.io&#x2F;leader</li>
+<li>Endpoint资源对应的Service不存在</li>
+<li>Endpoint资源对应的Service资源设置了非空的Selector</li>
+</ol>
+<ul>
+<li>一个Endpints资源存在IPv4和IPv6冲突的时候，会被复制为多个EndpointSlice资源，每周地址最多复制1000个</li>
+</ul>
+<h3 id="数据分布管理机制"><a href="#数据分布管理机制" class="headerlink" title="数据分布管理机制"></a>数据分布管理机制</h3><p>控制平面管理EndpointSlice中数据尽可能填满，但是不会在多个EndpointSlice数据不均衡的情况下主动执行（Rebalance）操作，步骤如下：</p>
+<ol>
+<li>遍历所有EndpointSlice资源，删除其中不需要的Endpoints，更新匹配的Endpoints</li>
+<li>遍历上一遍更新的Endpoints，填充需要新增的Endpoints</li>
+<li>如果还有新的待添加的Endpoints，尝试其添加到未更新的EndpointSlice资源汇总，或者创建新的EndpointSlice资源并且添加（优先考虑）</li>
+</ol>
+<h3 id="追加添加的注释和标签"><a href="#追加添加的注释和标签" class="headerlink" title="追加添加的注释和标签"></a>追加添加的注释和标签</h3><blockquote>
+<p>追加的注释</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th align="center">注解key</th>
+<th align="center">注解value</th>
+<th align="center">说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">Endpoints.kubernetes.io&#x2F;last-change-trigger-time</td>
+<td align="center">时间戳</td>
+<td align="center">表示某些Pod或Service 的最后一次更新EndpointSlice的时间</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>追加的标签</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th align="center">标签key</th>
+<th align="center">标签value</th>
+<th align="center">说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">kubernetes.io&#x2F;service-name</td>
+<td align="center">Service Name</td>
+<td align="center">指定属于的Service</td>
+</tr>
+<tr>
+<td align="center">Endpointslice.kubernetes.io&#x2F;managed-by</td>
+<td align="center">Endpointslice-controller.k8s.io</td>
+<td align="center">固定标签，表明该对象呗EndpointSlice控制器管理</td>
+</tr>
+</tbody></table>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2024/11/03/cloud/k8s/K8s%E5%8F%91%E7%8E%B0%E5%92%8C%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1-Endoints%E5%92%8CEndpointSlice/">https://piwriw.github.io/2024/11/03/cloud/k8s/K8s发现和负载均衡-Endoints和EndpointSlice/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a><a class="post-meta__tags" href="/tags/cloud/">cloud</a><a class="post-meta__tags" href="/tags/K8s%E6%BA%90%E7%A0%81/">K8s源码</a></div><div class="post-share"><div class="social-share" data-image="/img/k8sLogo.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2024/11/03/cloud/k8s/netwotk/K8s%E5%8F%91%E7%8E%B0%E5%92%8C%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1-NetworkPolicy/" title="K8s发现和负载均衡-NetworkPolicy"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">K8s发现和负载均衡-NetworkPolicy</div></div><div class="info-2"><div class="info-item-1">K8s发现和负载均衡-NetworkPolicy 基于1.25  什么是NetworkPolicyK8s的网络模型和各种网络方法关心是容器之间的联通，而NetworkPolicy负责网络隔离  NetworkPolicy网络隔离，在多租户和安全性要求比较高的情况下使用 NetworkPolicy使用在一端或者俩端于Pod的连接 NetworkPolicy的作用范围：Pod、命名空间、Ingress、Egress流量等 NetworkPolicy作为在L3&#x2F;4层，目的是限制IP地址和端口的访问，如果需要对应用层访问限制，需要使用Istio这类的Service Mesh NetworkPolicy对象 需要NetworkPolicy控制器才能生效  Pod的隔离类型Pod有俩种隔离类型：出口隔离和入口隔离  默认情况下，没有出口隔离 通过设置NetworkPolicy在PolicyType设置为Egress，进行出口隔离   默认情况下，没有入口隔离 通过设置NetworkPolicy在PolicyType设置为Igress，进行入口隔离   网络策略是相加的  Netwo...</div></div></div></a><a class="pagination-related" href="/2024/11/03/cloud/k8s/K8s%E5%8F%91%E7%8E%B0%E5%92%8C%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1-Ingress/" title="K8s发现和负载均衡-Ingress"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">K8s发现和负载均衡-Ingress</div></div><div class="info-2"><div class="info-item-1">K8s发现和负载均衡-Ingress 基于1.25  什么是Ingress对集群中服务的外部访问进行管理的API对象，典型的访问时间是HTTP  Ingress：提供了负载均衡、SSL终结和基于名称的虚拟托管 Ingress公开集群外部到集群内部的HTTP服务和HTTPS路由 Inress不会随意公开端口和协议   仅仅创建Ingress不会有效果，需要Ingress控制器  IngressSpec Ref:https://github.com/kubernetes/api/blob/f7b7ea4f0fcc6cb8c8dd42eb46a94c7e163d1b9d/networking/v1/types.go#L302  12345678910111213141516171819202122232425262728293031323334353637383940414243// IngressSpec describes the Ingress the user wishes to exist.type IngressSpec struct &#123;	// IngressCl...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2025/03/15/cloud/k8s/job/K8sController-Job(%E6%89%B9%E5%A4%84%E7%90%86%E4%BB%BB%E5%8A%A1)/" title="K8sController-Job(批处理任务)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-03-15</div><div class="info-item-2">K8sController-Job(批处理任务)</div></div><div class="info-2"><div class="info-item-1">K8sController-Job(批处理任务) 基于K8s 1.31  主要配置和工作机制123456789101112131415161718192021222324252627282930313233343536apiVersion: batch/v1kind: Jobmetadata:  name: hellospec:  # 可以并行任务数量，默认1  parallelism: 3  completions: 3  # Pod完成模式，NonIndexed（数量达到completions推出，默认），Indexed  # Indexed模式：会被设置为Pod服务名  # - 设置Pod名称：&lt;Job Name&gt;-&lt;索引序号&gt;-&lt;随机字符串&gt;  # - 设置Annotation &quot;batch.kubernetes.io/job-completion-index&quot;: &lt;索引序号&gt;  # - 设置Label &quot;batch.kubernetes.io/job-completion-index&quot...</div></div></div></a><a class="pagination-related" href="/2024/12/16/cloud/k8s/kubelet/K8s-kubelet(HTTP%E6%9C%8D%E5%8A%A1%E6%8E%A5%E5%8F%A3)/" title="K8s-kubelet(HTTP服务接口)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-16</div><div class="info-item-2">K8s-kubelet(HTTP服务接口)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(HTTP服务接口) 基于1.25  kubelet通过HTTP Server对外暴露API，为了确保接口安全，kubelet按照安全等级从低到高顺序支持3种HTTP Server，分别是healthz server、readonly server和kubelet core server    一级类目 二级类目 Path路径 描述    Default Handlerers healthz &#x2F;healthz 检查kubelet是否健康，重点检查syncLoop是否持续在规定时间内完成。检查syncLoop四因为其他组件故障会间接导致syncLoop不能执行成功   Default Handlerers pods &#x2F;pods 读取当前节点运行的Pod列表（通过PodManager获取）   Default Handlerers stats &#x2F;stats&#x2F;summary 读取资源使用状态   Default Handlerers metrics &#x2F;metrics 读取kubelet监控指标数据   Defaul...</div></div></div></a><a class="pagination-related" href="/2024/12/15/cloud/k8s/kubelet/K8s-kubelet(PLEG%E6%A0%B8%E5%BF%83%E5%8E%9F%E7%90%86)/" title="K8s-kubelet(PLEG核心原理)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-15</div><div class="info-item-2">K8s-kubelet(PLEG核心原理)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(PLEG核心原理) 基于1.25  PLEG是kubelet的一个重要组件，负责监控kubelet管理的节点运行的Pod的生命周期，并生成于生命周期相关的事件 PLEG产生原因在K8s中，kubelet负责维护和管理每个节点上的Pod，不断的调谐Pod的状态以使得符合Spec。  为了实现这个目标，kubelet同时需要支持对Pod Spec和Container Status 的事件监听。对于前者kubelet通过watch不同源的对PodSpec事件实现，对于后者，PLEG之前，不断需要Pod处理协程不断的周期性拉取最新状态，尝试了大量轮询压力。 在kubeletv1.2.0版本引入了PLEG，目标是改善kubelet的可拓展性 减少不必要的处理操作（当状态为发生变化时，不执行无效的调谐操作） 减少对底层容器运行的并发请求，以减轻容器运行时的压力    PLEG架构设计PLEG主要包含俩个核心工作，一是感受容器变化，生成Pod事件，俩是维持一份最新的Pod Status Cache数据供其他组件读取。   kubelet同时接收俩个方向的事件，Pod S...</div></div></div></a><a class="pagination-related" href="/2024/12/14/cloud/k8s/kubelet/K8s-kubelet(Cgroup%E8%B5%84%E6%BA%90%E9%9A%94%E7%A6%BB%E4%BB%A5%E5%8F%8A%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E5%8E%9F%E7%90%86)/" title="K8s-kubelet(Cgroup资源隔离以及垃圾回收原理)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-14</div><div class="info-item-2">K8s-kubelet(Cgroup资源隔离以及垃圾回收原理)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(Cgroup资源隔离以及垃圾回收原理) 基于1.25  什么是Cgroup资源隔离kubelet基于cgroup限制Pod资源使用。cgroup是Linux内核的一个重要功能，用来限制、控制和分离一个进程组的资源（CPU、内存、磁盘I&#x2F;O） kubelet在创建Pod时，会将其配置的cgroups parent目录传递给容器运行时，使容器运行时创建的进程都会限制到kubelet配置父级cgroup之下。  kubelet负责维护Pod、QoS、Node级别的cgroup配置 Container级别的cgroup直接交给容器运行时实现  cgroup的层级结构 kubelet采用了四级cgroups层级架构存储  Node Level cgroup 为了保证系统运行的稳定性，kubelet支持为系统守护进程预留资源，避免Pod占用整个系统资源，造成系统卡死或者崩溃。  默认情况下，kube-reserved和system-reserved不会启用。 但是启用之后，需要注意守护进程添加了cgroup之后，可能导致配置的上限太小，导致守护进程资源不足退...</div></div></div></a><a class="pagination-related" href="/2024/12/13/cloud/k8s/kubelet/K8s-kubelet(Pod%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F%E7%AE%A1%E7%90%86)/" title="K8s-kubelet(Pod生命周期管理)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-13</div><div class="info-item-2">K8s-kubelet(Pod生命周期管理)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(Pod生命周期管理) 基于1.25  kubelet以Pod为基本处理单元，负责Pod从创建到消亡的整个生命周期   在1.21中Unknown状态已经被标记为弃用。  CRIkubelet通过CRI RPC管理容器的生命周期，执行容器的lifecycle hook和 startup&#x2F;liveness&#x2F;readiness的健康检查，同时根据Pod的重启策略在容器失败退出后自动重启容器，CRI是kubelet管理Pod和容器的基础   Ref:https://github.com/kubernetes/cri-api/blob/2c8d015e0d408208ca8843c1d6e2e2fce1e5dd94/pkg/apis/runtime/v1/api.proto#L34 12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849505152535455565758596061626364656667686970717...</div></div></div></a><a class="pagination-related" href="/2024/12/13/cloud/k8s/kubelet/K8s-kubelet(%E5%90%AF%E5%8A%A8%E6%B5%81%E7%A8%8B)/" title="K8s-kubelet(Overview)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-13</div><div class="info-item-2">K8s-kubelet(Overview)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(Overview) 基于1.25  kubelete的启动流程主要分为5个步骤：  Cobra命令参数解析 运行环境检测和设置 Kubelet对象实例化 启动kubelet主服务 启动HTTP Server服务和gRPC Server   Cobra命令行参数解析 Ref:https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/cmd/kubelet/app/server.go#L123 12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849505152535455565758596061626364656667686970717273747576777879808182838485868788899091929394959697989910010110210310410510610710810911011111211...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#K8s%E5%8F%91%E7%8E%B0%E5%92%8C%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1-Endpoints%E5%92%8CEndpointSlice"><span class="toc-number">1.</span> <span class="toc-text">K8s发现和负载均衡-Endpoints和EndpointSlice</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%80%E4%B9%88%E6%98%AFEndPoints"><span class="toc-number">1.1.</span> <span class="toc-text">什么是EndPoints</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Endpoints%E5%AD%97%E6%AE%B5"><span class="toc-number">1.1.1.</span> <span class="toc-text">Endpoints字段</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Endpoints%E5%88%9D%E5%A7%8B%E5%8C%96"><span class="toc-number">1.1.2.</span> <span class="toc-text">Endpoints初始化</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%BF%BD%E5%8A%A0%E6%B3%A8%E9%87%8A%E5%92%8C%E6%A0%87%E7%AD%BE"><span class="toc-number">1.1.3.</span> <span class="toc-text">追加注释和标签</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%80%E4%B9%88%E6%98%AFEndpointSlice"><span class="toc-number">1.2.</span> <span class="toc-text">什么是EndpointSlice</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#EndpointSlice%E5%AD%97%E6%AE%B5%E8%AF%B4%E6%98%8E"><span class="toc-number">1.2.1.</span> <span class="toc-text">EndpointSlice字段说明</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8B%93%E6%89%91%E6%84%9F%E7%9F%A5%E6%8F%90%E7%A4%BA"><span class="toc-number">1.2.2.</span> <span class="toc-text">拓扑感知提示</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%A4%8D%E5%88%B6%E5%8A%9F%E8%83%BD"><span class="toc-number">1.2.3.</span> <span class="toc-text">复制功能</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%95%B0%E6%8D%AE%E5%88%86%E5%B8%83%E7%AE%A1%E7%90%86%E6%9C%BA%E5%88%B6"><span class="toc-number">1.2.4.</span> <span class="toc-text">数据分布管理机制</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%BF%BD%E5%8A%A0%E6%B7%BB%E5%8A%A0%E7%9A%84%E6%B3%A8%E9%87%8A%E5%92%8C%E6%A0%87%E7%AD%BE"><span class="toc-number">1.2.5.</span> <span class="toc-text">追加添加的注释和标签</span></a></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-日志系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明">Gorm-日志系统模块原理说明</a><time datetime="2026-01-11T11:56:27.000Z" title="发表于 2026-01-11 19:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-迁移功能模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明">Gorm-迁移功能模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-插件系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明">Gorm-插件系统模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-事务处理模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明">Gorm-事务处理模块原理说明</a><time datetime="2026-01-11T09:56:27.000Z" title="发表于 2026-01-11 17:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-关联关系模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明">Gorm-关联关系模块原理说明</a><time datetime="2026-01-11T08:56:27.000Z" title="发表于 2026-01-11 16:56:27">2026-01-11</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

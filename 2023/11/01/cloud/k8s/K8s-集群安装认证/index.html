@@ -1,0 +1,305 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>K8s-集群安装认证 | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="K8s-集群安装认证API Server认证三大K8s API访问模式：  以Service Account方式访问K8s的内部服务进程 以匿名方式访问的进程 以证书方式访问的普通用户或进程，包括运维人员及kubectl、 kubelets等进程  K8s的用户认证方式：  HTTPS证书认证：基于CA根证书前面的双向数字证书认证方式 HTTP Bearer Token认证：通过一个Bearer">
+<meta property="og:type" content="article">
+<meta property="og:title" content="K8s-集群安装认证">
+<meta property="og:url" content="https://piwriw.github.io/2023/11/01/cloud/k8s/K8s-%E9%9B%86%E7%BE%A4%E5%AE%89%E8%A3%85%E8%AE%A4%E8%AF%81/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="K8s-集群安装认证API Server认证三大K8s API访问模式：  以Service Account方式访问K8s的内部服务进程 以匿名方式访问的进程 以证书方式访问的普通用户或进程，包括运维人员及kubectl、 kubelets等进程  K8s的用户认证方式：  HTTPS证书认证：基于CA根证书前面的双向数字证书认证方式 HTTP Bearer Token认证：通过一个Bearer">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/k8s-go.jpg">
+<meta property="article:published_time" content="2023-11-01T06:08:55.000Z">
+<meta property="article:modified_time" content="2026-02-28T13:29:12.661Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="k8s">
+<meta property="article:tag" content="cloud">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/k8s-go.jpg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "K8s-集群安装认证",
+  "url": "https://piwriw.github.io/2023/11/01/cloud/k8s/K8s-%E9%9B%86%E7%BE%A4%E5%AE%89%E8%A3%85%E8%AE%A4%E8%AF%81/",
+  "image": "https://piwriw.github.io/img/k8s-go.jpg",
+  "datePublished": "2023-11-01T06:08:55.000Z",
+  "dateModified": "2026-02-28T13:29:12.661Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2023/11/01/cloud/k8s/K8s-%E9%9B%86%E7%BE%A4%E5%AE%89%E8%A3%85%E8%AE%A4%E8%AF%81/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'K8s-集群安装认证',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/k8s-go.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">K8s-集群安装认证</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">K8s-集群安装认证</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2023-11-01T06:08:55.000Z" title="发表于 2023-11-01 14:08:55">2023-11-01</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-02-28T13:29:12.661Z" title="更新于 2026-02-28 21:29:12">2026-02-28</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/">k8s</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">1.2k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>3分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-02-28 21:29:12&quot;}" hidden></div><h1 id="K8s-集群安装认证"><a href="#K8s-集群安装认证" class="headerlink" title="K8s-集群安装认证"></a>K8s-集群安装认证</h1><h2 id="API-Server认证"><a href="#API-Server认证" class="headerlink" title="API Server认证"></a>API Server认证</h2><p>三大K8s API访问模式：</p>
+<ol>
+<li>以Service Account方式访问K8s的内部服务进程</li>
+<li>以匿名方式访问的进程</li>
+<li>以证书方式访问的普通用户或进程，包括运维人员及kubectl、 kubelets等进程</li>
+</ol>
+<p>K8s的用户认证方式：</p>
+<ol>
+<li>HTTPS证书认证：基于CA根证书前面的双向数字证书认证方式</li>
+<li>HTTP Bearer Token认证：通过一个Bearer Token识别合法用户</li>
+<li>OpenID Connect Token第三方认证：通过第三方OIDC协议进行认证</li>
+<li>Webhook Token认证：通过外部Webhook服务进行认证</li>
+<li>Authenticating Proxy认证：通过认证代理程序进行认证</li>
+</ol>
+<h3 id="HTTPS证书认证"><a href="#HTTPS证书认证" class="headerlink" title="HTTPS证书认证"></a>HTTPS证书认证</h3><p>这里需要有一个CA证书，CA是PKI系统中通信双方都信任的实 体，被称为可信第三方（Trusted Third Party，TTP）。CA作为可信第三 方的重要条件之一，就是其行为具有非否认性。作为第三方而不是简单 的上级，就必须让信任者有追究自己责任的能力。CA通过证书证实他 人的公钥信息，在证书上有CA的签名。如果用户因为信任证书而有了 损失，证书就可以作为有效的证据用于追究CA的法律责任。CA正是因 为对责任的承诺，也被称为可信第三方。</p>
+<p>CA的工作流程：</p>
+<ol>
+<li><p>HTTPS通信双方的服务端向CA机构申请证书，CA机构是可 信的第三方机构，它可以是一个公认的权威企业，也可以是企业自身。 企业内部系统一般都用企业自身的认证系统。CA机构下发根证书、服 务端证书及私钥给申请者。 </p>
+</li>
+<li><p>HTTPS通信双方的客户端向CA机构申请证书，CA机构下发 根证书、客户端证书及私钥给申请者。 </p>
+</li>
+<li><p>客户端向服务端发起请求，服务端下发服务端证书给客户 端。客户端在接收到证书后，通过私钥解密证书，并利用服务端证书中 的公钥认证证书信息比较证书里的消息，例如，比较域名和公钥与服务 器刚刚发送的相关消息是否一致，如果一致，则客户端认可这个服务器 的合法身份</p>
+</li>
+<li><p>客户端发送客户端证书给服务端，服务端在接收到证书后通 过私钥解密证书，获得客户端证书公钥，并用该公钥认证证书的信息， 确认客户端是否合法</p>
+</li>
+<li><p>客户端通过随机密钥加密信息，并发送加密后的信息给服务 端。在服务端和客户端协商好加密方案后，客户端会产生一个随机的密 钥，客户端通过协商好的加密方案加密该随机密钥，并发送该随机密钥 到服务端。服务端接收这个密钥后，双方通信的所有内容都通过该随机 密钥加密</p>
+</li>
+</ol>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/images/202310301647097.png"></p>
+<h3 id="HTTP-Bearer-Token认证"><a href="#HTTP-Bearer-Token认证" class="headerlink" title="HTTP Bearer Token认证"></a>HTTP Bearer Token认证</h3><p>通过Service Account认证方式访问API Server，其实也采用了与 HTTP Bearer Token相同的实现方式。我们知道，每个Service Account都 对应一个Secret对象，在Secret对象中就有一个加密的Token字段，这个 Token字段就是Bearer Token。</p>
+<p>另外，如果API Server设置了启 动参数–service-account-lookup&#x3D;true，API Server就会验证Token是否在 etcd中存在，如果已从etcd中删除，则将注销容器中Token的有效性</p>
+<h3 id="OpenID-Connect-Token第三方认证"><a href="#OpenID-Connect-Token第三方认证" class="headerlink" title="OpenID Connect Token第三方认证"></a>OpenID Connect Token第三方认证</h3><p>Kubernetes也支持使用OpenID Connect协议（简称OIDC）进行身份 认证。OIDC协议是基于OAuth 2.0协议的身份认证标准协议，在OAuth 2.0上构建了一个身份层，OIDC的登录过程与OAuth相比，最主要的扩 展就是提供了ID Token，这是一个JWT格式的加密Token。API Server本 身与OIDC Server（即Identity Provider）没有太多交互，用户（主要是 kubectl用户）通过OIDC Server得到一个合法的ID Token，并作为命令行 参数（或者kubectl的配置文件）传递给API Server，API Server则通过验 证该Token是否合法及是否有效来确定用户的身份。虽然在OIDC Server 中可以做到用户的权限管理，但Kubernetes并不使用OIDC Server的权限 管理，因为它有自己完善的BRAC权限管理体系</p>
+<h3 id="Authenticating-Proxy"><a href="#Authenticating-Proxy" class="headerlink" title="Authenticating Proxy"></a>Authenticating Proxy</h3><p>在这种方式下，将API Server配置为从HTTP Header（例如XRemote-User字段）对用户进行识别。这需要与Authenticating Proxy程序 一同工作，由Authenticating Proxy设置HTTP Header的值。</p>
+<h2 id="Service-Account"><a href="#Service-Account" class="headerlink" title="Service Account"></a>Service Account</h2><p>Service Account也是一种账号，但它并不是给Kubernetes集群的用户 （系统管理员、运维人员、租户用户等）用的，而是给运行在Pod里的 进程用的，它为Pod里的进程提供了必要的身份证明。</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2023/11/01/cloud/k8s/K8s-%E9%9B%86%E7%BE%A4%E5%AE%89%E8%A3%85%E8%AE%A4%E8%AF%81/">https://piwriw.github.io/2023/11/01/cloud/k8s/K8s-集群安装认证/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a><a class="post-meta__tags" href="/tags/cloud/">cloud</a></div><div class="post-share"><div class="social-share" data-image="/img/k8s-go.jpg" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2023/11/02/cloud/k8s/netwotk/K8s-CNI%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B/" title="K8s-CNI网络模型"><img class="cover" src="/img/k8s-go.jpg" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">K8s-CNI网络模型</div></div><div class="info-2"><div class="info-item-1">K8s-CNI网络模型背景跨主机容器间的网络互通已经成为基本要求，更 高的要求包括容器固定IP地址、一个容器多个IP地址、多个子网隔离、 ACL控制策略、与SDN集成等。所以提出了Container Network Interface（CNI） CNM网络模型 主要组件功能：  Network Sandbox：容器内的网络栈，包括网络接口、路由表、DNS等配置 Endpoint：用于容器内的Sandbox与外部的网络相连。一个Endpoint只能加入一个Network Network：可以直接互连的Endpoint的集合。可以通过Linux网 桥、VLAN等技术进行实现。一个Network包含多个Endpoint  CNI网络模型 在CNI模型中，只有俩个概念：容器和网络。  容器：拥有独立Linux网络命名空间的环境 网络：一组可以互连的一组实体，这些实体拥有各自独立、唯 一的IP地址，可以是容器、物理机或者其他网络设备（比如路由器） 等。可以将容器添加到一个或多个网络中，也可以从一个或多个网络中 删除。  对容器网络的设置和操作都通过插件（Plugin）进行具体实现， CNI...</div></div></div></a><a class="pagination-related" href="/2023/11/01/cloud/k8s/K8s-%E4%BD%BF%E7%94%A8swagger-ui%E5%8F%AF%E8%A7%86%E5%8C%96K8s%20API%E6%96%87%E6%A1%A3/" title="K8s-使用swagger-ui可视化K8s API文档"><img class="cover" src="/img/k8s-go.jpg" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">K8s-使用swagger-ui可视化K8s API文档</div></div><div class="info-2"><div class="info-item-1">使用swagger-ui可视化K8s API文档背景需要进行K8s API开发的时候，不方便查看 具体实现1234567891011121314151617# 启动代理kubectl proxy --port=8080# 获取到swagger.jsoncurl localhost:8080/openapi/v2 &gt; k8s-swagger.json# docker启动swaggerdocker run \    --rm \    -d \    -p 8087:8080 \    -e SWAGGER_JSON=/k8s-swagger.json \    -v $(pwd)/k8s-swagger.json:/k8s-swagger.json \    swaggerapi/swagger-ui        # 通过http://ip:8087    </div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2025/08/24/cloud/k8s/K8s%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97-%E5%AE%A2%E6%88%B7%E7%AB%AF/" title="K8s开发指南-客户端"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-08-24</div><div class="info-item-2">K8s开发指南-客户端</div></div><div class="info-2"><div class="info-item-1">K8s开发指南-客户端 基于K8s v1.29  API客户端 Ref：https://github.com/kubernetes/client-go  K8s认证方式主要一下俩类：  集群外的认证：客户端程序运行在集群外，以独立进程访问API Server 集群内的认证：客户端在K8s内以Pod形式运行，通过内部服务名访问API Server  客户端访问API Server常见的认证方式有以下的几种  数字证书方式 ServiceAccount方式 BearerToken方式  对于运行在K8s集群之外的客户端，建议使用数字证书方式连接API Server，客户端需要配置的信息包括CA根证书、客户端证书、客户段私钥以及API Server地址 对于运行在集群内的Pod，建议使用ServiceAccount认证方式，需要为Pod增加ServiceAccount资源，并为ServiceAccount配置好正确的RBAC权限 基于kubeconfig文件的配置方式有以下几种：  用户HOME目录中的约定目录，例如$HOME&#x2F;.kube&#x2F;config 在环境变量K...</div></div></div></a><a class="pagination-related" href="/2025/08/23/cloud/k8s/K8s%E5%BC%80%E5%8F%91-API%E8%AF%A6%E8%A7%A3/" title="K8s开发-API详解"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-08-23</div><div class="info-item-2">K8s开发-API详解</div></div><div class="info-2"><div class="info-item-1">K8s开发-API详解 基于K8s v1.29  资源对象一个K8s资源对象描述一般是kind、apiVersion、metadata、spec和status五个部分 资源对象的类型资源对象的类型用Kind属性表示，总体分为3个类型：  对象（Object）、代表系统中永久资源实体，比如Pod、RC 列表（List）：资源对象的合集 简单类别（Simple）：作用于资源对象或非持久辅助实体的特定操作，比如Status、Scale、ListOptions等  资源对象的元数据metadata是资源对象的元数据定义，由一组属性来定义，在K8s中，每个资源对象都必须包含以下元数据属性：  namespec：对象所属的命名空间，如果不指定，则昔日会将对象置于名为default中 name：对象的名称、在一个ns下，唯一性 uid：系统为每个对象生成唯一的ID，符合RFC4122 labels：自定义标签 annotations：用户自定义注解，被K8s内部进程或者外部工具使用 resourceVersion：用于识别资源内部斑斑的字符串，在Watch操作，可以避免Get和下一次Watch...</div></div></div></a><a class="pagination-related" href="/2025/08/22/cloud/k8s/K8s%E8%AE%A4%E8%AF%81%E6%9C%BA%E5%88%B6-%E6%8B%93%E5%B1%95%E8%AE%A4%E8%AF%81/" title="K8s认证机制-拓展认证"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-08-22</div><div class="info-item-2">K8s认证机制-拓展认证</div></div><div class="info-2"><div class="info-item-1">K8s认证机制-拓展认证 基于K8s v1.29  OIDC Token认证K8s支持使用OpenID Connect协议进行身份认证。  OIDC协议给予OAuth2.0，构建了身份层，主要提供了ID Token，这是一个JWT格式的Token  流程图：  配置OIDC认证，需要API-Server开启一些参数 WebHook Token认证WebHook认证是K8s回调第三方认证实现用户认证 认证原理：  API Server收到客户端的请求之后，从HTTP Header获取到Bearer Token，然后生成一个包含该Token的TokenReview资源对象 API Server把整个TokenReview对象JSON序列化之后发送给Webhook认证服务器  开启WebHook 认证需要设置API Server启动参数 Authenticating Proxy认证在这种模式下，K8s自身不再对用户认证，而是使用外部认证服务进行用户认证 开启Authenticating Proxy 认证需要设置API Server启动参数 </div></div></div></a><a class="pagination-related" href="/2025/03/27/cloud/k8s/service/K8s-kustomize/" title="K8s-kustomize"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-03-27</div><div class="info-item-2">K8s-kustomize</div></div><div class="info-2"><div class="info-item-1">K8s-kustomize背景K8s为 减少维护很多YAML文件，选择定义K8s资源，从1.14开始，kustomize默认提供 kustomize提供以下管理各种配置文件：  从其他文件来源生成K8s资源对象 统一为所有资源设置命名空间、Label、注解或者特殊格式的名称 组合不同的资源作为一个应用或者一个管理单元进行整体注解  概述kustomize核心配置是kustomizeation.yaml，这个文件类似于一个一个模版文件，里面定义了相应的操作指令，主要操作指令以及作用如下：  namespace：为所有资源都添加命名空间  namePrefix：要添加到所有资源名称之前的前缀  nameSuffix：要添加到所有资源名称之后的后缀  commonLabels：要添加到所有资源和选择器中的Label  commonAnnoations:要添加到所有资源的注解  resources：列表中的每个条目都会生成资源配置  configMapGenerator：针对列表中的每个条目都会生成一个ConfigMap  secrertGenerator：列表中的每个条目都会生成一个S...</div></div></div></a><a class="pagination-related" href="/2025/03/26/cloud/k8s/service/K8s-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Service/" title="K8s-深入理解Service"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-03-26</div><div class="info-item-2">K8s-深入理解Service</div></div><div class="info-2"><div class="info-item-1">K8s-深入理解Service 基于K8s v1.31  OverviewService是K8s实现微服务的核心，通过创建Srvice，可以实现具有相同的功能都容器提供一个统一的入口 Service的概念和原理负载均衡机制当一个Service对象被定义出来，客户端都可以通过ServiceIP访问Pod容器，到每个Node山上交与kube-porxy实现 kube-porxy的代理模式 iptables模式 （v1.28中实现） 通过基于Linux 的 Linux Kernel的iptables规则实现，实现了从Service到后端Endpoints列表的负载均衡规则 每次创建Service和Endpoints发生变化，kube-proxy都会刷新本Node得全部iptables，在大规模集群（service和endpoints数量达到数百万），刷新时间过长，系统性能下降，可以通过调整kube-proxy的资源对象KubeProxyConguration中的同步行为； 12345iptables:	# 设置同步最短时间，默认1s	minSyncPeriod: 1s	# 同步时间间隔...</div></div></div></a><a class="pagination-related" href="/2025/03/17/cloud/k8s/job/K8sController-CronJob(%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1)/" title="K8sController-CronJob(定时任务)"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-03-17</div><div class="info-item-2">K8sController-CronJob(定时任务)</div></div><div class="info-2"><div class="info-item-1">K8sController-CronJob(定时任务) 基于K8s v1.31  Cron Job支持用于每隔一段时间创建定期运行的批处理任务 CronJob定时表达式12345678910# ┌───────────── 分钟 (0 - 59)# │ ┌───────────── 小时 (0 - 23)# │ │ ┌───────────── 月的某天 (1 - 31)# │ │ │ ┌───────────── 月份 (1 - 12)# │ │ │ │ ┌───────────── 周的某天 (0 - 6)（周日到周六）# │ │ │ │ │                          或者是 sun，mon，tue，web，thu，fri，sat# │ │ │ │ │# │ │ │ │ │# * * * * *Minutes Hours DayofMonth Month DayofWeek   Minutes: , - * &#x2F; 或者0-59的整数  Hours： , - * &#x2F; 或者0-23的整数  DayofMonth： , - * &#x2F;...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#K8s-%E9%9B%86%E7%BE%A4%E5%AE%89%E8%A3%85%E8%AE%A4%E8%AF%81"><span class="toc-number">1.</span> <span class="toc-text">K8s-集群安装认证</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#API-Server%E8%AE%A4%E8%AF%81"><span class="toc-number">1.1.</span> <span class="toc-text">API Server认证</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#HTTPS%E8%AF%81%E4%B9%A6%E8%AE%A4%E8%AF%81"><span class="toc-number">1.1.1.</span> <span class="toc-text">HTTPS证书认证</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#HTTP-Bearer-Token%E8%AE%A4%E8%AF%81"><span class="toc-number">1.1.2.</span> <span class="toc-text">HTTP Bearer Token认证</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#OpenID-Connect-Token%E7%AC%AC%E4%B8%89%E6%96%B9%E8%AE%A4%E8%AF%81"><span class="toc-number">1.1.3.</span> <span class="toc-text">OpenID Connect Token第三方认证</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Authenticating-Proxy"><span class="toc-number">1.1.4.</span> <span class="toc-text">Authenticating Proxy</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Service-Account"><span class="toc-number">1.2.</span> <span class="toc-text">Service Account</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-日志系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明">Gorm-日志系统模块原理说明</a><time datetime="2026-01-11T11:56:27.000Z" title="发表于 2026-01-11 19:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-迁移功能模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明">Gorm-迁移功能模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-插件系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明">Gorm-插件系统模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-事务处理模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明">Gorm-事务处理模块原理说明</a><time datetime="2026-01-11T09:56:27.000Z" title="发表于 2026-01-11 17:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-关联关系模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明">Gorm-关联关系模块原理说明</a><time datetime="2026-01-11T08:56:27.000Z" title="发表于 2026-01-11 16:56:27">2026-01-11</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

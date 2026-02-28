@@ -1,0 +1,422 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>K8s核心资源对象- 概述（元数据- metav1.ObjectMeta） | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="K8s核心资源对象- 概述（元数据- metav1.ObjectMeta） 基于1.25  K8s资源对象K8s中主要按照：工作负载（Workload）、发现和负载均衡（Discovery &amp; LB）、配置和存储（Config &amp; Storage）  下面介绍一下metav1.ObjectMeta的属性 NameName是资源对象的入门属性，但是资源对象不一定是客户端传入的Name">
+<meta property="og:type" content="article">
+<meta property="og:title" content="K8s核心资源对象- 概述（元数据- metav1.ObjectMeta）">
+<meta property="og:url" content="https://piwriw.github.io/2024/10/23/cloud/k8s/crd/K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-%20%E6%A6%82%E8%BF%B0/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="K8s核心资源对象- 概述（元数据- metav1.ObjectMeta） 基于1.25  K8s资源对象K8s中主要按照：工作负载（Workload）、发现和负载均衡（Discovery &amp; LB）、配置和存储（Config &amp; Storage）  下面介绍一下metav1.ObjectMeta的属性 NameName是资源对象的入门属性，但是资源对象不一定是客户端传入的Name">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/k8s-go.jpg">
+<meta property="article:published_time" content="2024-10-23T12:31:55.000Z">
+<meta property="article:modified_time" content="2026-02-28T13:29:12.663Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="k8s">
+<meta property="article:tag" content="cloud">
+<meta property="article:tag" content="K8s源码">
+<meta property="article:tag" content="crd">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/k8s-go.jpg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "K8s核心资源对象- 概述（元数据- metav1.ObjectMeta）",
+  "url": "https://piwriw.github.io/2024/10/23/cloud/k8s/crd/K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-%20%E6%A6%82%E8%BF%B0/",
+  "image": "https://piwriw.github.io/img/k8s-go.jpg",
+  "datePublished": "2024-10-23T12:31:55.000Z",
+  "dateModified": "2026-02-28T13:29:12.663Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2024/10/23/cloud/k8s/crd/K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-%20%E6%A6%82%E8%BF%B0/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'K8s核心资源对象- 概述（元数据- metav1.ObjectMeta）',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/k8s-go.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">K8s核心资源对象- 概述（元数据- metav1.ObjectMeta）</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">K8s核心资源对象- 概述（元数据- metav1.ObjectMeta）</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2024-10-23T12:31:55.000Z" title="发表于 2024-10-23 20:31:55">2024-10-23</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-02-28T13:29:12.663Z" title="更新于 2026-02-28 21:29:12">2026-02-28</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/">k8s</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/crd/">crd</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">2.9k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>14分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-02-28 21:29:12&quot;}" hidden></div><h1 id="K8s核心资源对象-概述（元数据-metav1-ObjectMeta）"><a href="#K8s核心资源对象-概述（元数据-metav1-ObjectMeta）" class="headerlink" title="K8s核心资源对象- 概述（元数据- metav1.ObjectMeta）"></a>K8s核心资源对象- 概述（元数据- metav1.ObjectMeta）</h1><blockquote>
+<p>基于1.25</p>
+</blockquote>
+<h2 id="K8s资源对象"><a href="#K8s资源对象" class="headerlink" title="K8s资源对象"></a>K8s资源对象</h2><p>K8s中主要按照：工作负载（Workload）、发现和负载均衡（Discovery &amp; LB）、配置和存储（Config &amp; Storage）</p>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image202410212302987.png"></p>
+<p>下面介绍一下metav1.ObjectMeta的属性</p>
+<h2 id="Name"><a href="#Name" class="headerlink" title="Name"></a>Name</h2><p>Name是资源对象的入门属性，但是资源对象不一定是客户端传入的Name</p>
+<h3 id="PodName"><a href="#PodName" class="headerlink" title="PodName"></a>PodName</h3><ul>
+<li>Ref：<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/kubelet/config/common.go#L52">https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/kubelet/config/common.go#L52</a></li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Generate a pod name that is unique among nodes by appending the nodeName.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">generatePodName</span><span class="params">(name <span class="type">string</span>, nodeName types.NodeName)</span></span> <span class="type">string</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> fmt.Sprintf(<span class="string">&quot;%s-%s&quot;</span>, name, strings.ToLower(<span class="type">string</span>(nodeName)))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="StatefulSet-Name"><a href="#StatefulSet-Name" class="headerlink" title="StatefulSet Name"></a>StatefulSet Name</h3><p>StaetfulSet生成的Pod Name格式&lt;sts.name&gt; - <ordinal>(资源对象名称+递增序号)</p>
+<ul>
+<li>Ref：<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/controller/statefulset/stateful_set_utils.go#L89">https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/controller/statefulset/stateful_set_utils.go#L89</a></li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// getPodName gets the name of set&#x27;s child Pod with an ordinal index of ordinal</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">getPodName</span><span class="params">(set *apps.StatefulSet, ordinal <span class="type">int</span>)</span></span> <span class="type">string</span> &#123;</span><br><span class="line">	<span class="keyword">return</span> fmt.Sprintf(<span class="string">&quot;%s-%d&quot;</span>, set.Name, ordinal)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="Deployment-Job-etc-Name"><a href="#Deployment-Job-etc-Name" class="headerlink" title="Deployment\Job.etc Name"></a>Deployment\Job.etc Name</h3><p>这种是常见的Pod格式，以资源对象名称之上，<strong>随机增加5个字符串</strong></p>
+<ul>
+<li>Ref：<a target="_blank" rel="noopener" href="https://github.com/kubernetes/apiserver/blob/d0f54d59938ae7b52ee0bb4e2f7015d31be70c22/pkg/storage/names/generate.go#L49">https://github.com/kubernetes/apiserver/blob/d0f54d59938ae7b52ee0bb4e2f7015d31be70c22/pkg/storage/names/generate.go#L49</a></li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> (</span><br><span class="line">	<span class="comment">// <span class="doctag">TODO:</span> make this flexible for non-core resources with alternate naming rules.</span></span><br><span class="line">	maxNameLength          = <span class="number">63</span></span><br><span class="line">	randomLength           = <span class="number">5</span></span><br><span class="line">	MaxGeneratedNameLength = maxNameLength - randomLength</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(simpleNameGenerator)</span></span> GenerateName(base <span class="type">string</span>) <span class="type">string</span> &#123;</span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(base) &gt; MaxGeneratedNameLength &#123;</span><br><span class="line">		base = base[:MaxGeneratedNameLength]</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> fmt.Sprintf(<span class="string">&quot;%s%s&quot;</span>, base, utilrand.String(randomLength))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="GenerateName"><a href="#GenerateName" class="headerlink" title="GenerateName"></a>GenerateName</h2><p>如果资源对象没有设置Name，但是设置了GenerateName，则<strong>GenerateName作为前缀+5位随机值作为后缀</strong></p>
+<ul>
+<li>Ref：<a target="_blank" rel="noopener" href="https://github.com/kubernetes/apiserver/blob/ba592e4ccd41a320ceb91bab90eebee3bb4a4f33/pkg/registry/rest/create.go#L120">https://github.com/kubernetes/apiserver/blob/ba592e4ccd41a320ceb91bab90eebee3bb4a4f33/pkg/registry/rest/create.go#L120</a></li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// BeforeCreate ensures that common operations for all resources are performed on creation. It only returns</span></span><br><span class="line"><span class="comment">// errors that can be converted to api.Status. It invokes PrepareForCreate, then GenerateName, then Validate.</span></span><br><span class="line"><span class="comment">// It returns nil if the object should be created.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">BeforeCreate</span><span class="params">(strategy RESTCreateStrategy, ctx context.Context, obj runtime.Object)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">	objectMeta, kind, kerr := objectMetaAndKind(strategy, obj)</span><br><span class="line">	<span class="keyword">if</span> kerr != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> kerr</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// ensure that system-critical metadata has been populated</span></span><br><span class="line">	<span class="keyword">if</span> !metav1.HasObjectMetaSystemFieldValues(objectMeta) &#123;</span><br><span class="line">		<span class="keyword">return</span> errors.NewInternalError(fmt.Errorf(<span class="string">&quot;system metadata was not initialized&quot;</span>))</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// ensure namespace on the object is correct, or error if a conflicting namespace was set in the object</span></span><br><span class="line">	requestNamespace, ok := genericapirequest.NamespaceFrom(ctx)</span><br><span class="line">	<span class="keyword">if</span> !ok &#123;</span><br><span class="line">		<span class="keyword">return</span> errors.NewInternalError(fmt.Errorf(<span class="string">&quot;no namespace information found in request context&quot;</span>))</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> err := EnsureObjectNamespaceMatchesRequestNamespace(ExpectedNamespaceForScope(requestNamespace, strategy.NamespaceScoped()), objectMeta); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	strategy.PrepareForCreate(ctx, obj)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(objectMeta.GetGenerateName()) &gt; <span class="number">0</span> &amp;&amp; <span class="built_in">len</span>(objectMeta.GetName()) == <span class="number">0</span> &#123;</span><br><span class="line">		objectMeta.SetName(strategy.GenerateName(objectMeta.GetGenerateName()))</span><br><span class="line">	&#125;</span><br><span class="line">......</span><br></pre></td></tr></table></figure>
+
+<h2 id="Annotation"><a href="#Annotation" class="headerlink" title="Annotation"></a>Annotation</h2><p>用户通过注解给资源对象添加非标识的元数据。</p>
+<ul>
+<li>注解通过KV形式存储</li>
+<li>通过可选前缀和名称，以&#x2F;分割</li>
+<li>名称一63个字符之内，以字母、数字字符（a～z，0～9，A～Z），允许使用-.字母和数字</li>
+<li><code>kuberetes.io/</code>和<code>k8s.io</code>是K8s组件保留注解</li>
+</ul>
+<h2 id="Generation"><a href="#Generation" class="headerlink" title="Generation"></a>Generation</h2><p>Generation是部署的版本，初始值为1，随spec改变而自增</p>
+<ul>
+<li>Ref：<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/registry/apps/deployment/strategy.go#L78">https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/registry/apps/deployment/strategy.go#L78</a></li>
+<li>Ref：<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/registry/apps/deployment/strategy.go#L118">https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/registry/apps/deployment/strategy.go#L118</a></li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="comment">// PrepareForCreate clears fields that are not allowed to be set by end users on creation.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(deploymentStrategy)</span></span> PrepareForCreate(ctx context.Context, obj runtime.Object) &#123;</span><br><span class="line">	deployment := obj.(*apps.Deployment)</span><br><span class="line">	deployment.Status = apps.DeploymentStatus&#123;&#125;</span><br><span class="line">	deployment.Generation = <span class="number">1</span></span><br><span class="line"></span><br><span class="line">	pod.DropDisabledTemplateFields(&amp;deployment.Spec.Template, <span class="literal">nil</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// Ref：https://github.com/kubernetes/kubernetes/blob/88e994f6bf8fc88114c5b733e09afea339bea66d/pkg/registry/apps/deployment/strategy.go#L118</span></span><br><span class="line"><span class="comment">// PrepareForUpdate clears fields that are not allowed to be set by end users on update.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(deploymentStrategy)</span></span> PrepareForUpdate(ctx context.Context, obj, old runtime.Object) &#123;</span><br><span class="line">	newDeployment := obj.(*apps.Deployment)</span><br><span class="line">	oldDeployment := old.(*apps.Deployment)</span><br><span class="line">	newDeployment.Status = oldDeployment.Status</span><br><span class="line"></span><br><span class="line">	pod.DropDisabledTemplateFields(&amp;newDeployment.Spec.Template, &amp;oldDeployment.Spec.Template)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Spec updates bump the generation so that we can distinguish between</span></span><br><span class="line">	<span class="comment">// scaling events and template changes, annotation updates bump the generation</span></span><br><span class="line">	<span class="comment">// because annotations are copied from deployments to their replica sets.</span></span><br><span class="line">	<span class="keyword">if</span> !apiequality.Semantic.DeepEqual(newDeployment.Spec, oldDeployment.Spec) ||</span><br><span class="line">		!apiequality.Semantic.DeepEqual(newDeployment.Annotations, oldDeployment.Annotations) &#123;</span><br><span class="line">		newDeployment.Generation = oldDeployment.Generation + <span class="number">1</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="ResourceVersion"><a href="#ResourceVersion" class="headerlink" title="ResourceVersion"></a>ResourceVersion</h2><p>ResourceVersion的值来自etcd的modifedindex，对象修改的时候，字段随着update。</p>
+<ul>
+<li><p>此字段服务端只读，用于乐观锁、并发控制、变更检测和资源对象或资源集的监视操作</p>
+</li>
+<li><p>kube- APIserver基于这个字段，判断是否被修改，比对存储的资源版本号</p>
+<ul>
+<li>当更新的时候，没有ResourceVersion字段，无条件更新，获取最新的值，并且更新此字段</li>
+<li>存在ResourceVersion，ResourceVersion与请求的不一致，说明不是最新的，进行更新操作</li>
+</ul>
+</li>
+<li><p>Ref：<a target="_blank" rel="noopener" href="https://github.com/kubernetes/apiserver/blob/ba592e4ccd41a320ceb91bab90eebee3bb4a4f33/pkg/storage/etcd3/store.go#L136">https://github.com/kubernetes/apiserver/blob/ba592e4ccd41a320ceb91bab90eebee3bb4a4f33/pkg/storage/etcd3/store.go#L136</a></p>
+</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Get implements storage.Interface.Get.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *store)</span></span> Get(ctx context.Context, key <span class="type">string</span>, opts storage.GetOptions, out runtime.Object) <span class="type">error</span> &#123;</span><br><span class="line">	preparedKey, err := s.prepareKey(key)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	startTime := time.Now()</span><br><span class="line">	getResp, err := s.client.KV.Get(ctx, preparedKey)</span><br><span class="line">	metrics.RecordEtcdRequestLatency(<span class="string">&quot;get&quot;</span>, getTypeName(out), startTime)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> err = s.validateMinimumResourceVersion(opts.ResourceVersion, <span class="type">uint64</span>(getResp.Header.Revision)); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(getResp.Kvs) == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> opts.IgnoreNotFound &#123;</span><br><span class="line">			<span class="keyword">return</span> runtime.SetZeroValue(out)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> storage.NewKeyNotFoundError(preparedKey, <span class="number">0</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	kv := getResp.Kvs[<span class="number">0</span>]</span><br><span class="line"></span><br><span class="line">	data, _, err := s.transformer.TransformFromStorage(ctx, kv.Value, authenticatedDataString(preparedKey))</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> storage.NewInternalError(err.Error())</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> decode(s.codec, s.versioner, data, out, kv.ModRevision)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p> ETCD的4种版本：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>作用范围</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Version</td>
+<td>key</td>
+<td>单个key的修改次数，单调递增</td>
+</tr>
+<tr>
+<td>Revision</td>
+<td>全局</td>
+<td>key在集群中的全局版本号，全局唯一</td>
+</tr>
+<tr>
+<td>ModRevsion</td>
+<td>key</td>
+<td>key最后一次修改时的Revision</td>
+</tr>
+<tr>
+<td>CreateRevsion</td>
+<td>全局</td>
+<td>key创建时的Revision</td>
+</tr>
+</tbody></table>
+<h2 id="Owner-Reference"><a href="#Owner-Reference" class="headerlink" title="Owner Reference"></a>Owner Reference</h2><p>OwnerReference字段主要用于垃圾回收的资源级联删除。</p>
+<ul>
+<li><p>用于描述属于对象关系</p>
+</li>
+<li><p>一个属主，包含引用与附属关系在同一个命名空间下的对象名称和UID</p>
+</li>
+<li><p>一般K8s会自动管理这些，这也是K8s推荐的</p>
+</li>
+<li><p><strong>但是用户可以手动配置</strong></p>
+</li>
+<li><p>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/apimachinery/blob/cfee47580787e57b3cc51782a120cf770a97316e/pkg/apis/meta/v1/types.go#L295">https://github.com/kubernetes/apimachinery/blob/cfee47580787e57b3cc51782a120cf770a97316e/pkg/apis/meta/v1/types.go#L295</a></p>
+</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// OwnerReference contains enough information to let you identify an owning</span></span><br><span class="line"><span class="comment">// object. An owning object must be in the same namespace as the dependent, or</span></span><br><span class="line"><span class="comment">// be cluster-scoped, so there is no namespace field.</span></span><br><span class="line"><span class="comment">// +structType=atomic</span></span><br><span class="line"><span class="keyword">type</span> OwnerReference <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// API version of the referent.</span></span><br><span class="line">  <span class="comment">// 属主对象的APIVersion</span></span><br><span class="line">	APIVersion <span class="type">string</span> <span class="string">`json:&quot;apiVersion&quot; protobuf:&quot;bytes,5,opt,name=apiVersion&quot;`</span></span><br><span class="line">	<span class="comment">// Kind of the referent.</span></span><br><span class="line">	<span class="comment">// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds</span></span><br><span class="line">  <span class="comment">// 属主对象的Kind</span></span><br><span class="line">	Kind <span class="type">string</span> <span class="string">`json:&quot;kind&quot; protobuf:&quot;bytes,1,opt,name=kind&quot;`</span></span><br><span class="line">	<span class="comment">// Name of the referent.</span></span><br><span class="line">	<span class="comment">// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names#names</span></span><br><span class="line">  <span class="comment">// 属主对象的Name</span></span><br><span class="line">	Name <span class="type">string</span> <span class="string">`json:&quot;name&quot; protobuf:&quot;bytes,3,opt,name=name&quot;`</span></span><br><span class="line">	<span class="comment">// UID of the referent.</span></span><br><span class="line">	<span class="comment">// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names#uids</span></span><br><span class="line">	<span class="comment">// 属主对象的UID</span></span><br><span class="line">  UID types.UID <span class="string">`json:&quot;uid&quot; protobuf:&quot;bytes,4,opt,name=uid,casttype=k8s.io/apimachinery/pkg/types.UID&quot;`</span></span><br><span class="line">	<span class="comment">// If true, this reference points to the managing controller.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 属主对象的关系的控制器，没有被控制器自动控制，默认为false</span></span><br><span class="line">	Controller *<span class="type">bool</span> <span class="string">`json:&quot;controller,omitempty&quot; protobuf:&quot;varint,6,opt,name=controller&quot;`</span></span><br><span class="line">	<span class="comment">// If true, AND if the owner has the &quot;foregroundDeletion&quot; finalizer, then</span></span><br><span class="line">	<span class="comment">// the owner cannot be deleted from the key-value store until this</span></span><br><span class="line">	<span class="comment">// reference is removed.</span></span><br><span class="line">	<span class="comment">// See https://kubernetes.io/docs/concepts/architecture/garbage-collection/#foreground-deletion</span></span><br><span class="line">	<span class="comment">// for how the garbage collector interacts with this field and enforces the foreground deletion.</span></span><br><span class="line">	<span class="comment">// Defaults to false.</span></span><br><span class="line">	<span class="comment">// To set this field, a user needs &quot;delete&quot; permission of the owner,</span></span><br><span class="line">	<span class="comment">// otherwise 422 (Unprocessable Entity) will be returned.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 设置是否自动被GC，默认为true</span></span><br><span class="line">	BlockOwnerDeletion *<span class="type">bool</span> <span class="string">`json:&quot;blockOwnerDeletion,omitempty&quot; protobuf:&quot;varint,7,opt,name=blockOwnerDeletion&quot;`</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<ol>
+<li>使用kubectl-check-ownerreference检查OwnerReference是否有效</li>
+<li>在v1.20.0+中，如果GC检查到无效的跨命名空间的属主，则报告一个告警事件。通过kubectl get events -A –filed-selecon&#x3D;reason&#x3D;OwnerRefInvalidNamespace命令获取该类型的事件</li>
+</ol>
+</blockquote>
+<h2 id="Finalizers"><a href="#Finalizers" class="headerlink" title="Finalizers"></a>Finalizers</h2><p>Finalizers字段包含多个Finalizer，Finalizer主要用于控制资源被删除前的清理工作。</p>
+<ul>
+<li>K8s API会通过.metadata.deletionTimestamp 字段标记要删除的对象，并返回202状态的，进入只读状态</li>
+<li>当.metadata.finalizers字段为空，K8s认为已经成功删除对象</li>
+</ul>
+<h2 id="ManagedFileds"><a href="#ManagedFileds" class="headerlink" title="ManagedFileds"></a>ManagedFileds</h2><p>ManagedFileds字段管理器，主要用于协调多个客户端更新同一资源对象时的冲突。</p>
+<blockquote>
+<p>1.21版本，ManagedFileds被隐藏，需要通过 –show-managed-fields&#x3D;true，才能展示</p>
+</blockquote>
+<ul>
+<li>Ref：<a target="_blank" rel="noopener" href="https://github.com/kubernetes/apimachinery/blob/cfee47580787e57b3cc51782a120cf770a97316e/pkg/apis/meta/v1/types.go#L1324">https://github.com/kubernetes/apimachinery/blob/cfee47580787e57b3cc51782a120cf770a97316e/pkg/apis/meta/v1/types.go#L1324</a></li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// ManagedFieldsEntry is a workflow-id, a FieldSet and the group version of the resource</span></span><br><span class="line"><span class="comment">// that the fieldset applies to.</span></span><br><span class="line"><span class="keyword">type</span> ManagedFieldsEntry <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// Manager is an identifier of the workflow managing these fields.</span></span><br><span class="line">  <span class="comment">// 执行操作的</span></span><br><span class="line">	Manager <span class="type">string</span> <span class="string">`json:&quot;manager,omitempty&quot; protobuf:&quot;bytes,1,opt,name=manager&quot;`</span></span><br><span class="line">	<span class="comment">// Operation is the type of operation which lead to this ManagedFieldsEntry being created.</span></span><br><span class="line">	<span class="comment">// The only valid values for this field are &#x27;Apply&#x27; and &#x27;Update&#x27;.</span></span><br><span class="line">  <span class="comment">// 操作的类型，包括Apply和Update</span></span><br><span class="line">	Operation ManagedFieldsOperationType <span class="string">`json:&quot;operation,omitempty&quot; protobuf:&quot;bytes,2,opt,name=operation,casttype=ManagedFieldsOperationType&quot;`</span></span><br><span class="line">	<span class="comment">// APIVersion defines the version of this resource that this field set</span></span><br><span class="line">	<span class="comment">// applies to. The format is &quot;group/version&quot; just like the top-level</span></span><br><span class="line">	<span class="comment">// APIVersion field. It is necessary to track the version of a field</span></span><br><span class="line">	<span class="comment">// set because it cannot be automatically converted.</span></span><br><span class="line">  <span class="comment">// 定义这个资源的字段集使用的版本</span></span><br><span class="line">	APIVersion <span class="type">string</span> <span class="string">`json:&quot;apiVersion,omitempty&quot; protobuf:&quot;bytes,3,opt,name=apiVersion&quot;`</span></span><br><span class="line">	<span class="comment">// Time is the timestamp of when the ManagedFields entry was added. The</span></span><br><span class="line">	<span class="comment">// timestamp will also be updated if a field is added, the manager</span></span><br><span class="line">	<span class="comment">// changes any of the owned fields value or removes a field. The</span></span><br><span class="line">	<span class="comment">// timestamp does not update when a field is removed from the entry</span></span><br><span class="line">	<span class="comment">// because another manager took it over.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 操作时间</span></span><br><span class="line">	Time *Time <span class="string">`json:&quot;time,omitempty&quot; protobuf:&quot;bytes,4,opt,name=time&quot;`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// Fields is tombstoned to show why 5 is a reserved protobuf tag.</span></span><br><span class="line">	<span class="comment">//Fields *Fields `json:&quot;fields,omitempty&quot; protobuf:&quot;bytes,5,opt,name=fields,casttype=Fields&quot;`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// FieldsType is the discriminator for the different fields format and version.</span></span><br><span class="line">	<span class="comment">// There is currently only one possible value: &quot;FieldsV1&quot;</span></span><br><span class="line">  <span class="comment">// 不同字段格式和版本的鉴别器，目前都是Fields V1</span></span><br><span class="line">	FieldsType <span class="type">string</span> <span class="string">`json:&quot;fieldsType,omitempty&quot; protobuf:&quot;bytes,6,opt,name=fieldsType&quot;`</span></span><br><span class="line">	<span class="comment">// FieldsV1 holds the first JSON version format as described in the &quot;FieldsV1&quot; type.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 以JSON展示类似Trie的数据结构中，要么以&#x27;.&#x27;要么是子字段</span></span><br><span class="line">  <span class="comment">// f:&lt;name&gt; &lt;name&gt;是结构中的字段的名称或者映射中的键</span></span><br><span class="line">  <span class="comment">// v:&lt;value&gt; &lt;value&gt;列表项的确切的JSON格式的值</span></span><br><span class="line">  <span class="comment">// i:&lt;index&gt; &lt;index&gt;是列表项的位置</span></span><br><span class="line">  <span class="comment">// k:&lt;key&gt; &lt;key&gt;是列表项关键字段与唯一值的映射，如果映射的为空字段值，则该键代表的字段是集合的一部分</span></span><br><span class="line">	FieldsV1 *FieldsV1 <span class="string">`json:&quot;fieldsV1,omitempty&quot; protobuf:&quot;bytes,7,opt,name=fieldsV1&quot;`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// Subresource is the name of the subresource used to update that object, or</span></span><br><span class="line">	<span class="comment">// empty string if the object was updated through the main resource. The</span></span><br><span class="line">	<span class="comment">// value of this field is used to distinguish between managers, even if they</span></span><br><span class="line">	<span class="comment">// share the same name. For example, a status update will be distinct from a</span></span><br><span class="line">	<span class="comment">// regular update using the same manager name.</span></span><br><span class="line">	<span class="comment">// Note that the APIVersion field is not related to the Subresource field and</span></span><br><span class="line">	<span class="comment">// it always corresponds to the version of the main resource.</span></span><br><span class="line">  <span class="comment">// 更新字段的子资源的名称，如果更新资源通过主资源更新，则为空</span></span><br><span class="line">	Subresource <span class="type">string</span> <span class="string">`json:&quot;subresource,omitempty&quot; protobuf:&quot;bytes,8,opt,name=subresource&quot;`</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>Manager接口定义了ManageFields并合并Apply操作配置的标准接口</p>
+<ul>
+<li>Ref：<a target="_blank" rel="noopener" href="https://github.com/kubernetes/apiserver/blob/ba592e4ccd41a320ceb91bab90eebee3bb4a4f33/pkg/endpoints/handlers/fieldmanager/fieldmanager.go#L55">https://github.com/kubernetes/apiserver/blob/ba592e4ccd41a320ceb91bab90eebee3bb4a4f33/pkg/endpoints/handlers/fieldmanager/fieldmanager.go#L55</a></li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Manager updates the managed fields and merges applied configurations.</span></span><br><span class="line"><span class="keyword">type</span> Manager <span class="keyword">interface</span> &#123;</span><br><span class="line">	<span class="comment">// Update is used when the object has already been merged (non-apply</span></span><br><span class="line">	<span class="comment">// use-case), and simply updates the managed fields in the output</span></span><br><span class="line">	<span class="comment">// object.</span></span><br><span class="line">	<span class="comment">//  * `liveObj` is not mutated by this function</span></span><br><span class="line">	<span class="comment">//  * `newObj` may be mutated by this function</span></span><br><span class="line">	<span class="comment">// Returns the new object with managedFields removed, and the object&#x27;s new</span></span><br><span class="line">	<span class="comment">// proposed managedFields separately.</span></span><br><span class="line">  <span class="comment">// Update在对象已经被合并的时候使用，并且在输出的对象中更新MangedFields，返回删除了ManagedFields的新对象，以及新对象单独提出的ManagedFields</span></span><br><span class="line">	Update(liveObj, newObj runtime.Object, managed Managed, manager <span class="type">string</span>) (runtime.Object, Managed, <span class="type">error</span>)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Apply is used when server-side apply is called, as it merges the</span></span><br><span class="line">	<span class="comment">// object and updates the managed fields.</span></span><br><span class="line">	<span class="comment">//  * `liveObj` is not mutated by this function</span></span><br><span class="line">	<span class="comment">//  * `newObj` may be mutated by this function</span></span><br><span class="line">	<span class="comment">// Returns the new object with managedFields removed, and the object&#x27;s new</span></span><br><span class="line">	<span class="comment">// proposed managedFields separately.</span></span><br><span class="line">  <span class="comment">// 在调用服务端应用的时候使用，因为他合并了对象并更新了ManagedFields</span></span><br><span class="line">	Apply(liveObj, appliedObj runtime.Object, managed Managed, fieldManager <span class="type">string</span>, force <span class="type">bool</span>) (runtime.Object, Managed, <span class="type">error</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>俩个func，都有<code>liveObj</code>和<code>newObj</code><ul>
+<li><code>liveObj</code>:该对象不会呗Update和Apply func改变</li>
+<li><code>newObj</code>:可能会被Update和Apply func改变</li>
+</ul>
+</li>
+<li>Update和Apply都有三个参数<ul>
+<li><code>liveObj</code>:原有的对象</li>
+<li><code>appliedObj</code>:新创建、待合并的对象</li>
+<li><code>manager</code>:执行操作，通过xxxOptions传入</li>
+</ul>
+</li>
+</ul>
+<p>许多Manager都被实现，通过装饰器模式暴露对外：</p>
+<ul>
+<li>Ref：<a target="_blank" rel="noopener" href="https://github.com/kubernetes/apiserver/blob/ba592e4ccd41a320ceb91bab90eebee3bb4a4f33/pkg/endpoints/handlers/fieldmanager/fieldmanager.go#L89">https://github.com/kubernetes/apiserver/blob/ba592e4ccd41a320ceb91bab90eebee3bb4a4f33/pkg/endpoints/handlers/fieldmanager/fieldmanager.go#L89</a></li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">	f, err := NewStructuredMergeManager(typeConverter, objectConverter, objectDefaulter, kind.GroupVersion(), hub, resetFields)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, fmt.Errorf(<span class="string">&quot;failed to create field manager: %v&quot;</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> newDefaultFieldManager(f, typeConverter, objectConverter, objectCreater, kind, subresource), <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// newDefaultFieldManager is a helper function which wraps a Manager with certain default logic.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">newDefaultFieldManager</span><span class="params">(f Manager, typeConverter TypeConverter, objectConverter runtime.ObjectConvertor, objectCreater runtime.ObjectCreater, kind schema.GroupVersionKind, subresource <span class="type">string</span>)</span></span> *FieldManager &#123;</span><br><span class="line">	<span class="keyword">return</span> NewFieldManager(</span><br><span class="line">		NewLastAppliedUpdater(</span><br><span class="line">			NewLastAppliedManager(</span><br><span class="line">				NewProbabilisticSkipNonAppliedManager(</span><br><span class="line">					NewCapManagersManager(</span><br><span class="line">						NewBuildManagerInfoManager(</span><br><span class="line">							NewManagedFieldsUpdater(</span><br><span class="line">								NewStripMetaManager(f),</span><br><span class="line">							), kind.GroupVersion(), subresource,</span><br><span class="line">						), DefaultMaxUpdateManagers,</span><br><span class="line">					), objectCreater, kind, DefaultTrackOnCreateProbability,</span><br><span class="line">				), typeConverter, objectConverter, kind.GroupVersion()),</span><br><span class="line">		), subresource,</span><br><span class="line">	)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="清除ManageFields"><a href="#清除ManageFields" class="headerlink" title="清除ManageFields"></a>清除ManageFields</h3><p>只把managedFieilds字段设置并不重置字段，managedFields字段永远不会该字段无关的客户删除。可以通过MergePatch、StrategicMergePatch、JSONPatch、Update，以及非应用方式操作覆盖，可以通过Patch方式清空managedFields字段，实现对象的完整删除ManageFields</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2024/10/23/cloud/k8s/crd/K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-%20%E6%A6%82%E8%BF%B0/">https://piwriw.github.io/2024/10/23/cloud/k8s/crd/K8s核心资源对象- 概述/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a><a class="post-meta__tags" href="/tags/cloud/">cloud</a><a class="post-meta__tags" href="/tags/K8s%E6%BA%90%E7%A0%81/">K8s源码</a><a class="post-meta__tags" href="/tags/crd/">crd</a></div><div class="post-share"><div class="social-share" data-image="/img/k8s-go.jpg" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2024/10/24/cloud/k8s/pod/K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-Pod(PodSpec)/" title="K8s核心资源对象-Pod(PodSpec)"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">K8s核心资源对象-Pod(PodSpec)</div></div><div class="info-2"><div class="info-item-1">K8s核心资源对象-Pod(PodSpec) 基于1.25  什么是PodPod是K8s最小可部署的单元。一个Pod可以有多个容器  每一个Pod，预置了一个Pause容器，其命名空间、IPC、网络和存储资源被Pod中其他容器共享  Ref：https://github.com/kubernetes/api/blob/2be23f6c5a7184af9846ff458a11751765ea2bde/core/v1/types.go#L3721   1234567891011121314151617181920212223242526272829303132333435363738394041424344454647484950515253545556575859606162636465666768697071727374757677787980818283848586878889909192939495969798991001011021031041051061071081091101111121131141151161171181191201211221231241251261...</div></div></div></a><a class="pagination-related" href="/2024/10/15/basic/go/%E5%AE%B9%E5%99%A8%E7%8E%AF%E5%A2%83-GOMAXPROCS%E5%8F%82%E6%95%B0%E8%AE%BE%E7%BD%AE/" title="容器环境-GOMAXPROCS参数设置"><img class="cover" src="/img/golang.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">容器环境-GOMAXPROCS参数设置</div></div><div class="info-2"><div class="info-item-1">容器环境-GOMAXPROCS参数设置  GOMAXPROCS通过设定 GOMAXPROCS，用户可以调整调度器中 Processor（简称P）的数量。由于每个系统线程，必须要绑定 P ，P 才能把G交给 M 执行。所以 P 的数量会很大程度上影响 Go Runtime 的并发表现。GOMAXPROCS 在版本 1.5后的默认值是机器的 CPU 核数 （runtime.NumCPU） 设置GOMAXPROCS1234567891011121314package mainimport (    &quot;fmt&quot;    &quot;runtime&quot;)func main() &#123;    n := runtime.NumCPU() // 获取机器的CPU核心数    fmt.Printf(&quot;NumCPU: %d\n&quot;, n)    if n &gt; 0 &#123;       runtime.GOMAXPROCS(n) // 设置GOMAXPROCS为CPU核心数    &#125;&#125;   容器内运行输出的是宿主机的CPU...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2024/11/06/cloud/k8s/crd/K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-CRD/" title="K8s核心资源对象-CRD"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-11-06</div><div class="info-item-2">K8s核心资源对象-CRD</div></div><div class="info-2"><div class="info-item-1">K8s核心资源对象-CRD 基于1.25  什么是CRDK8s的拓展主要通过几类实现：  客户端拓展：实现kubectl插件 API拓展：包含使用CRD API访问拓展：在请求到达kube-apiserver之前，经过的认证、授权、动态准入都可以拓展 基础设施拓展：设备拓展啊发现新的节点资源、存储插件、网络插件  最广泛使用的目前还是从1.7版本出现的CRD，属于资源组apiextension.k8s.io  Ref:https://github.com/kubernetes/apiextensions-apiserver/blob/cb213f096359711547f69316aeac67982b626b07/pkg/apis/apiextensions/v1/types.go#L390  1234567891011121314151617181920// +genclient// +genclient:nonNamespaced// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object// +...</div></div></div></a><a class="pagination-related" href="/2025/03/15/cloud/k8s/job/K8sController-Job(%E6%89%B9%E5%A4%84%E7%90%86%E4%BB%BB%E5%8A%A1)/" title="K8sController-Job(批处理任务)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-03-15</div><div class="info-item-2">K8sController-Job(批处理任务)</div></div><div class="info-2"><div class="info-item-1">K8sController-Job(批处理任务) 基于K8s 1.31  主要配置和工作机制123456789101112131415161718192021222324252627282930313233343536apiVersion: batch/v1kind: Jobmetadata:  name: hellospec:  # 可以并行任务数量，默认1  parallelism: 3  completions: 3  # Pod完成模式，NonIndexed（数量达到completions推出，默认），Indexed  # Indexed模式：会被设置为Pod服务名  # - 设置Pod名称：&lt;Job Name&gt;-&lt;索引序号&gt;-&lt;随机字符串&gt;  # - 设置Annotation &quot;batch.kubernetes.io/job-completion-index&quot;: &lt;索引序号&gt;  # - 设置Label &quot;batch.kubernetes.io/job-completion-index&quot...</div></div></div></a><a class="pagination-related" href="/2024/12/16/cloud/k8s/kubelet/K8s-kubelet(HTTP%E6%9C%8D%E5%8A%A1%E6%8E%A5%E5%8F%A3)/" title="K8s-kubelet(HTTP服务接口)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-16</div><div class="info-item-2">K8s-kubelet(HTTP服务接口)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(HTTP服务接口) 基于1.25  kubelet通过HTTP Server对外暴露API，为了确保接口安全，kubelet按照安全等级从低到高顺序支持3种HTTP Server，分别是healthz server、readonly server和kubelet core server    一级类目 二级类目 Path路径 描述    Default Handlerers healthz &#x2F;healthz 检查kubelet是否健康，重点检查syncLoop是否持续在规定时间内完成。检查syncLoop四因为其他组件故障会间接导致syncLoop不能执行成功   Default Handlerers pods &#x2F;pods 读取当前节点运行的Pod列表（通过PodManager获取）   Default Handlerers stats &#x2F;stats&#x2F;summary 读取资源使用状态   Default Handlerers metrics &#x2F;metrics 读取kubelet监控指标数据   Defaul...</div></div></div></a><a class="pagination-related" href="/2024/12/15/cloud/k8s/kubelet/K8s-kubelet(PLEG%E6%A0%B8%E5%BF%83%E5%8E%9F%E7%90%86)/" title="K8s-kubelet(PLEG核心原理)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-15</div><div class="info-item-2">K8s-kubelet(PLEG核心原理)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(PLEG核心原理) 基于1.25  PLEG是kubelet的一个重要组件，负责监控kubelet管理的节点运行的Pod的生命周期，并生成于生命周期相关的事件 PLEG产生原因在K8s中，kubelet负责维护和管理每个节点上的Pod，不断的调谐Pod的状态以使得符合Spec。  为了实现这个目标，kubelet同时需要支持对Pod Spec和Container Status 的事件监听。对于前者kubelet通过watch不同源的对PodSpec事件实现，对于后者，PLEG之前，不断需要Pod处理协程不断的周期性拉取最新状态，尝试了大量轮询压力。 在kubeletv1.2.0版本引入了PLEG，目标是改善kubelet的可拓展性 减少不必要的处理操作（当状态为发生变化时，不执行无效的调谐操作） 减少对底层容器运行的并发请求，以减轻容器运行时的压力    PLEG架构设计PLEG主要包含俩个核心工作，一是感受容器变化，生成Pod事件，俩是维持一份最新的Pod Status Cache数据供其他组件读取。   kubelet同时接收俩个方向的事件，Pod S...</div></div></div></a><a class="pagination-related" href="/2024/12/14/cloud/k8s/kubelet/K8s-kubelet(Cgroup%E8%B5%84%E6%BA%90%E9%9A%94%E7%A6%BB%E4%BB%A5%E5%8F%8A%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E5%8E%9F%E7%90%86)/" title="K8s-kubelet(Cgroup资源隔离以及垃圾回收原理)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-14</div><div class="info-item-2">K8s-kubelet(Cgroup资源隔离以及垃圾回收原理)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(Cgroup资源隔离以及垃圾回收原理) 基于1.25  什么是Cgroup资源隔离kubelet基于cgroup限制Pod资源使用。cgroup是Linux内核的一个重要功能，用来限制、控制和分离一个进程组的资源（CPU、内存、磁盘I&#x2F;O） kubelet在创建Pod时，会将其配置的cgroups parent目录传递给容器运行时，使容器运行时创建的进程都会限制到kubelet配置父级cgroup之下。  kubelet负责维护Pod、QoS、Node级别的cgroup配置 Container级别的cgroup直接交给容器运行时实现  cgroup的层级结构 kubelet采用了四级cgroups层级架构存储  Node Level cgroup 为了保证系统运行的稳定性，kubelet支持为系统守护进程预留资源，避免Pod占用整个系统资源，造成系统卡死或者崩溃。  默认情况下，kube-reserved和system-reserved不会启用。 但是启用之后，需要注意守护进程添加了cgroup之后，可能导致配置的上限太小，导致守护进程资源不足退...</div></div></div></a><a class="pagination-related" href="/2024/12/13/cloud/k8s/kubelet/K8s-kubelet(Pod%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F%E7%AE%A1%E7%90%86)/" title="K8s-kubelet(Pod生命周期管理)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-13</div><div class="info-item-2">K8s-kubelet(Pod生命周期管理)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(Pod生命周期管理) 基于1.25  kubelet以Pod为基本处理单元，负责Pod从创建到消亡的整个生命周期   在1.21中Unknown状态已经被标记为弃用。  CRIkubelet通过CRI RPC管理容器的生命周期，执行容器的lifecycle hook和 startup&#x2F;liveness&#x2F;readiness的健康检查，同时根据Pod的重启策略在容器失败退出后自动重启容器，CRI是kubelet管理Pod和容器的基础   Ref:https://github.com/kubernetes/cri-api/blob/2c8d015e0d408208ca8843c1d6e2e2fce1e5dd94/pkg/apis/runtime/v1/api.proto#L34 12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849505152535455565758596061626364656667686970717...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#K8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1-%E6%A6%82%E8%BF%B0%EF%BC%88%E5%85%83%E6%95%B0%E6%8D%AE-metav1-ObjectMeta%EF%BC%89"><span class="toc-number">1.</span> <span class="toc-text">K8s核心资源对象- 概述（元数据- metav1.ObjectMeta）</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#K8s%E8%B5%84%E6%BA%90%E5%AF%B9%E8%B1%A1"><span class="toc-number">1.1.</span> <span class="toc-text">K8s资源对象</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Name"><span class="toc-number">1.2.</span> <span class="toc-text">Name</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#PodName"><span class="toc-number">1.2.1.</span> <span class="toc-text">PodName</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#StatefulSet-Name"><span class="toc-number">1.2.2.</span> <span class="toc-text">StatefulSet Name</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Deployment-Job-etc-Name"><span class="toc-number">1.2.3.</span> <span class="toc-text">Deployment\Job.etc Name</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#GenerateName"><span class="toc-number">1.3.</span> <span class="toc-text">GenerateName</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Annotation"><span class="toc-number">1.4.</span> <span class="toc-text">Annotation</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Generation"><span class="toc-number">1.5.</span> <span class="toc-text">Generation</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ResourceVersion"><span class="toc-number">1.6.</span> <span class="toc-text">ResourceVersion</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Owner-Reference"><span class="toc-number">1.7.</span> <span class="toc-text">Owner Reference</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Finalizers"><span class="toc-number">1.8.</span> <span class="toc-text">Finalizers</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ManagedFileds"><span class="toc-number">1.9.</span> <span class="toc-text">ManagedFileds</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%B8%85%E9%99%A4ManageFields"><span class="toc-number">1.9.1.</span> <span class="toc-text">清除ManageFields</span></a></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-日志系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明">Gorm-日志系统模块原理说明</a><time datetime="2026-01-11T11:56:27.000Z" title="发表于 2026-01-11 19:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-迁移功能模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明">Gorm-迁移功能模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-插件系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明">Gorm-插件系统模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-事务处理模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明">Gorm-事务处理模块原理说明</a><time datetime="2026-01-11T09:56:27.000Z" title="发表于 2026-01-11 17:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-关联关系模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明">Gorm-关联关系模块原理说明</a><time datetime="2026-01-11T08:56:27.000Z" title="发表于 2026-01-11 16:56:27">2026-01-11</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

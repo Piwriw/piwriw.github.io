@@ -1,0 +1,317 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>K8s-client-go:WorkQueue工作队列 | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="K8s-client-go:WorkQueue工作队列WorkQueue队列与普通的FIFO队列，添加了标记和去重功能。有如下特性：  有序：按照顺序处理元素 去重：相同元素同一时间不会被重复处理 并发性：多生产者和消费者 标记机制：ShutDown方法通过信号量通知队列不再接收新的元素，并通知metric goroutine退出 延迟：支持延迟队列，延迟一段时间将元素存入队列 限速：支持限速队列">
+<meta property="og:type" content="article">
+<meta property="og:title" content="K8s-client-go:WorkQueue工作队列">
+<meta property="og:url" content="https://piwriw.github.io/2023/11/11/cloud/k8s/client-go/K8s-client-goWorkQueue%E5%B7%A5%E4%BD%9C%E9%98%9F%E5%88%97/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="K8s-client-go:WorkQueue工作队列WorkQueue队列与普通的FIFO队列，添加了标记和去重功能。有如下特性：  有序：按照顺序处理元素 去重：相同元素同一时间不会被重复处理 并发性：多生产者和消费者 标记机制：ShutDown方法通过信号量通知队列不再接收新的元素，并通知metric goroutine退出 延迟：支持延迟队列，延迟一段时间将元素存入队列 限速：支持限速队列">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/k8s-go.jpg">
+<meta property="article:published_time" content="2023-11-11T08:22:55.000Z">
+<meta property="article:modified_time" content="2026-02-28T13:29:12.662Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="k8s">
+<meta property="article:tag" content="cloud">
+<meta property="article:tag" content="K8s源码">
+<meta property="article:tag" content="client-go">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/k8s-go.jpg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "K8s-client-go:WorkQueue工作队列",
+  "url": "https://piwriw.github.io/2023/11/11/cloud/k8s/client-go/K8s-client-goWorkQueue%E5%B7%A5%E4%BD%9C%E9%98%9F%E5%88%97/",
+  "image": "https://piwriw.github.io/img/k8s-go.jpg",
+  "datePublished": "2023-11-11T08:22:55.000Z",
+  "dateModified": "2026-02-28T13:29:12.662Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2023/11/11/cloud/k8s/client-go/K8s-client-goWorkQueue%E5%B7%A5%E4%BD%9C%E9%98%9F%E5%88%97/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'K8s-client-go:WorkQueue工作队列',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/k8s-go.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">K8s-client-go:WorkQueue工作队列</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">K8s-client-go:WorkQueue工作队列</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2023-11-11T08:22:55.000Z" title="发表于 2023-11-11 16:22:55">2023-11-11</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-02-28T13:29:12.662Z" title="更新于 2026-02-28 21:29:12">2026-02-28</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/">k8s</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/client-go/">client-go</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">1.2k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>5分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-02-28 21:29:12&quot;}" hidden></div><h1 id="K8s-client-go-WorkQueue工作队列"><a href="#K8s-client-go-WorkQueue工作队列" class="headerlink" title="K8s-client-go:WorkQueue工作队列"></a>K8s-client-go:WorkQueue工作队列</h1><p>WorkQueue队列与普通的FIFO队列，添加了标记和去重功能。有如下特性：</p>
+<ol>
+<li>有序：按照顺序处理元素</li>
+<li>去重：相同元素同一时间不会被重复处理</li>
+<li>并发性：多生产者和消费者</li>
+<li>标记机制：<code>ShutDown</code>方法通过信号量通知队列不再接收新的元素，并通知<code>metric goroutine</code>退出</li>
+<li>延迟：支持延迟队列，延迟一段时间将元素存入队列</li>
+<li>限速：支持限速队列，元素存入队列时进行速率限制。限制一个元素出现排队（REenqueued）的次数</li>
+<li><code>Metric</code>：支持<code>metric</code>监控指标，可用<code>Prometheus</code>监控</li>
+</ol>
+<hr>
+<p>WorkQueue支持三种队列，并且提供三种接口：</p>
+<ul>
+<li><code>Interface</code>:FIFO队列，支持去重</li>
+<li><code>Delaying Interface</code>:延迟队列接口，基于<code>Interface</code>接口限制</li>
+<li><code>RateLimtingInterface</code>:限速接口队列</li>
+</ul>
+<h2 id="FIFO基本队列"><a href="#FIFO基本队列" class="headerlink" title="FIFO基本队列"></a>FIFO基本队列</h2><p>位置：k8s.io&#x2F;client-go&#x2F;util&#x2F;workqueue</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Interface <span class="keyword">interface</span> &#123;</span><br><span class="line">  <span class="comment">//给队列添加元素</span></span><br><span class="line">    Add(item <span class="keyword">interface</span>&#123;&#125;)</span><br><span class="line">  <span class="comment">// 获取队列长度</span></span><br><span class="line">    Len() </span><br><span class="line">  <span class="comment">// 获取队列头部元素</span></span><br><span class="line">    Get() (item <span class="keyword">interface</span>&#123;&#125;, shutdown <span class="type">bool</span>)</span><br><span class="line">  <span class="comment">// 标记队列该元素已经被处理</span></span><br><span class="line">    Done(item <span class="keyword">interface</span>&#123;&#125;)</span><br><span class="line">  <span class="comment">// 关闭队列</span></span><br><span class="line">    ShutDown()</span><br><span class="line">  <span class="comment">// 查询队列释放正在被关闭</span></span><br><span class="line">    ShuttingDown() <span class="type">bool</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Type is a work queue (see the package comment).</span></span><br><span class="line"><span class="keyword">type</span> Type <span class="keyword">struct</span> &#123;</span><br><span class="line">    <span class="comment">// queue defines the order in which we will work on items. Every</span></span><br><span class="line">    <span class="comment">// element of queue should be in the dirty set and not in the</span></span><br><span class="line">    <span class="comment">// processing set.</span></span><br><span class="line">  <span class="comment">// 定义了处理项的顺序</span></span><br><span class="line">    queue []t</span><br><span class="line"></span><br><span class="line">    <span class="comment">// dirty defines all of the items that need to be processed.</span></span><br><span class="line">  <span class="comment">// 当前处理的集合</span></span><br><span class="line">    dirty set</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Things that are currently being processed are in the processing set.</span></span><br><span class="line">    <span class="comment">// These things may be simultaneously in the dirty set. When we finish</span></span><br><span class="line">    <span class="comment">// processing something and remove it from this set, we&#x27;ll check if</span></span><br><span class="line">    <span class="comment">// it&#x27;s in the dirty set, and if so, add it to the queue.</span></span><br><span class="line">    processing set</span><br><span class="line"></span><br><span class="line">    cond *sync.Cond</span><br><span class="line"></span><br><span class="line">    shuttingDown <span class="type">bool</span></span><br><span class="line"></span><br><span class="line">    metrics queueMetrics</span><br><span class="line"></span><br><span class="line">    unfinishedWorkUpdatePeriod time.Duration</span><br><span class="line">    clock                      clock.Clock</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="延迟队列"><a href="#延迟队列" class="headerlink" title="延迟队列"></a>延迟队列</h2><p>位置：k8s.io&#x2F;client-go&#x2F;util&#x2F;workqueue&#x2F;delaying_queue.go</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// DelayingInterface is an Interface that can Add an item at a later time. This makes it easier to</span></span><br><span class="line"><span class="comment">// requeue items after failures without ending up in a hot-loop.</span></span><br><span class="line"><span class="keyword">type</span> DelayingInterface <span class="keyword">interface</span> &#123;</span><br><span class="line">    Interface</span><br><span class="line">    <span class="comment">// AddAfter adds an item to the workqueue after the indicated duration has passed</span></span><br><span class="line">  <span class="comment">// 指定持续时间之后向工作队列添加元素</span></span><br><span class="line">    AddAfter(item <span class="keyword">interface</span>&#123;&#125;, duration time.Duration)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// delayingType wraps an Interface and provides delayed re-enquing</span></span><br><span class="line"><span class="comment">// 包装了一个接口提供延迟的查询</span></span><br><span class="line"><span class="keyword">type</span> delayingType <span class="keyword">struct</span> &#123;</span><br><span class="line">	Interface</span><br><span class="line"></span><br><span class="line">	<span class="comment">// clock tracks time for delayed firing</span></span><br><span class="line">  <span class="comment">// 时间跟踪延迟时间</span></span><br><span class="line">	clock clock.Clock</span><br><span class="line"></span><br><span class="line">	<span class="comment">// stopCh lets us signal a shutdown to the waiting loop</span></span><br><span class="line">  <span class="comment">// stopCh 等待循环的关机信号</span></span><br><span class="line">	stopCh <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line">	<span class="comment">// stopOnce guarantees we only signal shutdown a single time</span></span><br><span class="line">  <span class="comment">// stopOnce保证只发出一次关机信号</span></span><br><span class="line">	stopOnce sync.Once</span><br><span class="line"></span><br><span class="line">	<span class="comment">// heartbeat ensures we wait no more than maxWait before firing</span></span><br><span class="line">  <span class="comment">// 确保我们触发不会超过max Wait</span></span><br><span class="line">	heartbeat clock.Ticker</span><br><span class="line"></span><br><span class="line">	<span class="comment">// waitingForAddCh is a buffered channel that feeds waitingForAdd</span></span><br><span class="line">  <span class="comment">// 提供waitingForAdd的缓冲通道</span></span><br><span class="line">	waitingForAddCh <span class="keyword">chan</span> *waitFor</span><br><span class="line"></span><br><span class="line">	<span class="comment">// metrics counts the number of retries</span></span><br><span class="line">  <span class="comment">// 度量重试次数</span></span><br><span class="line">	metrics retryMetrics</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// waitFor 保存要添加的数据和应该添加的时间</span></span><br><span class="line"><span class="keyword">type</span> waitFor <span class="keyword">struct</span> &#123;</span><br><span class="line">    data    t          <span class="comment">// 要添加的元素数据</span></span><br><span class="line">    readyAt time.Time  <span class="comment">// 应该被添加的时间点</span></span><br><span class="line">    index <span class="type">int</span>  <span class="comment">// 优先队列（heap）中的索引</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="限速队列"><a href="#限速队列" class="headerlink" title="限速队列"></a>限速队列</h2><p>位置：k8s.io&#x2F;client-go&#x2F;util&#x2F;workqueue&#x2F;default_rate_limiters.go</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// client-go/util/workqueue/default_rate_limiters.go</span></span><br><span class="line"><span class="keyword">type</span> RateLimiter <span class="keyword">interface</span> &#123;</span><br><span class="line">    When(item <span class="keyword">interface</span>&#123;&#125;) time.Duration <span class="comment">// 获取item元素应该等待多长时间</span></span><br><span class="line">    Forget(item <span class="keyword">interface</span>&#123;&#125;)  <span class="comment">// 表示元素已经完成了重试，不管是成功还是失败都会停止跟踪，也就是抛弃该元素</span></span><br><span class="line">    NumRequeues(item <span class="keyword">interface</span>&#123;&#125;) <span class="type">int</span>  <span class="comment">// 返回元素失败的次数（也就是放入队列的次数）</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>主要提供了四种限速策略：</p>
+<ol>
+<li>令牌桶算法（BucketRateLimiter）</li>
+<li>排队指数算法（ItemExponential FailureRateLimter）</li>
+<li>计数器算法（ItemFastSlowRateLimter）</li>
+<li>混合模式（MaxOfRateLimter）多种限速算法混合使用</li>
+</ol>
+<h3 id="令牌桶算法"><a href="#令牌桶算法" class="headerlink" title="令牌桶算法"></a>令牌桶算法</h3><p>主要通过go的<code>golang.org/x/time/rate</code>实现。</p>
+<p>往令牌桶中固定速率添加token，多余的token会溢出。每次从token从桶中取出。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&amp;BucketRateLimiter&#123;Limiter: rate.NewLimiter(rate.Limit(<span class="number">10</span>), <span class="number">100</span>)&#125;,</span><br></pre></td></tr></table></figure>
+
+<h3 id="排队指数算法"><a href="#排队指数算法" class="headerlink" title="排队指数算法"></a>排队指数算法</h3><p>指数排队算法，把相同的元素的排队数作为指数，排队数增大，速度限制呈指数级增长。但是最大不会超过<code>maxDelay</code>。元素排队的统计是有限制周期的，一个限速周期是指数从执行<code>AddRateLimter</code>方法到执行完<code>Forget</code>方法之间的速度。如果该元素被<code>Forget</code>方法处理完，则清空排队数。</p>
+<p>位置：k8s.io&#x2F;client-go&#x2F;util&#x2F;workqueue&#x2F;default_rate_limiters.go</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">exp := r.failures[item]</span><br><span class="line">r.failures[item] = r.failures[item] + <span class="number">1</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// The backoff is capped such that &#x27;calculated&#x27; value never overflows.</span></span><br><span class="line">backoff := <span class="type">float64</span>(r.baseDelay.Nanoseconds()) * math.Pow(<span class="number">2</span>, <span class="type">float64</span>(exp))</span><br><span class="line"><span class="keyword">if</span> backoff &gt; math.MaxInt64 &#123;</span><br><span class="line">    <span class="keyword">return</span> r.maxDelay</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">calculated := time.Duration(backoff)</span><br><span class="line"><span class="keyword">if</span> calculated &gt; r.maxDelay &#123;</span><br><span class="line">    <span class="keyword">return</span> r.maxDelay</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">return</span> calculated</span><br></pre></td></tr></table></figure>
+
+<h3 id="计数器算法"><a href="#计数器算法" class="headerlink" title="计数器算法"></a>计数器算法</h3><p>计数器算法就是限制一段时间内允许通过的元素数量。但是<code>WorkQueue</code>添加了<code>fast</code>和<code>slow</code>速率</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(r *ItemFastSlowRateLimiter)</span></span> When(item <span class="keyword">interface</span>&#123;&#125;) time.Duration &#123;</span><br><span class="line">    r.failuresLock.Lock()</span><br><span class="line">    <span class="keyword">defer</span> r.failuresLock.Unlock()</span><br><span class="line"></span><br><span class="line">    r.failures[item] = r.failures[item] + <span class="number">1</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> r.failures[item] &lt;= r.maxFastAttempts &#123;</span><br><span class="line">       <span class="keyword">return</span> r.fastDelay</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> r.slowDelay</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2023/11/11/cloud/k8s/client-go/K8s-client-goWorkQueue%E5%B7%A5%E4%BD%9C%E9%98%9F%E5%88%97/">https://piwriw.github.io/2023/11/11/cloud/k8s/client-go/K8s-client-goWorkQueue工作队列/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a><a class="post-meta__tags" href="/tags/cloud/">cloud</a><a class="post-meta__tags" href="/tags/K8s%E6%BA%90%E7%A0%81/">K8s源码</a><a class="post-meta__tags" href="/tags/client-go/">client-go</a></div><div class="post-share"><div class="social-share" data-image="/img/k8s-go.jpg" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2023/11/14/cloud/k8s/K8s-%E8%8A%82%E7%82%B9/" title="K8s-节点"><img class="cover" src="/img/k8s-go.jpg" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">K8s-节点</div></div><div class="info-2"><div class="info-item-1">K8s-节点K8s的node（节点）是一个工作机器。每个节点都是归属master组件管理。 节点的状态 Addresses Conditions Capacity and Allocatable Info  Addresses HostName： 在节点命令行界面上执行 hostname 命令所获得的值。启动 kubelet 时，可以通过参数 --hostname-override 覆盖 ExternalIP：通常是节点的外部IP（可以从集群外访问的内网IP地址；上面的例子中，此字段为空） InternalIP：通常是从节点内部可以访问的 IP 地址  ConditionsConditions 描述了节点的状态。 Condition的例子有：    Node Condition 描述    OutOfDisk 如果节点上的空白磁盘空间不够，不能够再添加新的节点时，该字段为 True，其他情况为 False   Ready 如果节点是健康的且已经就绪可以接受新的 Pod。则节点Ready字段为 True。False表明了该节点不健康，不能够接受新的 Pod。   MemoryPre...</div></div></div></a><a class="pagination-related" href="/2023/11/11/cloud/k8s/client-go/K8s-Client-go%EF%BC%9A%E5%9B%9B%E7%A7%8D%E5%AE%A2%E6%88%B7%E7%AB%AF/" title="K8s-Client-go：四种客户端"><img class="cover" src="/img/k8s-go.jpg" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">K8s-Client-go：四种客户端</div></div><div class="info-2"><div class="info-item-1">K8s-Client-go：四种客户端概述ClientSet、DynamicClient、DiscoveryClient. —&gt; RESTClient —&gt; kubeconfig 其实，前面三种都是依赖于 RESTClient  RESTClient：就是对HTTP Client进行了封装，实现了RESTful风格的API。  ClientSet：在RESTClient之上封装了Resource和Version的管理方法，ClientSet只能访问K8s内置的资源，不能访问CRD资源，它是通过client-gen代码生成器生成的  DynamicClient:比ClientSet多一个支持CRD资源  DiscoveryClient:用于发现kube-apiserver所支持的资源组、资源版本、资源信息（Group、Version、Resource）   kubeconf文件kubeconf文件存储了集群、用户、命名空间和身份验证等信息。  clusters：集群信息 users：K8s机器用户的客户端凭证 contexts：定义K8s集群，用户信息和命名空间   读...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2024/11/10/cloud/k8s/client-go/K8s-client-go(%E5%B8%B8%E7%94%A8%E5%B7%A5%E5%85%B7%E7%B1%BB)/" title="K8s-client-go(常用工具类:事件管理机制+Leader选举机制)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-11-10</div><div class="info-item-2">K8s-client-go(常用工具类:事件管理机制+Leader选举机制)</div></div><div class="info-2"><div class="info-item-1">K8s-client-go(常用工具类:事件管理机制+Leader选举机制) 基于1.25  事件管理机制Event是一种对象资源，展示集群中发生的事件，包含调度器的操作、Pod为什么被驱逐  存储在kube-apiserver的Pod中，有强制保留策略，在最后一次事件发生之后，删除一个小时之前的事件  Ref:https://github.com/kubernetes/api/blob/f7b7ea4f0fcc6cb8c8dd42eb46a94c7e163d1b9d/core/v1/types.go#L5776 1234567891011121314151617181920212223242526272829303132333435363738394041424344454647484950515253545556575859606162type Event struct &#123;        // metav1.TypeMeta 嵌入类型，包含 APIVersion 和 Kind 字段，用于标识对象的 API 版本和类型        metav1.TypeMeta `...</div></div></div></a><a class="pagination-related" href="/2024/11/10/cloud/k8s/client-go/K8s-client-go(Informer%E6%9C%BA%E5%88%B6)/" title="K8s-client-go(Informer机制)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-11-10</div><div class="info-item-2">K8s-client-go(Informer机制)</div></div><div class="info-2"><div class="info-item-1">K8s-client-go(Informer机制) 基于1.25  什么是InformerInformer实现了组件之间使用HTTP通信，但是不依赖任何中间件的情况下，实现了保证消息的实时性、可靠性、顺序性等 使用示例123456789101112131415161718192021222324252627282930313233343536373839404142434445464748495051525354555657585960616263646566676869707172737475767778798081828384858687888990package mainimport (	&quot;flag&quot;	&quot;fmt&quot;	&quot;path/filepath&quot;	&quot;time&quot;	v1 &quot;k8s.io/api/apps/v1&quot;	&quot;k8s.io/apimachinery/pkg/labels&quot;	&quot;k8s.io/client-go/informers&quot;	&quo...</div></div></div></a><a class="pagination-related" href="/2024/11/09/cloud/k8s/client-go/K8s-client-go/" title="K8s-client-go"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-11-09</div><div class="info-item-2">K8s-client-go</div></div><div class="info-2"><div class="info-item-1">K8s-client-go什么是Client-goClient-go是K8s提供的调用K8s对西那个的客户端，实现了访问kube-apiserver，对K8s集群中的资源对象管理  Link：https://github.com/kubernetes/client-go  客户端client-go支持Client Set、DynamicClient、Discovery Client、RESTClient四种  RESTClient是最基础的客户端，对HTTP请求进行了封装 ClientSet对在RESTClient基础上，封装了Resource和Version的管理方法 ClientSet只能处理K8s内置资源 通过client-gen代码生成器生成   DynamicClient：DynamicClient可以处理所有的资源，包括CRD DiscoveryClient:用于发现kube-apisever所支持的Group、Versions、Resources  kuebconfig配置管理kubeconfig就是管理访问kube-apiserver的配置信息，支持管理访问多个k...</div></div></div></a><a class="pagination-related" href="/2023/11/11/cloud/k8s/client-go/K8s-Client-go%EF%BC%9A%E5%9B%9B%E7%A7%8D%E5%AE%A2%E6%88%B7%E7%AB%AF/" title="K8s-Client-go：四种客户端"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2023-11-11</div><div class="info-item-2">K8s-Client-go：四种客户端</div></div><div class="info-2"><div class="info-item-1">K8s-Client-go：四种客户端概述ClientSet、DynamicClient、DiscoveryClient. —&gt; RESTClient —&gt; kubeconfig 其实，前面三种都是依赖于 RESTClient  RESTClient：就是对HTTP Client进行了封装，实现了RESTful风格的API。  ClientSet：在RESTClient之上封装了Resource和Version的管理方法，ClientSet只能访问K8s内置的资源，不能访问CRD资源，它是通过client-gen代码生成器生成的  DynamicClient:比ClientSet多一个支持CRD资源  DiscoveryClient:用于发现kube-apiserver所支持的资源组、资源版本、资源信息（Group、Version、Resource）   kubeconf文件kubeconf文件存储了集群、用户、命名空间和身份验证等信息。  clusters：集群信息 users：K8s机器用户的客户端凭证 contexts：定义K8s集群，用户信息和命名空间   读...</div></div></div></a><a class="pagination-related" href="/2023/11/08/cloud/k8s/client-go/K8s-client-go%EF%BC%9A%E6%BA%90%E7%A0%81%E7%BB%93%E6%9E%84/" title="K8s-client-go：源码结构"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2023-11-08</div><div class="info-item-2">K8s-client-go：源码结构</div></div><div class="info-2"><div class="info-item-1">K8s-client-go：源码结构   目录结构 含义    .github pull请求的模版   applyconfigurations applyconfiguration提供了构造服务区应用请求的应用配置的类型安全的go   discovery 提供DiscoverClient发现客户端   dynamic 提供DynamicClient动态客户端   examples 包含client-go的各种用例和功能的演示   informers 每种K8s的各种资源的informer实现   kubernetes 提供ClientSet客户端   kubernetes_test 提供ClientSet客户端的测试   listers 为每一个K8s资源提供Listers功能，该功能对Get和List提供制度的缓存数据   metadata 包含关于client-go的元数据信息   pkg 客户端以及版本的包   plugin&#x2F;pkg&#x2F;client&#x2F;auth 认证插件包auth   rest 提供RestClient客户端，对K8s API Se...</div></div></div></a><a class="pagination-related" href="/2025/03/15/cloud/k8s/job/K8sController-Job(%E6%89%B9%E5%A4%84%E7%90%86%E4%BB%BB%E5%8A%A1)/" title="K8sController-Job(批处理任务)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-03-15</div><div class="info-item-2">K8sController-Job(批处理任务)</div></div><div class="info-2"><div class="info-item-1">K8sController-Job(批处理任务) 基于K8s 1.31  主要配置和工作机制123456789101112131415161718192021222324252627282930313233343536apiVersion: batch/v1kind: Jobmetadata:  name: hellospec:  # 可以并行任务数量，默认1  parallelism: 3  completions: 3  # Pod完成模式，NonIndexed（数量达到completions推出，默认），Indexed  # Indexed模式：会被设置为Pod服务名  # - 设置Pod名称：&lt;Job Name&gt;-&lt;索引序号&gt;-&lt;随机字符串&gt;  # - 设置Annotation &quot;batch.kubernetes.io/job-completion-index&quot;: &lt;索引序号&gt;  # - 设置Label &quot;batch.kubernetes.io/job-completion-index&quot...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#K8s-client-go-WorkQueue%E5%B7%A5%E4%BD%9C%E9%98%9F%E5%88%97"><span class="toc-number">1.</span> <span class="toc-text">K8s-client-go:WorkQueue工作队列</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#FIFO%E5%9F%BA%E6%9C%AC%E9%98%9F%E5%88%97"><span class="toc-number">1.1.</span> <span class="toc-text">FIFO基本队列</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%BB%B6%E8%BF%9F%E9%98%9F%E5%88%97"><span class="toc-number">1.2.</span> <span class="toc-text">延迟队列</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%99%90%E9%80%9F%E9%98%9F%E5%88%97"><span class="toc-number">1.3.</span> <span class="toc-text">限速队列</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BB%A4%E7%89%8C%E6%A1%B6%E7%AE%97%E6%B3%95"><span class="toc-number">1.3.1.</span> <span class="toc-text">令牌桶算法</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8E%92%E9%98%9F%E6%8C%87%E6%95%B0%E7%AE%97%E6%B3%95"><span class="toc-number">1.3.2.</span> <span class="toc-text">排队指数算法</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%AE%A1%E6%95%B0%E5%99%A8%E7%AE%97%E6%B3%95"><span class="toc-number">1.3.3.</span> <span class="toc-text">计数器算法</span></a></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-日志系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明">Gorm-日志系统模块原理说明</a><time datetime="2026-01-11T11:56:27.000Z" title="发表于 2026-01-11 19:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-迁移功能模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明">Gorm-迁移功能模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-插件系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明">Gorm-插件系统模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-事务处理模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明">Gorm-事务处理模块原理说明</a><time datetime="2026-01-11T09:56:27.000Z" title="发表于 2026-01-11 17:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-关联关系模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明">Gorm-关联关系模块原理说明</a><time datetime="2026-01-11T08:56:27.000Z" title="发表于 2026-01-11 16:56:27">2026-01-11</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

@@ -1,0 +1,418 @@
+/* ============================================
+   ECHARTS DASHBOARD STYLE - Friends Link Page
+   Data Visualization Inspired Design (Light Theme)
+   ============================================ */
+
+/* === CSS Variables - ECharts Light Theme === */
+:root {
+  --echarts-bg: #F8FAFC;
+  --echarts-surface: #FFFFFF;
+  --echarts-surface-elevated: #F1F5F9;
+  --echarts-border: #E2E8F0;
+  --echarts-border-light: #CBD5E1;
+  --echarts-primary: #1E40AF;
+  --echarts-primary-light: #3B82F6;
+  --echarts-primary-glow: rgba(59, 130, 246, 0.15);
+  --echarts-accent: #F59E0B;
+  --echarts-accent-light: #FBBF24;
+  --echarts-success: #10B981;
+  --echarts-danger: #EF4444;
+  --echarts-text: #1E293B;
+  --echarts-text-muted: #64748B;
+  --echarts-text-dim: #94A3B8;
+  --echarts-gradient-primary: linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%);
+  --echarts-gradient-accent: linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%);
+  --echarts-shadow-sm: 0 2px 8px rgba(30, 64, 175, 0.08);
+  --echarts-shadow-md: 0 4px 16px rgba(30, 64, 175, 0.12);
+  --echarts-shadow-lg: 0 8px 32px rgba(30, 64, 175, 0.15);
+  --echarts-shadow-glow: 0 0 30px rgba(59, 130, 246, 0.1);
+  --echarts-font-heading: 'Fira Code', 'JetBrains Mono', monospace;
+  --echarts-font-body: 'Fira Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --echarts-space-1: 8px;
+  --echarts-space-2: 16px;
+  --echarts-space-3: 24px;
+  --echarts-space-4: 32px;
+  --echarts-space-6: 48px;
+  --echarts-radius-sm: 4px;
+  --echarts-radius-md: 8px;
+  --echarts-radius-lg: 12px;
+  --echarts-radius-xl: 16px;
+  --echarts-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --echarts-duration: 250ms;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap');
+
+/* === Base Styles === */
+#article-container.flink-container {
+  background: var(--echarts-bg);
+  position: relative;
+  min-height: 100vh;
+  padding: var(--echarts-space-6);
+  overflow-x: hidden;
+}
+
+#article-container.flink-container::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(30, 64, 175, 0.08) 0%, transparent 50%),
+              radial-gradient(ellipse 60% 40% at 80% 100%, rgba(245, 158, 11, 0.05) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+#article-container.flink-container::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: linear-gradient(rgba(203, 213, 225, 0.5) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(203, 213, 225, 0.5) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.6;
+}
+
+#article-container.flink-container .flink {
+  position: relative;
+  z-index: 1;
+}
+
+/* === Stats Dashboard === */
+.flink-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--echarts-space-3);
+  margin-bottom: var(--echarts-space-6);
+  animation: fadeInUp 0.6s var(--echarts-ease) backwards;
+}
+
+.flink-stat-card {
+  background: var(--echarts-surface);
+  border: 1px solid var(--echarts-border);
+  border-radius: var(--echarts-radius-lg);
+  padding: var(--echarts-space-3);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  transition: all var(--echarts-duration) var(--echarts-ease);
+}
+
+.flink-stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--echarts-gradient-primary);
+  opacity: 0;
+  transition: opacity var(--echarts-duration) var(--echarts-ease);
+}
+
+.flink-stat-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--echarts-primary-light);
+  box-shadow: var(--echarts-shadow-glow);
+}
+
+.flink-stat-card:hover::before {
+  opacity: 1;
+}
+
+.flink-stat-label {
+  font-family: var(--echarts-font-heading);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--echarts-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  margin-bottom: var(--echarts-space-1);
+}
+
+.flink-stat-value {
+  font-family: var(--echarts-font-heading);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--echarts-text);
+}
+
+.flink-stat-value.primary {
+  color: var(--echarts-primary-light);
+}
+
+/* === Category Title === */
+.flink-list h2 {
+  font-family: var(--echarts-font-heading);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--echarts-text);
+  margin: var(--echarts-space-6) 0 var(--echarts-space-3) 0;
+  padding-bottom: var(--echarts-space-2);
+  border-bottom: 2px solid var(--echarts-border);
+  position: relative;
+}
+
+.flink-list h2::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 60px;
+  height: 2px;
+  background: var(--echarts-gradient-primary);
+}
+
+.flink-desc {
+  font-family: var(--echarts-font-body);
+  font-size: 0.9375rem;
+  color: var(--echarts-text-muted);
+  margin-bottom: var(--echarts-space-3);
+  padding: var(--echarts-space-2) var(--echarts-space-3);
+  background: var(--echarts-surface-elevated);
+  border-radius: var(--echarts-radius-md);
+  border-left: 3px solid var(--echarts-primary-light);
+}
+
+/* === Friend Cards Grid === */
+.flink-list {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--echarts-space-3);
+  padding: var(--echarts-space-2) 0;
+}
+
+/* Friend Card - Simple and Clean */
+.flink-list-item {
+  position: relative;
+  background: var(--echarts-surface);
+  border: 1px solid var(--echarts-border);
+  border-radius: var(--echarts-radius-lg);
+  overflow: hidden;
+  transition: all var(--echarts-duration) var(--echarts-ease);
+  animation: fadeInUp 0.4s var(--echarts-ease) backwards;
+}
+
+.flink-list-item:hover {
+  transform: translateY(-6px);
+  border-color: var(--echarts-primary-light);
+  box-shadow: var(--echarts-shadow-glow);
+}
+
+/* Hover Glow Effect */
+.flink-list-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  transition: left 0.5s ease;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.flink-list-item:hover::before {
+  left: 100%;
+}
+
+/* Avatar Hover Zoom */
+.flink-item-icon img {
+  transition: transform 0.4s var(--echarts-ease);
+}
+
+.flink-list-item:hover .flink-item-icon img {
+  transform: scale(1.08);
+}
+
+/* Avatar */
+.flink-item-icon {
+  width: 100%;
+  height: 150px;
+  overflow: hidden;
+  background: var(--echarts-surface-elevated);
+}
+
+.flink-item-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Info Section */
+.flink-item-info {
+  padding: var(--echarts-space-2);
+  text-align: center;
+}
+
+.flink-item-name {
+  font-family: var(--echarts-font-heading);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--echarts-text);
+  margin-bottom: 4px;
+}
+
+.flink-item-desc {
+  font-family: var(--echarts-font-body);
+  font-size: 0.75rem;
+  color: var(--echarts-text-muted);
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* === Animations === */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.flink-stat-card:nth-child(1) { animation-delay: 0s; }
+.flink-stat-card:nth-child(2) { animation-delay: 0.1s; }
+.flink-stat-card:nth-child(3) { animation-delay: 0.2s; }
+
+.flink-list-item { animation: fadeInUp 0.4s var(--echarts-ease) backwards; }
+.flink-list-item:nth-child(1) { animation-delay: 0.05s; }
+.flink-list-item:nth-child(2) { animation-delay: 0.1s; }
+.flink-list-item:nth-child(3) { animation-delay: 0.15s; }
+.flink-list-item:nth-child(4) { animation-delay: 0.2s; }
+.flink-list-item:nth-child(n+5) { animation-delay: 0.25s; }
+
+/* === Responsive Design === */
+@media (max-width: 1024px) {
+  .flink-list { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 768px) {
+  #article-container.flink-container { padding: var(--echarts-space-4) var(--echarts-space-2); }
+  .flink-stats { grid-template-columns: 1fr; gap: var(--echarts-space-2); }
+  .flink-stat-value { font-size: 1.5rem; }
+  .flink-list { grid-template-columns: repeat(2, 1fr); gap: var(--echarts-space-2); }
+  .flink-item-icon { height: 120px; }
+}
+
+@media (max-width: 480px) {
+  .flink-list { grid-template-columns: 1fr; }
+  .flink-list h2 { font-size: 1.25rem; }
+}
+
+/* === Focus States === */
+.flink-list-item a:focus-visible {
+  outline: 2px solid var(--echarts-primary-light);
+  outline-offset: 2px;
+}
+
+/* === Reduced Motion === */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================
+   DARK MODE - ECharts Dark Theme
+   ============================================ */
+
+[data-theme='dark'] {
+  --echarts-bg: #0B1121;
+  --echarts-surface: #1E293B;
+  --echarts-surface-elevated: #334155;
+  --echarts-border: #334155;
+  --echarts-border-light: #475569;
+  --echarts-primary: #3B82F6;
+  --echarts-primary-light: #60A5FA;
+  --echarts-primary-glow: rgba(59, 130, 246, 0.25);
+  --echarts-accent: #FBBF24;
+  --echarts-accent-light: #FCD34D;
+  --echarts-success: #34D399;
+  --echarts-danger: #F87171;
+  --echarts-text: #F1F5F9;
+  --echarts-text-muted: #94A3B8;
+  --echarts-text-dim: #64748B;
+  --echarts-gradient-primary: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
+  --echarts-gradient-accent: linear-gradient(135deg, #FBBF24 0%, #FCD34D 100%);
+  --echarts-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --echarts-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --echarts-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --echarts-shadow-glow: 0 0 30px rgba(59, 130, 246, 0.2);
+}
+
+/* Dark Mode: Background Pattern */
+[data-theme='dark'] #article-container.flink-container::before {
+  background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(59, 130, 246, 0.12) 0%, transparent 50%),
+              radial-gradient(ellipse 60% 40% at 80% 100%, rgba(251, 191, 36, 0.08) 0%, transparent 50%);
+}
+
+[data-theme='dark'] #article-container.flink-container::after {
+  background-image: linear-gradient(rgba(51, 65, 85, 0.5) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(51, 65, 85, 0.5) 1px, transparent 1px);
+}
+
+/* Dark Mode: Stats Cards */
+[data-theme='dark'] .flink-stat-card {
+  background: var(--echarts-surface);
+  border-color: var(--echarts-border);
+}
+
+[data-theme='dark'] .flink-stat-card:hover {
+  border-color: var(--echarts-primary-light);
+}
+
+[data-theme='dark'] .flink-stat-value {
+  color: var(--echarts-text);
+}
+
+[data-theme='dark'] .flink-stat-value.primary {
+  color: var(--echarts-primary-light);
+}
+
+/* Dark Mode: Category Titles */
+[data-theme='dark'] .flink-list h2 {
+  color: var(--echarts-text);
+  border-bottom-color: var(--echarts-border);
+}
+
+[data-theme='dark'] .flink-desc {
+  color: var(--echarts-text-muted);
+  background: var(--echarts-surface-elevated);
+  border-left-color: var(--echarts-primary-light);
+}
+
+/* Dark Mode: Friend Cards */
+[data-theme='dark'] .flink-list-item {
+  background: var(--echarts-surface);
+  border-color: var(--echarts-border);
+}
+
+[data-theme='dark'] .flink-list-item:hover {
+  border-color: var(--echarts-primary-light);
+  box-shadow: var(--echarts-shadow-glow);
+}
+
+[data-theme='dark'] .flink-item-icon {
+  background: var(--echarts-surface-elevated);
+}
+
+[data-theme='dark'] .flink-item-name {
+  color: var(--echarts-text);
+}
+
+[data-theme='dark'] .flink-item-desc {
+  color: var(--echarts-text-muted);
+}
+
+/* Dark Mode: Focus States */
+[data-theme='dark'] .flink-list-item a:focus-visible {
+  outline-color: var(--echarts-primary-light);
+}

@@ -1,0 +1,357 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>K8s工作负载-DaemonSet | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="K8s工作负载-DaemonSet 基于1.25  什么是DaemonSetDaemonSet 控制器确保所有（或一部分）的节点都运行了一个指定的 Pod 副本，缩写DS 使用场景 在每个节点上运行集群的存储守护进程，例如 glusterd、ceph 在每个节点上运行日志收集守护进程，例如 fluentd、logstash 在每个节点上运行监控守护进程，例如 Prometheus Node Exp">
+<meta property="og:type" content="article">
+<meta property="og:title" content="K8s工作负载-DaemonSet">
+<meta property="og:url" content="https://piwriw.github.io/2024/11/02/cloud/k8s/daemonset/K8s%E5%B7%A5%E4%BD%9C%E8%B4%9F%E8%BD%BD-DaemonSet/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="K8s工作负载-DaemonSet 基于1.25  什么是DaemonSetDaemonSet 控制器确保所有（或一部分）的节点都运行了一个指定的 Pod 副本，缩写DS 使用场景 在每个节点上运行集群的存储守护进程，例如 glusterd、ceph 在每个节点上运行日志收集守护进程，例如 fluentd、logstash 在每个节点上运行监控守护进程，例如 Prometheus Node Exp">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/k8sLogo.png">
+<meta property="article:published_time" content="2024-11-02T04:08:55.000Z">
+<meta property="article:modified_time" content="2026-02-28T13:29:12.664Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="k8s">
+<meta property="article:tag" content="cloud">
+<meta property="article:tag" content="K8s源码">
+<meta property="article:tag" content="dasemonset">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/k8sLogo.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "K8s工作负载-DaemonSet",
+  "url": "https://piwriw.github.io/2024/11/02/cloud/k8s/daemonset/K8s%E5%B7%A5%E4%BD%9C%E8%B4%9F%E8%BD%BD-DaemonSet/",
+  "image": "https://piwriw.github.io/img/k8sLogo.png",
+  "datePublished": "2024-11-02T04:08:55.000Z",
+  "dateModified": "2026-02-28T13:29:12.664Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2024/11/02/cloud/k8s/daemonset/K8s%E5%B7%A5%E4%BD%9C%E8%B4%9F%E8%BD%BD-DaemonSet/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'K8s工作负载-DaemonSet',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/k8sLogo.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">K8s工作负载-DaemonSet</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">K8s工作负载-DaemonSet</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2024-11-02T04:08:55.000Z" title="发表于 2024-11-02 12:08:55">2024-11-02</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-02-28T13:29:12.664Z" title="更新于 2026-02-28 21:29:12">2026-02-28</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/">k8s</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/dasemonset/">dasemonset</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">1.7k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>9分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-02-28 21:29:12&quot;}" hidden></div><h1 id="K8s工作负载-DaemonSet"><a href="#K8s工作负载-DaemonSet" class="headerlink" title="K8s工作负载-DaemonSet"></a>K8s工作负载-DaemonSet</h1><blockquote>
+<p>基于1.25</p>
+</blockquote>
+<h2 id="什么是DaemonSet"><a href="#什么是DaemonSet" class="headerlink" title="什么是DaemonSet"></a>什么是DaemonSet</h2><p>DaemonSet 控制器确保所有（或一部分）的节点都运行了一个指定的 Pod 副本，缩写DS</p>
+<h2 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h2><ul>
+<li>在每个节点上运行集群的存储守护进程，例如 glusterd、ceph</li>
+<li>在每个节点上运行日志收集守护进程，例如 fluentd、logstash</li>
+<li>在每个节点上运行监控守护进程，例如 <a target="_blank" rel="noopener" href="https://github.com/prometheus/node_exporter">Prometheus Node Exporter (opens new window)</a>、<a target="_blank" rel="noopener" href="https://sysdigdocs.atlassian.net/wiki/spaces/Platform">Sysdig Agent (opens new window)</a>、collectd、<a target="_blank" rel="noopener" href="https://www.dynatrace.com/technologies/kubernetes-monitoring/">Dynatrace OneAgent (opens new window)</a>、<a target="_blank" rel="noopener" href="https://docs.appdynamics.com/display/CLOUD/Container+Visibility+with+Kubernetes">APPDynamics Agent (opens new window)</a>、<a target="_blank" rel="noopener" href="https://docs.datadoghq.com/agent/kubernetes/daemonset_setup/">Datadog agent (opens new window)</a>、<a target="_blank" rel="noopener" href="https://docs.newrelic.com/docs/integrations/kubernetes-integration/installation/kubernetes-installation-configuration">New Relic agent (opens new window)</a>、Ganglia gmond、<a target="_blank" rel="noopener" href="https://www.instana.com/supported-integrations/kubernetes-monitoring/">Instana Agent (opens new window)</a>等</li>
+</ul>
+<h2 id="DaemonSetSpec"><a href="#DaemonSetSpec" class="headerlink" title="DaemonSetSpec"></a>DaemonSetSpec</h2><ul>
+<li>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/api/blob/6e61ea04c537767720172fb5a770236e6531ae53/apps/v1/types.go#L641">https://github.com/kubernetes/api/blob/6e61ea04c537767720172fb5a770236e6531ae53/apps/v1/types.go#L641</a></li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// DaemonSetSpec is the specification of a daemon set.</span></span><br><span class="line"><span class="keyword">type</span> DaemonSetSpec <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// A label query over pods that are managed by the daemon set.</span></span><br><span class="line">	<span class="comment">// Must match in order to be controlled.</span></span><br><span class="line">	<span class="comment">// It must match the pod template&#x27;s labels.</span></span><br><span class="line">	<span class="comment">// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors</span></span><br><span class="line">  <span class="comment">// 标签选择器：必须和PodTemplate品牌</span></span><br><span class="line">	Selector *metav1.LabelSelector <span class="string">`json:&quot;selector&quot; protobuf:&quot;bytes,1,opt,name=selector&quot;`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// An object that describes the pod that will be created.</span></span><br><span class="line">	<span class="comment">// The DaemonSet will create exactly one copy of this pod on every node</span></span><br><span class="line">	<span class="comment">// that matches the template&#x27;s node selector (or on every node if no node</span></span><br><span class="line">	<span class="comment">// selector is specified).</span></span><br><span class="line">	<span class="comment">// The only allowed template.spec.restartPolicy value is &quot;Always&quot;.</span></span><br><span class="line">	<span class="comment">// More info: https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller#pod-template</span></span><br><span class="line">  <span class="comment">// Pod的控制器模版</span></span><br><span class="line">	Template v1.PodTemplateSpec <span class="string">`json:&quot;template&quot; protobuf:&quot;bytes,2,opt,name=template&quot;`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// An update strategy to replace existing DaemonSet pods with new pods.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// Pod更新策略</span></span><br><span class="line">	UpdateStrategy DaemonSetUpdateStrategy <span class="string">`json:&quot;updateStrategy,omitempty&quot; protobuf:&quot;bytes,3,opt,name=updateStrategy&quot;`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// The minimum number of seconds for which a newly created DaemonSet pod should</span></span><br><span class="line">	<span class="comment">// be ready without any of its container crashing, for it to be considered</span></span><br><span class="line">	<span class="comment">// available. Defaults to 0 (pod will be considered available as soon as it</span></span><br><span class="line">	<span class="comment">// is ready).</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// Pod最小就绪准备时间</span></span><br><span class="line">	MinReadySeconds <span class="type">int32</span> <span class="string">`json:&quot;minReadySeconds,omitempty&quot; protobuf:&quot;varint,4,opt,name=minReadySeconds&quot;`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// The number of old history to retain to allow rollback.</span></span><br><span class="line">	<span class="comment">// This is a pointer to distinguish between explicit zero and not specified.</span></span><br><span class="line">	<span class="comment">// Defaults to 10.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 允许回滚的保留最大记录数 默认10</span></span><br><span class="line">	RevisionHistoryLimit *<span class="type">int32</span> <span class="string">`json:&quot;revisionHistoryLimit,omitempty&quot; protobuf:&quot;varint,6,opt,name=revisionHistoryLimit&quot;`</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="更新策略"><a href="#更新策略" class="headerlink" title="更新策略"></a>更新策略</h2><p>包含俩种更新策略：RollingUpdate、OnDelete</p>
+<ul>
+<li>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/api/blob/6e61ea04c537767720172fb5a770236e6531ae53/apps/v1/types.go#L574">https://github.com/kubernetes/api/blob/6e61ea04c537767720172fb5a770236e6531ae53/apps/v1/types.go#L574</a></li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// DaemonSetUpdateStrategy is a struct used to control the update strategy for a DaemonSet.</span></span><br><span class="line"><span class="keyword">type</span> DaemonSetUpdateStrategy <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// Type of daemon set update. Can be &quot;RollingUpdate&quot; or &quot;OnDelete&quot;. Default is RollingUpdate.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">	Type DaemonSetUpdateStrategyType <span class="string">`json:&quot;type,omitempty&quot; protobuf:&quot;bytes,1,opt,name=type&quot;`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// Rolling update config params. Present only if type = &quot;RollingUpdate&quot;.</span></span><br><span class="line">	<span class="comment">//---</span></span><br><span class="line">	<span class="comment">// <span class="doctag">TODO:</span> Update this to follow our convention for oneOf, whatever we decide it</span></span><br><span class="line">	<span class="comment">// to be. Same as Deployment `strategy.rollingUpdate`.</span></span><br><span class="line">	<span class="comment">// See https://github.com/kubernetes/kubernetes/issues/35345</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">	RollingUpdate *RollingUpdateDaemonSet <span class="string">`json:&quot;rollingUpdate,omitempty&quot; protobuf:&quot;bytes,2,opt,name=rollingUpdate&quot;`</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// +enum</span></span><br><span class="line"><span class="keyword">type</span> DaemonSetUpdateStrategyType <span class="type">string</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> (</span><br><span class="line">	<span class="comment">// Replace the old daemons by new ones using rolling update i.e replace them on each node one after the other.</span></span><br><span class="line">	RollingUpdateDaemonSetStrategyType DaemonSetUpdateStrategyType = <span class="string">&quot;RollingUpdate&quot;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// Replace the old daemons only when it&#x27;s killed</span></span><br><span class="line">	OnDeleteDaemonSetStrategyType DaemonSetUpdateStrategyType = <span class="string">&quot;OnDelete&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// Spec to control the desired behavior of daemon set rolling update.</span></span><br><span class="line"><span class="keyword">type</span> RollingUpdateDaemonSet <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// The maximum number of DaemonSet pods that can be unavailable during the</span></span><br><span class="line">	<span class="comment">// update. Value can be an absolute number (ex: 5) or a percentage of total</span></span><br><span class="line">	<span class="comment">// number of DaemonSet pods at the start of the update (ex: 10%). Absolute</span></span><br><span class="line">	<span class="comment">// number is calculated from percentage by rounding up.</span></span><br><span class="line">	<span class="comment">// This cannot be 0 if MaxSurge is 0</span></span><br><span class="line">	<span class="comment">// Default value is 1.</span></span><br><span class="line">	<span class="comment">// Example: when this is set to 30%, at most 30% of the total number of nodes</span></span><br><span class="line">	<span class="comment">// that should be running the daemon pod (i.e. status.desiredNumberScheduled)</span></span><br><span class="line">	<span class="comment">// can have their pods stopped for an update at any given time. The update</span></span><br><span class="line">	<span class="comment">// starts by stopping at most 30% of those DaemonSet pods and then brings</span></span><br><span class="line">	<span class="comment">// up new DaemonSet pods in their place. Once the new pods are available,</span></span><br><span class="line">	<span class="comment">// it then proceeds onto other DaemonSet pods, thus ensuring that at least</span></span><br><span class="line">	<span class="comment">// 70% of original number of DaemonSet pods are available at all times during</span></span><br><span class="line">	<span class="comment">// the update.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 更新期间不可用的DS Pod最大数量</span></span><br><span class="line">	MaxUnavailable *intstr.IntOrString <span class="string">`json:&quot;maxUnavailable,omitempty&quot; protobuf:&quot;bytes,1,opt,name=maxUnavailable&quot;`</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// The maximum number of nodes with an existing available DaemonSet pod that</span></span><br><span class="line">	<span class="comment">// can have an updated DaemonSet pod during during an update.</span></span><br><span class="line">	<span class="comment">// Value can be an absolute number (ex: 5) or a percentage of desired pods (ex: 10%).</span></span><br><span class="line">	<span class="comment">// This can not be 0 if MaxUnavailable is 0.</span></span><br><span class="line">	<span class="comment">// Absolute number is calculated from percentage by rounding up to a minimum of 1.</span></span><br><span class="line">	<span class="comment">// Default value is 0.</span></span><br><span class="line">	<span class="comment">// Example: when this is set to 30%, at most 30% of the total number of nodes</span></span><br><span class="line">	<span class="comment">// that should be running the daemon pod (i.e. status.desiredNumberScheduled)</span></span><br><span class="line">	<span class="comment">// can have their a new pod created before the old pod is marked as deleted.</span></span><br><span class="line">	<span class="comment">// The update starts by launching new pods on 30% of nodes. Once an updated</span></span><br><span class="line">	<span class="comment">// pod is available (Ready for at least minReadySeconds) the old DaemonSet pod</span></span><br><span class="line">	<span class="comment">// on that node is marked deleted. If the old pod becomes unavailable for any</span></span><br><span class="line">	<span class="comment">// reason (Ready transitions to false, is evicted, or is drained) an updated</span></span><br><span class="line">	<span class="comment">// pod is immediatedly created on that node without considering surge limits.</span></span><br><span class="line">	<span class="comment">// Allowing surge implies the possibility that the resources consumed by the</span></span><br><span class="line">	<span class="comment">// daemonset on any given node can double if the readiness check fails, and</span></span><br><span class="line">	<span class="comment">// so resource intensive daemonsets should take into account that they may</span></span><br><span class="line">	<span class="comment">// cause evictions during disruption.</span></span><br><span class="line">	<span class="comment">// +optional</span></span><br><span class="line">  <span class="comment">// 对比可用DS Pod，更新期间的DS Pod最大数量</span></span><br><span class="line">	MaxSurge *intstr.IntOrString <span class="string">`json:&quot;maxSurge,omitempty&quot; protobuf:&quot;bytes,2,opt,name=maxSurge&quot;`</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="节点同步"><a href="#节点同步" class="headerlink" title="节点同步"></a>节点同步</h2><p>主要是通过<code>syncNodes</code> func 实现</p>
+<ul>
+<li>创建Template信息并为节点设置容忍</li>
+<li>慢启动以指数曾长速度创建缺少的Pod（这逻辑同RS）<ul>
+<li>设置Pod节点亲和，确保Pod在节点上只有一个实例</li>
+<li>调用<code>CreatePods</code> func创建Pod</li>
+</ul>
+</li>
+<li>调用<code>Delete Pod</code>删除多余的Pod</li>
+</ul>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image202411021952692.png"></p>
+<h2 id="污点和容忍"><a href="#污点和容忍" class="headerlink" title="污点和容忍"></a>污点和容忍</h2><p>容忍会自动添加到DS的Pod中</p>
+<table>
+<thead>
+<tr>
+<th align="center">容忍</th>
+<th align="center">影响</th>
+<th align="center">描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">node.kubernetes.io&#x2F;not-ready</td>
+<td align="center">NoExcute</td>
+<td align="center">节点出现问题，DS容器组不会从节点上被驱逐</td>
+</tr>
+<tr>
+<td align="center">node.kubernetes.io&#x2F;unreachable</td>
+<td align="center">NoExcute</td>
+<td align="center">节点出现问题，DS容器组不会从节点上被驱逐</td>
+</tr>
+<tr>
+<td align="center">node.kubernetes.io&#x2F;disk-pressure</td>
+<td align="center">NoSchedule</td>
+<td align="center">节点有磁盘压力，DS容器组不会从节点上驱逐</td>
+</tr>
+<tr>
+<td align="center">node.kubernetes.io&#x2F;memory-pressure</td>
+<td align="center">NoSchedule</td>
+<td align="center">节点有内存压力，DS容器组不会从节点上驱逐</td>
+</tr>
+<tr>
+<td align="center">node.kubernetes.io&#x2F;unschedulable</td>
+<td align="center">NoSchedule</td>
+<td align="center">默认调度器，对于DS容器组，容忍节点的unschedulable属性</td>
+</tr>
+<tr>
+<td align="center">node.kubernetes.io&#x2F;network-unavailable</td>
+<td align="center">NoSchedule</td>
+<td align="center">使用默认的调度器，对于DS容器组，在其使用host network时，容忍节点的network-unavailable属性</td>
+</tr>
+<tr>
+<td align="center">node.kubernetes.io&#x2F;pid-pressure</td>
+<td align="center">NoSchedule</td>
+<td align="center">当节点有PID压力，DS容器组不会容器上驱逐</td>
+</tr>
+</tbody></table>
+<ul>
+<li>Ref:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/kubernetes/blob/fa77f7f548d899c1900f8466d351483284265324/pkg/controller/daemon/util/daemonset_util.go#L48">https://github.com/kubernetes/kubernetes/blob/fa77f7f548d899c1900f8466d351483284265324/pkg/controller/daemon/util/daemonset_util.go#L48</a></li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// AddOrUpdateDaemonPodTolerations apply necessary tolerations to DaemonSet Pods, e.g. node.kubernetes.io/not-ready:NoExecute.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">AddOrUpdateDaemonPodTolerations</span><span class="params">(spec *v1.PodSpec)</span></span> &#123;</span><br><span class="line">	<span class="comment">// DaemonSet pods shouldn&#x27;t be deleted by NodeController in case of node problems.</span></span><br><span class="line">	<span class="comment">// Add infinite toleration for taint notReady:NoExecute here</span></span><br><span class="line">	<span class="comment">// to survive taint-based eviction enforced by NodeController</span></span><br><span class="line">	<span class="comment">// when node turns not ready.</span></span><br><span class="line">	v1helper.AddOrUpdateTolerationInPodSpec(spec, &amp;v1.Toleration&#123;</span><br><span class="line">		Key:      v1.TaintNodeNotReady,</span><br><span class="line">		Operator: v1.TolerationOpExists,</span><br><span class="line">		Effect:   v1.TaintEffectNoExecute,</span><br><span class="line">	&#125;)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// DaemonSet pods shouldn&#x27;t be deleted by NodeController in case of node problems.</span></span><br><span class="line">	<span class="comment">// Add infinite toleration for taint unreachable:NoExecute here</span></span><br><span class="line">	<span class="comment">// to survive taint-based eviction enforced by NodeController</span></span><br><span class="line">	<span class="comment">// when node turns unreachable.</span></span><br><span class="line">	v1helper.AddOrUpdateTolerationInPodSpec(spec, &amp;v1.Toleration&#123;</span><br><span class="line">		Key:      v1.TaintNodeUnreachable,</span><br><span class="line">		Operator: v1.TolerationOpExists,</span><br><span class="line">		Effect:   v1.TaintEffectNoExecute,</span><br><span class="line">	&#125;)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// According to TaintNodesByCondition feature, all DaemonSet pods should tolerate</span></span><br><span class="line">	<span class="comment">// MemoryPressure, DiskPressure, PIDPressure, Unschedulable and NetworkUnavailable taints.</span></span><br><span class="line">	v1helper.AddOrUpdateTolerationInPodSpec(spec, &amp;v1.Toleration&#123;</span><br><span class="line">		Key:      v1.TaintNodeDiskPressure,</span><br><span class="line">		Operator: v1.TolerationOpExists,</span><br><span class="line">		Effect:   v1.TaintEffectNoSchedule,</span><br><span class="line">	&#125;)</span><br><span class="line"></span><br><span class="line">	v1helper.AddOrUpdateTolerationInPodSpec(spec, &amp;v1.Toleration&#123;</span><br><span class="line">		Key:      v1.TaintNodeMemoryPressure,</span><br><span class="line">		Operator: v1.TolerationOpExists,</span><br><span class="line">		Effect:   v1.TaintEffectNoSchedule,</span><br><span class="line">	&#125;)</span><br><span class="line"></span><br><span class="line">	v1helper.AddOrUpdateTolerationInPodSpec(spec, &amp;v1.Toleration&#123;</span><br><span class="line">		Key:      v1.TaintNodePIDPressure,</span><br><span class="line">		Operator: v1.TolerationOpExists,</span><br><span class="line">		Effect:   v1.TaintEffectNoSchedule,</span><br><span class="line">	&#125;)</span><br><span class="line"></span><br><span class="line">	v1helper.AddOrUpdateTolerationInPodSpec(spec, &amp;v1.Toleration&#123;</span><br><span class="line">		Key:      v1.TaintNodeUnschedulable,</span><br><span class="line">		Operator: v1.TolerationOpExists,</span><br><span class="line">		Effect:   v1.TaintEffectNoSchedule,</span><br><span class="line">	&#125;)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> spec.HostNetwork &#123;</span><br><span class="line">		v1helper.AddOrUpdateTolerationInPodSpec(spec, &amp;v1.Toleration&#123;</span><br><span class="line">			Key:      v1.TaintNodeNetworkUnavailable,</span><br><span class="line">			Operator: v1.TolerationOpExists,</span><br><span class="line">			Effect:   v1.TaintEffectNoSchedule,</span><br><span class="line">		&#125;)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="设置调度亲和性"><a href="#设置调度亲和性" class="headerlink" title="设置调度亲和性"></a>设置调度亲和性</h2><p>通过<code>ReplaceDaemonSetPodNodeNameNodeAffiity</code>，把Pod的nodeAffinity设置为硬限制(requiredDuringSchedulingIgnoredDuringExecution)</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">nodeAffinity:</span></span><br><span class="line">	<span class="attr">requiredDuringSchedulingIgnoredDuringExecution:</span></span><br><span class="line">	<span class="bullet">-</span> <span class="attr">nodeSlectorTerms:</span></span><br><span class="line">		<span class="attr">matchExpressions:</span></span><br><span class="line">		<span class="bullet">-</span> <span class="attr">key:</span> <span class="string">kubernetes.io/hostname</span></span><br><span class="line">	<span class="attr">operator:</span> <span class="string">in</span></span><br><span class="line">	<span class="attr">values:</span></span><br><span class="line">	<span class="bullet">-</span> <span class="string">&lt;hostname&gt;</span></span><br></pre></td></tr></table></figure>
+
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2024/11/02/cloud/k8s/daemonset/K8s%E5%B7%A5%E4%BD%9C%E8%B4%9F%E8%BD%BD-DaemonSet/">https://piwriw.github.io/2024/11/02/cloud/k8s/daemonset/K8s工作负载-DaemonSet/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a><a class="post-meta__tags" href="/tags/cloud/">cloud</a><a class="post-meta__tags" href="/tags/K8s%E6%BA%90%E7%A0%81/">K8s源码</a><a class="post-meta__tags" href="/tags/dasemonset/">dasemonset</a></div><div class="post-share"><div class="social-share" data-image="/img/k8sLogo.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2024/11/02/cloud/k8s/job/K8s%E5%B7%A5%E4%BD%9C%E8%B4%9F%E8%BD%BD-Job/" title="K8s工作负载-Job"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">K8s工作负载-Job</div></div><div class="info-2"><div class="info-item-1">K8s工作负载-Job 基于1.25  什么是JobJob会创建一个或多个Pod，并持续重试Pod的执行，直至指定数量的Pod成功终止  随着Pod成功终止，Job会记录成功的Pod个数，Pod到达指定数量，Job终止 删除Job，会删除Job的所有Pod  JobSpec Ref:https://github.com/kubernetes/api/blob/f7b7ea4f0fcc6cb8c8dd42eb46a94c7e163d1b9d/batch/v1/types.go#L206  12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849505152535455565758596061626364656667686970717273747576777879808182838485868788899091929394959697989910010110210310410510610710810911011111211311411511611711811912...</div></div></div></a><a class="pagination-related" href="/2024/11/01/cloud/k8s/K8s%E5%B7%A5%E4%BD%9C%E8%B4%9F%E8%BD%BD-StaetfulSet/" title="K8s工作负载-StatefulSet"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">K8s工作负载-StatefulSet</div></div><div class="info-2"><div class="info-item-1">K8s工作负载-StatefulSet 基于1.25  什么是StatefulSetStatefulSet负责管理有状态应用，缩写sts  要求管理的Pod具有稳定的网络标识符和存储卷，实现又状态应用的数据持久化和数据访问 管理Pod，会对Pod有一个按照顺序增大的ID  使用场景 具有稳定、唯一的网络标识符（DNS Name） 每个Pod是中对应各自的存储路径（PersistVolumeClaimTempleate） 按照顺序增加副本、减少副本，并且在减少副本的时执行清理 按照顺序执行滚动更新  限制 Pod存储的要么由Storage Class的PVC提供，要么事先创建 删除或缩容一个StatefulSet不会删除对应的数据卷，确保数据安全 在删除StatefulSet，无法确保Pod的终止的正常的 如果需要，需要使用优雅的终止，需要先Scale Down到0   在使用默认的Pod Management Policy（OraderReady）进行滚动更新，可能会进入到错误状态，需要人工介入   ⚠️：不要时强制删除StatefulSet管理的Pod，本身机制，只会最多提供一...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2025/03/15/cloud/k8s/job/K8sController-Job(%E6%89%B9%E5%A4%84%E7%90%86%E4%BB%BB%E5%8A%A1)/" title="K8sController-Job(批处理任务)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-03-15</div><div class="info-item-2">K8sController-Job(批处理任务)</div></div><div class="info-2"><div class="info-item-1">K8sController-Job(批处理任务) 基于K8s 1.31  主要配置和工作机制123456789101112131415161718192021222324252627282930313233343536apiVersion: batch/v1kind: Jobmetadata:  name: hellospec:  # 可以并行任务数量，默认1  parallelism: 3  completions: 3  # Pod完成模式，NonIndexed（数量达到completions推出，默认），Indexed  # Indexed模式：会被设置为Pod服务名  # - 设置Pod名称：&lt;Job Name&gt;-&lt;索引序号&gt;-&lt;随机字符串&gt;  # - 设置Annotation &quot;batch.kubernetes.io/job-completion-index&quot;: &lt;索引序号&gt;  # - 设置Label &quot;batch.kubernetes.io/job-completion-index&quot...</div></div></div></a><a class="pagination-related" href="/2025/03/10/cloud/k8s/daemonset/K8sController-DaemonSet(%E5%9C%A8%E6%AF%8F%E4%B8%AANode%E4%B8%8A%E4%BB%85%E8%BF%90%E8%A1%8C%E4%B8%80%E4%B8%AAPod)/" title="K8sController-DaemonSet(在每个Node上仅运行一个Pod)"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-03-10</div><div class="info-item-2">K8sController-DaemonSet(在每个Node上仅运行一个Pod)</div></div><div class="info-2"><div class="info-item-1">K8sController-DaemonSet(在每个Node上仅运行一个Pod) 基于K8s 1.31  DaemonSet概述DS的常见场景  在每个Node上运行一个共享存储的驱动守护进程，比如ceph driver 在每个Node上运行一个日志采集程序，采集Node上全部日志，比如flaunted 在每个Node上运行一个性能采集程序  配置信息123456789101112131415161718192021222324252627282930313233343536373839apiVersion: apps/v1kind: DaemonSetmetadata:  name: fluentdspec:  # 修订历史最大数量 默认10  revisionHistoryLimit: 10  # 最短就绪时间 默认0  minReadySeconds: 5  # 更新策略  updateStrategy:    type: RollingUpdate    rollingUpdate:      maxUnavailable: 1  selector:    matchL...</div></div></div></a><a class="pagination-related" href="/2024/12/16/cloud/k8s/kubelet/K8s-kubelet(HTTP%E6%9C%8D%E5%8A%A1%E6%8E%A5%E5%8F%A3)/" title="K8s-kubelet(HTTP服务接口)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-16</div><div class="info-item-2">K8s-kubelet(HTTP服务接口)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(HTTP服务接口) 基于1.25  kubelet通过HTTP Server对外暴露API，为了确保接口安全，kubelet按照安全等级从低到高顺序支持3种HTTP Server，分别是healthz server、readonly server和kubelet core server    一级类目 二级类目 Path路径 描述    Default Handlerers healthz &#x2F;healthz 检查kubelet是否健康，重点检查syncLoop是否持续在规定时间内完成。检查syncLoop四因为其他组件故障会间接导致syncLoop不能执行成功   Default Handlerers pods &#x2F;pods 读取当前节点运行的Pod列表（通过PodManager获取）   Default Handlerers stats &#x2F;stats&#x2F;summary 读取资源使用状态   Default Handlerers metrics &#x2F;metrics 读取kubelet监控指标数据   Defaul...</div></div></div></a><a class="pagination-related" href="/2024/12/15/cloud/k8s/kubelet/K8s-kubelet(PLEG%E6%A0%B8%E5%BF%83%E5%8E%9F%E7%90%86)/" title="K8s-kubelet(PLEG核心原理)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-15</div><div class="info-item-2">K8s-kubelet(PLEG核心原理)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(PLEG核心原理) 基于1.25  PLEG是kubelet的一个重要组件，负责监控kubelet管理的节点运行的Pod的生命周期，并生成于生命周期相关的事件 PLEG产生原因在K8s中，kubelet负责维护和管理每个节点上的Pod，不断的调谐Pod的状态以使得符合Spec。  为了实现这个目标，kubelet同时需要支持对Pod Spec和Container Status 的事件监听。对于前者kubelet通过watch不同源的对PodSpec事件实现，对于后者，PLEG之前，不断需要Pod处理协程不断的周期性拉取最新状态，尝试了大量轮询压力。 在kubeletv1.2.0版本引入了PLEG，目标是改善kubelet的可拓展性 减少不必要的处理操作（当状态为发生变化时，不执行无效的调谐操作） 减少对底层容器运行的并发请求，以减轻容器运行时的压力    PLEG架构设计PLEG主要包含俩个核心工作，一是感受容器变化，生成Pod事件，俩是维持一份最新的Pod Status Cache数据供其他组件读取。   kubelet同时接收俩个方向的事件，Pod S...</div></div></div></a><a class="pagination-related" href="/2024/12/14/cloud/k8s/kubelet/K8s-kubelet(Cgroup%E8%B5%84%E6%BA%90%E9%9A%94%E7%A6%BB%E4%BB%A5%E5%8F%8A%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E5%8E%9F%E7%90%86)/" title="K8s-kubelet(Cgroup资源隔离以及垃圾回收原理)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-14</div><div class="info-item-2">K8s-kubelet(Cgroup资源隔离以及垃圾回收原理)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(Cgroup资源隔离以及垃圾回收原理) 基于1.25  什么是Cgroup资源隔离kubelet基于cgroup限制Pod资源使用。cgroup是Linux内核的一个重要功能，用来限制、控制和分离一个进程组的资源（CPU、内存、磁盘I&#x2F;O） kubelet在创建Pod时，会将其配置的cgroups parent目录传递给容器运行时，使容器运行时创建的进程都会限制到kubelet配置父级cgroup之下。  kubelet负责维护Pod、QoS、Node级别的cgroup配置 Container级别的cgroup直接交给容器运行时实现  cgroup的层级结构 kubelet采用了四级cgroups层级架构存储  Node Level cgroup 为了保证系统运行的稳定性，kubelet支持为系统守护进程预留资源，避免Pod占用整个系统资源，造成系统卡死或者崩溃。  默认情况下，kube-reserved和system-reserved不会启用。 但是启用之后，需要注意守护进程添加了cgroup之后，可能导致配置的上限太小，导致守护进程资源不足退...</div></div></div></a><a class="pagination-related" href="/2024/12/13/cloud/k8s/kubelet/K8s-kubelet(Pod%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F%E7%AE%A1%E7%90%86)/" title="K8s-kubelet(Pod生命周期管理)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-13</div><div class="info-item-2">K8s-kubelet(Pod生命周期管理)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(Pod生命周期管理) 基于1.25  kubelet以Pod为基本处理单元，负责Pod从创建到消亡的整个生命周期   在1.21中Unknown状态已经被标记为弃用。  CRIkubelet通过CRI RPC管理容器的生命周期，执行容器的lifecycle hook和 startup&#x2F;liveness&#x2F;readiness的健康检查，同时根据Pod的重启策略在容器失败退出后自动重启容器，CRI是kubelet管理Pod和容器的基础   Ref:https://github.com/kubernetes/cri-api/blob/2c8d015e0d408208ca8843c1d6e2e2fce1e5dd94/pkg/apis/runtime/v1/api.proto#L34 12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849505152535455565758596061626364656667686970717...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#K8s%E5%B7%A5%E4%BD%9C%E8%B4%9F%E8%BD%BD-DaemonSet"><span class="toc-number">1.</span> <span class="toc-text">K8s工作负载-DaemonSet</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%80%E4%B9%88%E6%98%AFDaemonSet"><span class="toc-number">1.1.</span> <span class="toc-text">什么是DaemonSet</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8%E5%9C%BA%E6%99%AF"><span class="toc-number">1.2.</span> <span class="toc-text">使用场景</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#DaemonSetSpec"><span class="toc-number">1.3.</span> <span class="toc-text">DaemonSetSpec</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9B%B4%E6%96%B0%E7%AD%96%E7%95%A5"><span class="toc-number">1.4.</span> <span class="toc-text">更新策略</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%8A%82%E7%82%B9%E5%90%8C%E6%AD%A5"><span class="toc-number">1.5.</span> <span class="toc-text">节点同步</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%B1%A1%E7%82%B9%E5%92%8C%E5%AE%B9%E5%BF%8D"><span class="toc-number">1.6.</span> <span class="toc-text">污点和容忍</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%AE%BE%E7%BD%AE%E8%B0%83%E5%BA%A6%E4%BA%B2%E5%92%8C%E6%80%A7"><span class="toc-number">1.7.</span> <span class="toc-text">设置调度亲和性</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-日志系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明">Gorm-日志系统模块原理说明</a><time datetime="2026-01-11T11:56:27.000Z" title="发表于 2026-01-11 19:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-迁移功能模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明">Gorm-迁移功能模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-插件系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明">Gorm-插件系统模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-事务处理模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明">Gorm-事务处理模块原理说明</a><time datetime="2026-01-11T09:56:27.000Z" title="发表于 2026-01-11 17:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-关联关系模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明">Gorm-关联关系模块原理说明</a><time datetime="2026-01-11T08:56:27.000Z" title="发表于 2026-01-11 16:56:27">2026-01-11</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

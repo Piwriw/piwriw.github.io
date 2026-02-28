@@ -1,0 +1,604 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>containerd-CRI | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="containerd-CRIOverviewCRI定义了容器和镜像服务的接口，使用Protocol Buffer协议  定义了kubelet与不同容器运行时交互规范 接口包含客户端与服务端   123kubectl xx--containerd-runtime-endpoint&#x3D;&lt;CRI Server的Uninx Socket&gt;--image-service-endpont&#x3D;&lt;">
+<meta property="og:type" content="article">
+<meta property="og:title" content="containerd-CRI">
+<meta property="og:url" content="https://piwriw.github.io/2024/12/24/cloud/k8s/containerd/containerd-CRI/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="containerd-CRIOverviewCRI定义了容器和镜像服务的接口，使用Protocol Buffer协议  定义了kubelet与不同容器运行时交互规范 接口包含客户端与服务端   123kubectl xx--containerd-runtime-endpoint&#x3D;&lt;CRI Server的Uninx Socket&gt;--image-service-endpont&#x3D;&lt;">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/containerd.png">
+<meta property="article:published_time" content="2024-12-24T15:08:55.000Z">
+<meta property="article:modified_time" content="2026-02-28T13:29:12.662Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="k8s">
+<meta property="article:tag" content="cloud">
+<meta property="article:tag" content="containerd">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/containerd.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "containerd-CRI",
+  "url": "https://piwriw.github.io/2024/12/24/cloud/k8s/containerd/containerd-CRI/",
+  "image": "https://piwriw.github.io/img/containerd.png",
+  "datePublished": "2024-12-24T15:08:55.000Z",
+  "dateModified": "2026-02-28T13:29:12.662Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2024/12/24/cloud/k8s/containerd/containerd-CRI/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'containerd-CRI',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/containerd.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">containerd-CRI</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">containerd-CRI</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2024-12-24T15:08:55.000Z" title="发表于 2024-12-24 23:08:55">2024-12-24</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-02-28T13:29:12.662Z" title="更新于 2026-02-28 21:29:12">2026-02-28</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/">k8s</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/containerd/">containerd</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">4.4k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>19分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-02-28 21:29:12&quot;}" hidden></div><h1 id="containerd-CRI"><a href="#containerd-CRI" class="headerlink" title="containerd-CRI"></a>containerd-CRI</h1><h2 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h2><p>CRI定义了容器和镜像服务的接口，使用Protocol Buffer协议</p>
+<ul>
+<li>定义了kubelet与不同容器运行时交互规范</li>
+<li>接口包含客户端与服务端</li>
+</ul>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image202412242001228.png"></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">kubectl xx</span><br><span class="line">--containerd-runtime-endpoint=&lt;CRI Server的Uninx Socket&gt;</span><br><span class="line">--image-service-endpont=&lt; CRI Serverdr的Uninx Socket&gt;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>如果Runtime Service和Image Service在一个gPRC Server中要配置container-runtime-endpoint，当image-service-endpoint为空，默认使用container-runtime-endpoint一致的地址</p>
+<p>如果是K8s 1.24以前使用CRI Server需要设置container-runtime&#x3D;remote（自从kubelet移除了dockershim，这个参数废弃，默认container-runtime&#x3D;docker</p>
+</blockquote>
+<h3 id="RuntimeService"><a href="#RuntimeService" class="headerlink" title="RuntimeService"></a>RuntimeService</h3><p>Runtime Service主要负责Pod以及container的生命周期管理，包含四大类</p>
+<ul>
+<li>PodSandbox管理，和k8s中pod一一对应，为pod提供隔离环境，准备需要的基础网络设施。在runc下，对应一个pause容器，在kata或者firecracker中对应一台虚拟机</li>
+<li>container管理，用于上述中Sandbox中管理容器的生命周期，如创建、启动、销毁容器</li>
+<li>Streaming API：用于kubelet进行Exec、Attach、PortForward交互，该类接口返回给kubelet的是Streaming Server的Endpoint，用于接收后续kubelte的Attach、PortForward请求</li>
+<li>Runtime接口：主要查询该CRI Server的状态，如CRI、CNI状态，以及更新PodCIDR配置</li>
+</ul>
+<p>Runtime Service 接口描述</p>
+<table>
+<thead>
+<tr>
+<th align="center">分类</th>
+<th align="center">方法</th>
+<th align="center">说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">sandbox相关</td>
+<td align="center">RunPodSandbox</td>
+<td align="center">启动Pod沙箱功能，包含pod网络基础设施</td>
+</tr>
+<tr>
+<td align="center">sandbox相关</td>
+<td align="center">StopPodSandbox</td>
+<td align="center">停止sandbox的相关进程，回收网络基础设施；该操作幂等；kubelet在调用RemovePodSandbox之前至少调用一次StopPodSandbox</td>
+</tr>
+<tr>
+<td align="center">sandbox相关</td>
+<td align="center">RemovePod Sandbox</td>
+<td align="center">删除sandbox，以及sandbox内的相关容器</td>
+</tr>
+<tr>
+<td align="center">sandbox相关</td>
+<td align="center">PodSandboxStatus</td>
+<td align="center">返回PodSandbox的状态</td>
+</tr>
+<tr>
+<td align="center">sandbox相关</td>
+<td align="center">ListPodSandbox</td>
+<td align="center">获取PodSandbox列表</td>
+</tr>
+<tr>
+<td align="center">container相关</td>
+<td align="center">CreateContainer</td>
+<td align="center">在指定的sandbox中创建新的container</td>
+</tr>
+<tr>
+<td align="center">container相关</td>
+<td align="center">StopContainer</td>
+<td align="center">在一定的时间内（timeout）停止一个正在运行的container；操作幂等；在超过grace period之后，必须强制清理该container，该操作幂等</td>
+</tr>
+<tr>
+<td align="center">container相关</td>
+<td align="center">RemoveContainer</td>
+<td align="center">清理container，如果container正在运行，则强制清理该container；该操作幂等</td>
+</tr>
+<tr>
+<td align="center">container相关</td>
+<td align="center">ListContainers</td>
+<td align="center">通过filter获取所有的container</td>
+</tr>
+<tr>
+<td align="center">container相关</td>
+<td align="center">ContainerStatus</td>
+<td align="center">获取container的状态，如果container不存在，则报错</td>
+</tr>
+<tr>
+<td align="center">container相关</td>
+<td align="center">UpdateContainerResources</td>
+<td align="center">更新container的ContainerConfig</td>
+</tr>
+<tr>
+<td align="center">container相关</td>
+<td align="center">ContainerStats</td>
+<td align="center">获取container的统计数据，如CPU、内存</td>
+</tr>
+<tr>
+<td align="center">container相关</td>
+<td align="center">ListContainerStats</td>
+<td align="center">获取所有运行container的统计数据</td>
+</tr>
+<tr>
+<td align="center">runtime相关</td>
+<td align="center">UpdateRuntimeConfig</td>
+<td align="center">更新runtime的配置，当前containerd只支持处理PodCIDR的变更</td>
+</tr>
+<tr>
+<td align="center">runtime相关</td>
+<td align="center">Status</td>
+<td align="center">获取runtime的状态（CRI+CNI状态），只要CRI Plugin能正常响应，则CRI为Ready，CNI要看CNI插件的状态</td>
+</tr>
+<tr>
+<td align="center">runtime相关</td>
+<td align="center">Version</td>
+<td align="center">获取runtime的名称、版本、API版本等</td>
+</tr>
+<tr>
+<td align="center">container管理</td>
+<td align="center">ReopenContainerLog</td>
+<td align="center">ReopenContainerLog会情趣runtime重新打开container的stdout&#x2F;stderr；通常会在日志文件被rotate之后被调用，如果container没在运行，则runtime会创建一个新的log file或返回nil，或者返回error（返回error的情况下 ，不会插件log file）</td>
+</tr>
+<tr>
+<td align="center">container管理</td>
+<td align="center">ExecSync</td>
+<td align="center">在container内同步执行一个命令</td>
+</tr>
+<tr>
+<td align="center">Streaming API</td>
+<td align="center">Exec</td>
+<td align="center">准备一个Streaming endpoint，在container执行一个命令，会连接到容器，可以像ssh一样进入容器，进行操作，可以通过exit退出容器，不影响容器运行</td>
+</tr>
+<tr>
+<td align="center">Streaming API</td>
+<td align="center">Attach</td>
+<td align="center">咋办一个Streaming endpoint连接准备的container，会通过连接stdin，连接到容器内输入&#x2F;输出，会在输入exit后终止进程</td>
+</tr>
+<tr>
+<td align="center">Streaming API</td>
+<td align="center">PortForward</td>
+<td align="center">准备一个Streaming ednpoint来转发到container中的端口，如kubectl port- forward pods&#x2F;xxx 10000:8080 将本地端口10000转发到容器内8080</td>
+</tr>
+</tbody></table>
+<h3 id="ImageService"><a href="#ImageService" class="headerlink" title="ImageService"></a>ImageService</h3><p>ImageService比较简答，主要是运行容器的几个镜像接口</p>
+<p>ImageService接口定义</p>
+<table>
+<thead>
+<tr>
+<th align="center">分类</th>
+<th align="center">方法</th>
+<th align="center">说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">镜像相关</td>
+<td align="center">ListImages</td>
+<td align="center">列出当前存在的镜像</td>
+</tr>
+<tr>
+<td align="center">镜像相关</td>
+<td align="center">ImageStatus</td>
+<td align="center">返回镜像的状态，如果不存在，则ImageStatusResponse.Image为nil</td>
+</tr>
+<tr>
+<td align="center">镜像相关</td>
+<td align="center">PullImage</td>
+<td align="center">返回认证信息拉取镜像</td>
+</tr>
+<tr>
+<td align="center">镜像相关</td>
+<td align="center">RemoveImage</td>
+<td align="center">移除镜像，该操作是幂等</td>
+</tr>
+<tr>
+<td align="center">镜像相关</td>
+<td align="center">ImageFsInfo</td>
+<td align="center">返回存储镜像所用的文件系统</td>
+</tr>
+</tbody></table>
+<p>kubectl exec命令主要有以下的几个步骤：</p>
+<ol>
+<li>kubectl发送POST请求给kube-apiserver，请求路径为“&#x2F;api&#x2F;v1&#x2F;namespaces&#x2F;<pod namespace>&#x2F;<pod name>&#x2F;exec?xxx</li>
+<li>Kube-apiserver向kubectl发送流失请求，kubectl通过CRI向CRI Server调用exec func</li>
+<li>CRI Server返回Streaming Server的url地址给kubelet</li>
+<li>kubelet返回给kube-apiserver重定向响应，将请求重定向到Streaming Server的url</li>
+<li>kube-apiserver重定向请求到Streaming Server的url</li>
+<li>Streaming Server响应该请求，注意StreamingServer会返回呀i个HTTP协议升级的响应为kube-apiserver，告诉kube-apiserver切换到SPDY协议</li>
+</ol>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image202412242109997.png"></p>
+<h2 id="几种CRI实现以及概述"><a href="#几种CRI实现以及概述" class="headerlink" title="几种CRI实现以及概述"></a>几种CRI实现以及概述</h2><h3 id="crio"><a href="#crio" class="headerlink" title="crio"></a>crio</h3><p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image202412242115344.png"></p>
+<p>crio具体实现流程如下：</p>
+<ol>
+<li>K8s通知kubelet启动一个pod</li>
+<li>kubelet通过CRI将请求转发给crio daemon</li>
+<li>crio-利用containers&#x2F;image 从镜像参数拉取镜像</li>
+<li>下载好的镜像被压缩到容器的根文件系统中，并且通过containers&#x2F;storage存储到支持写的复制（COW）的文件系统中</li>
+<li>在为容器创建rootfs之后，cri-o通过oci-runtime-tool(OCI组织提供)生成一个OCI运行时规范json文件</li>
+<li>cri-o使用上述的运行时规范JSON文件启动一个兼容OCI规范的运行时来运行容器进程。默认的运行时runc，理论上支持OCI规范的各种运行时，如kata、gVisor等</li>
+<li>每个容器都由一个独立的common进程监控，common为容器中pid为1的进程提供一个pty。同时，它还负责处理容器的日志记录并记录容器进程的退出代码</li>
+<li>网络是通过CNI设置的，因此可以支持社区的多种CNI插件</li>
+</ol>
+<p>相比Docker和containerd，cri-o仅仅为k8s设计，并且针对于K8s进行优化，调用链路最短</p>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image202412242145516.png"></p>
+<h3 id="PouchConatiner"><a href="#PouchConatiner" class="headerlink" title="PouchConatiner"></a>PouchConatiner</h3><p>PouchConatiner是阿里把开源的高效、轻量级、企业富容器级</p>
+<ul>
+<li>PouchConatiner基于systemd管理业务进程</li>
+</ul>
+<p>PouchConatiner实现的富容器相对于单进程，主要区别内部进程分为几类：</p>
+<ul>
+<li>pid&#x3D;1的init进程：富容器并没有将容器镜像汇总指定的CMD作为容器内pid&#x3D;1的进程，而是支持了systemd、sbin&#x2F;init、dumb-init等类型的init进程，而是更加管理内部的多进程服务。crond系统服务、syslogd系统服务</li>
+<li>容器镜像的CMD：容器镜像的CMD代表业务应用，是整个富容器的核心部分，在富容器内通过systemd启动该业务应用</li>
+<li>容器内系统service进程：很对传统业务开发长期依赖裸金属</li>
+<li>用户自定义运维组件：除了系统服务，企业运维团队还需要对基础设施配置自定义运维组件</li>
+</ul>
+<h3 id="fireacker-containerd"><a href="#fireacker-containerd" class="headerlink" title="fireacker-containerd"></a>fireacker-containerd</h3><p>fireacker-containerd 是AWS基于containerd开源的一个支持Firecracker的CRI项目，而Firecracker是AWS开源的一个轻量化虚拟机管理</p>
+<ol>
+<li>轻量化<ul>
+<li>启动速度快，极简设备模型。Firecracker没有BIOS和PCI，甚至不需要设备直通</li>
+<li>密度高：内存开销低。Firecraker每个MicroVM约为3MB</li>
+<li>水平拓展：Firecraker微虚拟机可以在每个主机上以每秒150个实例速度拓展</li>
+</ul>
+</li>
+<li>超卖率<ul>
+<li>内存和CPU超卖率可以最高20倍</li>
+</ul>
+</li>
+</ol>
+<h3 id="virtlet"><a href="#virtlet" class="headerlink" title="virtlet"></a>virtlet</h3><p>virtlet是退出的基于K8s管理虚拟机方案，virtlet实现了一套VM的CRI和contianerd与kubelet交互，不需要额外的空hi走起，virtlet借助pod的注解表达更多的VM信息</p>
+<h2 id="containerd和CRI-Plugin"><a href="#containerd和CRI-Plugin" class="headerlink" title="containerd和CRI Plugin"></a>containerd和CRI Plugin</h2><p>pod启动容器时，CRI Plugin的工作流程：</p>
+<ol>
+<li>kubelet通过CRI调用CRI Plugin中的RunSandbox API，创建Pod对应的Sandbox环境</li>
+<li>插件Pod Sandbox时，CRI Plugin会创建Pod网络命名空间，然后通过CNI配置容器网络，之后会为Sandbox创建并启动一个特殊的容器，Pause容器，然后把容器加入到上述网络命名空间</li>
+<li>创建完PodSandbox之后，kubelet调用CRI Plugin的ImageService API拉取容器镜像，如果node上不存在该镜像，则CRI Plugin会调用coantainerd接口去拉取镜像</li>
+<li>kubelet利用刚刚拉取的镜像调用CRI Plugin的Runtime Service API，在Pod Sandbox中创建启动容器</li>
+<li>CRI Plugin最终通过containerd client skd调用containerd的接口创建容器，并在pod所在的Cgroups和namespace中启动容器</li>
+</ol>
+<h3 id="重要配置"><a href="#重要配置" class="headerlink" title="重要配置"></a>重要配置</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br><span class="line">220</span><br><span class="line">221</span><br><span class="line">222</span><br><span class="line">223</span><br><span class="line">224</span><br><span class="line">225</span><br><span class="line">226</span><br><span class="line">227</span><br><span class="line">228</span><br><span class="line">229</span><br><span class="line">230</span><br><span class="line">231</span><br><span class="line">232</span><br><span class="line">233</span><br><span class="line">234</span><br><span class="line">235</span><br><span class="line">236</span><br><span class="line">237</span><br><span class="line">238</span><br><span class="line">239</span><br><span class="line">240</span><br><span class="line">241</span><br></pre></td><td class="code"><pre><span class="line">root@iZbp1ebizftw2vpbpm737wZ ~]# containerd config default</span><br><span class="line">version = 3</span><br><span class="line">root = &#x27;/var/lib/containerd&#x27;</span><br><span class="line">state = &#x27;/run/containerd&#x27;</span><br><span class="line">temp = &#x27;&#x27;</span><br><span class="line">plugin_dir = &#x27;&#x27;</span><br><span class="line">disabled_plugins = []</span><br><span class="line">required_plugins = []</span><br><span class="line">oom_score = 0</span><br><span class="line">imports = []</span><br><span class="line"></span><br><span class="line">[grpc]</span><br><span class="line">  address = &#x27;/run/containerd/containerd.sock&#x27;</span><br><span class="line">  tcp_address = &#x27;&#x27;</span><br><span class="line">  tcp_tls_ca = &#x27;&#x27;</span><br><span class="line">  tcp_tls_cert = &#x27;&#x27;</span><br><span class="line">  tcp_tls_key = &#x27;&#x27;</span><br><span class="line">  uid = 0</span><br><span class="line">  gid = 0</span><br><span class="line">  max_recv_message_size = 16777216</span><br><span class="line">  max_send_message_size = 16777216</span><br><span class="line"></span><br><span class="line">[ttrpc]</span><br><span class="line">  address = &#x27;&#x27;</span><br><span class="line">  uid = 0</span><br><span class="line">  gid = 0</span><br><span class="line"></span><br><span class="line">[debug]</span><br><span class="line">  address = &#x27;&#x27;</span><br><span class="line">  uid = 0</span><br><span class="line">  gid = 0</span><br><span class="line">  level = &#x27;&#x27;</span><br><span class="line">  format = &#x27;&#x27;</span><br><span class="line"></span><br><span class="line">[metrics]</span><br><span class="line">  address = &#x27;&#x27;</span><br><span class="line">  grpc_histogram = false</span><br><span class="line"></span><br><span class="line">[plugins]</span><br><span class="line">  [plugins.&#x27;io.containerd.cri.v1.images&#x27;]</span><br><span class="line">    snapshotter = &#x27;overlayfs&#x27;</span><br><span class="line">    disable_snapshot_annotations = true</span><br><span class="line">    discard_unpacked_layers = false</span><br><span class="line">    max_concurrent_downloads = 3</span><br><span class="line">    image_pull_progress_timeout = &#x27;5m0s&#x27;</span><br><span class="line">    image_pull_with_sync_fs = false</span><br><span class="line">    stats_collect_period = 10</span><br><span class="line"></span><br><span class="line">    [plugins.&#x27;io.containerd.cri.v1.images&#x27;.pinned_images]</span><br><span class="line">      sandbox = &#x27;registry.k8s.io/pause:3.10&#x27;</span><br><span class="line"></span><br><span class="line">    [plugins.&#x27;io.containerd.cri.v1.images&#x27;.registry]</span><br><span class="line">      config_path = &#x27;&#x27;</span><br><span class="line"></span><br><span class="line">    [plugins.&#x27;io.containerd.cri.v1.images&#x27;.image_decryption]</span><br><span class="line">      key_model = &#x27;node&#x27;</span><br><span class="line"></span><br><span class="line">  [plugins.&#x27;io.containerd.cri.v1.runtime&#x27;]</span><br><span class="line">    enable_selinux = false</span><br><span class="line">    selinux_category_range = 1024</span><br><span class="line">    max_container_log_line_size = 16384</span><br><span class="line">    disable_apparmor = false</span><br><span class="line">    restrict_oom_score_adj = false</span><br><span class="line">    disable_proc_mount = false</span><br><span class="line">    unset_seccomp_profile = &#x27;&#x27;</span><br><span class="line">    tolerate_missing_hugetlb_controller = true</span><br><span class="line">    disable_hugetlb_controller = true</span><br><span class="line">    device_ownership_from_security_context = false</span><br><span class="line">    ignore_image_defined_volumes = false</span><br><span class="line">    netns_mounts_under_state_dir = false</span><br><span class="line">    enable_unprivileged_ports = true</span><br><span class="line">    enable_unprivileged_icmp = true</span><br><span class="line">    enable_cdi = true</span><br><span class="line">    cdi_spec_dirs = [&#x27;/etc/cdi&#x27;, &#x27;/var/run/cdi&#x27;]</span><br><span class="line">    drain_exec_sync_io_timeout = &#x27;0s&#x27;</span><br><span class="line">    ignore_deprecation_warnings = []</span><br><span class="line"></span><br><span class="line">    [plugins.&#x27;io.containerd.cri.v1.runtime&#x27;.containerd]</span><br><span class="line">      default_runtime_name = &#x27;runc&#x27;</span><br><span class="line">      ignore_blockio_not_enabled_errors = false</span><br><span class="line">      ignore_rdt_not_enabled_errors = false</span><br><span class="line"></span><br><span class="line">      [plugins.&#x27;io.containerd.cri.v1.runtime&#x27;.containerd.runtimes]</span><br><span class="line">        [plugins.&#x27;io.containerd.cri.v1.runtime&#x27;.containerd.runtimes.runc]</span><br><span class="line">          runtime_type = &#x27;io.containerd.runc.v2&#x27;</span><br><span class="line">          runtime_path = &#x27;&#x27;</span><br><span class="line">          pod_annotations = []</span><br><span class="line">          container_annotations = []</span><br><span class="line">          privileged_without_host_devices = false</span><br><span class="line">          privileged_without_host_devices_all_devices_allowed = false</span><br><span class="line">          base_runtime_spec = &#x27;&#x27;</span><br><span class="line">          cni_conf_dir = &#x27;&#x27;</span><br><span class="line">          cni_max_conf_num = 0</span><br><span class="line">          snapshotter = &#x27;&#x27;</span><br><span class="line">          sandboxer = &#x27;podsandbox&#x27;</span><br><span class="line">          io_type = &#x27;&#x27;</span><br><span class="line"></span><br><span class="line">          [plugins.&#x27;io.containerd.cri.v1.runtime&#x27;.containerd.runtimes.runc.options]</span><br><span class="line">            BinaryName = &#x27;&#x27;</span><br><span class="line">            CriuImagePath = &#x27;&#x27;</span><br><span class="line">            CriuWorkPath = &#x27;&#x27;</span><br><span class="line">            IoGid = 0</span><br><span class="line">            IoUid = 0</span><br><span class="line">            NoNewKeyring = false</span><br><span class="line">            Root = &#x27;&#x27;</span><br><span class="line">            ShimCgroup = &#x27;&#x27;</span><br><span class="line"></span><br><span class="line">    [plugins.&#x27;io.containerd.cri.v1.runtime&#x27;.cni]</span><br><span class="line">      bin_dir = &#x27;/opt/cni/bin&#x27;</span><br><span class="line">      conf_dir = &#x27;/etc/cni/net.d&#x27;</span><br><span class="line">      max_conf_num = 1</span><br><span class="line">      setup_serially = false</span><br><span class="line">      conf_template = &#x27;&#x27;</span><br><span class="line">      ip_pref = &#x27;&#x27;</span><br><span class="line">      use_internal_loopback = false</span><br><span class="line"></span><br><span class="line">  [plugins.&#x27;io.containerd.gc.v1.scheduler&#x27;]</span><br><span class="line">    pause_threshold = 0.02</span><br><span class="line">    deletion_threshold = 0</span><br><span class="line">    mutation_threshold = 100</span><br><span class="line">    schedule_delay = &#x27;0s&#x27;</span><br><span class="line">    startup_delay = &#x27;100ms&#x27;</span><br><span class="line"></span><br><span class="line">  [plugins.&#x27;io.containerd.grpc.v1.cri&#x27;]</span><br><span class="line">    disable_tcp_service = true</span><br><span class="line">    stream_server_address = &#x27;127.0.0.1&#x27;</span><br><span class="line">    stream_server_port = &#x27;0&#x27;</span><br><span class="line">    stream_idle_timeout = &#x27;4h0m0s&#x27;</span><br><span class="line">    enable_tls_streaming = false</span><br><span class="line"></span><br><span class="line">    [plugins.&#x27;io.containerd.grpc.v1.cri&#x27;.x509_key_pair_streaming]</span><br><span class="line">      tls_cert_file = &#x27;&#x27;</span><br><span class="line">      tls_key_file = &#x27;&#x27;</span><br><span class="line"></span><br><span class="line">  [plugins.&#x27;io.containerd.image-verifier.v1.bindir&#x27;]</span><br><span class="line">    bin_dir = &#x27;/opt/containerd/image-verifier/bin&#x27;</span><br><span class="line">    max_verifiers = 10</span><br><span class="line">    per_verifier_timeout = &#x27;10s&#x27;</span><br><span class="line"></span><br><span class="line">  [plugins.&#x27;io.containerd.internal.v1.opt&#x27;]</span><br><span class="line">    path = &#x27;/opt/containerd&#x27;</span><br><span class="line"></span><br><span class="line">  [plugins.&#x27;io.containerd.internal.v1.tracing&#x27;]</span><br><span class="line"></span><br><span class="line">  [plugins.&#x27;io.containerd.metadata.v1.bolt&#x27;]</span><br><span class="line">    content_sharing_policy = &#x27;shared&#x27;</span><br><span class="line"></span><br><span class="line">  [plugins.&#x27;io.containerd.monitor.container.v1.restart&#x27;]</span><br><span class="line">    interval = &#x27;10s&#x27;</span><br><span class="line"></span><br><span class="line">  [plugins.&#x27;io.containerd.monitor.task.v1.cgroups&#x27;]</span><br><span class="line">    no_prometheus = false</span><br><span class="line"></span><br><span class="line">  [plugins.&#x27;io.containerd.nri.v1.nri&#x27;]</span><br><span class="line">    disable = false</span><br><span class="line">    socket_path = &#x27;/var/run/nri/nri.sock&#x27;</span><br><span class="line">    plugin_path = &#x27;/opt/nri/plugins&#x27;</span><br><span class="line">    plugin_config_path = &#x27;/etc/nri/conf.d&#x27;</span><br><span class="line">    plugin_registration_timeout = &#x27;5s&#x27;</span><br><span class="line">    plugin_request_timeout = &#x27;2s&#x27;</span><br><span class="line">    disable_connections = false</span><br><span class="line"></span><br><span class="line">  [plugins.&#x27;io.containerd.runtime.v2.task&#x27;]</span><br><span class="line">    platforms = [&#x27;linux/amd64&#x27;]</span><br><span class="line"></span><br><span class="line">  [plugins.&#x27;io.containerd.service.v1.diff-service&#x27;]</span><br><span class="line">    default = [&#x27;walking&#x27;]</span><br><span class="line">    sync_fs = false</span><br><span class="line"></span><br><span class="line">  [plugins.&#x27;io.containerd.service.v1.tasks-service&#x27;]</span><br><span class="line">    blockio_config_file = &#x27;&#x27;</span><br><span class="line">    rdt_config_file = &#x27;&#x27;</span><br><span class="line"></span><br><span class="line">  [plugins.&#x27;io.containerd.shim.v1.manager&#x27;]</span><br><span class="line">    env = []</span><br><span class="line"></span><br><span class="line">  [plugins.&#x27;io.containerd.snapshotter.v1.blockfile&#x27;]</span><br><span class="line">    root_path = &#x27;&#x27;</span><br><span class="line">    scratch_file = &#x27;&#x27;</span><br><span class="line">    fs_type = &#x27;&#x27;</span><br><span class="line">    mount_options = []</span><br><span class="line">    recreate_scratch = false</span><br><span class="line"></span><br><span class="line">  [plugins.&#x27;io.containerd.snapshotter.v1.btrfs&#x27;]</span><br><span class="line">    root_path = &#x27;&#x27;</span><br><span class="line"></span><br><span class="line">  [plugins.&#x27;io.containerd.snapshotter.v1.devmapper&#x27;]</span><br><span class="line">    root_path = &#x27;&#x27;</span><br><span class="line">    pool_name = &#x27;&#x27;</span><br><span class="line">    base_image_size = &#x27;&#x27;</span><br><span class="line">    async_remove = false</span><br><span class="line">    discard_blocks = false</span><br><span class="line">    fs_type = &#x27;&#x27;</span><br><span class="line">    fs_options = &#x27;&#x27;</span><br><span class="line"></span><br><span class="line">  [plugins.&#x27;io.containerd.snapshotter.v1.native&#x27;]</span><br><span class="line">    root_path = &#x27;&#x27;</span><br><span class="line"></span><br><span class="line">  [plugins.&#x27;io.containerd.snapshotter.v1.overlayfs&#x27;]</span><br><span class="line">    root_path = &#x27;&#x27;</span><br><span class="line">    upperdir_label = false</span><br><span class="line">    sync_remove = false</span><br><span class="line">    slow_chown = false</span><br><span class="line">    mount_options = []</span><br><span class="line"></span><br><span class="line">  [plugins.&#x27;io.containerd.snapshotter.v1.zfs&#x27;]</span><br><span class="line">    root_path = &#x27;&#x27;</span><br><span class="line"></span><br><span class="line">  [plugins.&#x27;io.containerd.tracing.processor.v1.otlp&#x27;]</span><br><span class="line"></span><br><span class="line">  [plugins.&#x27;io.containerd.transfer.v1.local&#x27;]</span><br><span class="line">    max_concurrent_downloads = 3</span><br><span class="line">    max_concurrent_uploaded_layers = 3</span><br><span class="line">    config_path = &#x27;&#x27;</span><br><span class="line"></span><br><span class="line">[cgroup]</span><br><span class="line">  path = &#x27;&#x27;</span><br><span class="line"></span><br><span class="line">[timeouts]</span><br><span class="line">  &#x27;io.containerd.timeout.bolt.open&#x27; = &#x27;0s&#x27;</span><br><span class="line">  &#x27;io.containerd.timeout.metrics.shimstats&#x27; = &#x27;2s&#x27;</span><br><span class="line">  &#x27;io.containerd.timeout.shim.cleanup&#x27; = &#x27;5s&#x27;</span><br><span class="line">  &#x27;io.containerd.timeout.shim.load&#x27; = &#x27;5s&#x27;</span><br><span class="line">  &#x27;io.containerd.timeout.shim.shutdown&#x27; = &#x27;3s&#x27;</span><br><span class="line">  &#x27;io.containerd.timeout.task.state&#x27; = &#x27;2s&#x27;</span><br><span class="line"></span><br><span class="line">[stream_processors]</span><br><span class="line">  [stream_processors.&#x27;io.containerd.ocicrypt.decoder.v1.tar&#x27;]</span><br><span class="line">    accepts = [&#x27;application/vnd.oci.image.layer.v1.tar+encrypted&#x27;]</span><br><span class="line">    returns = &#x27;application/vnd.oci.image.layer.v1.tar&#x27;</span><br><span class="line">    path = &#x27;ctd-decoder&#x27;</span><br><span class="line">    args = [&#x27;--decryption-keys-path&#x27;, &#x27;/etc/containerd/ocicrypt/keys&#x27;]</span><br><span class="line">    env = [&#x27;OCICRYPT_KEYPROVIDER_CONFIG=/etc/containerd/ocicrypt/ocicrypt_keyprovider.conf&#x27;]</span><br><span class="line"></span><br><span class="line">  [stream_processors.&#x27;io.containerd.ocicrypt.decoder.v1.tar.gzip&#x27;]</span><br><span class="line">    accepts = [&#x27;application/vnd.oci.image.layer.v1.tar+gzip+encrypted&#x27;]</span><br><span class="line">    returns = &#x27;application/vnd.oci.image.layer.v1.tar+gzip&#x27;</span><br><span class="line">    path = &#x27;ctd-decoder&#x27;</span><br><span class="line">    args = [&#x27;--decryption-keys-path&#x27;, &#x27;/etc/containerd/ocicrypt/keys&#x27;]</span><br><span class="line">    env = [&#x27;OCICRYPT_KEYPROVIDER_CONFIG=/etc/containerd/ocicrypt/ocicrypt_keyprovider.conf&#x27;]</span><br><span class="line">[root@iZbp1ebizftw2vpbpm737wZ ~]# </span><br></pre></td></tr></table></figure>
+
+<p>CRI Plugin的全局配置项在[plugins.’io.containerd.grpc.v1.cri’]中，按照模块分</p>
+<ul>
+<li><p>CNI容器网络配置，该配置在[plugins.’io.containerd.grpc.v1.cri’.cni]项目下，主要是cni插件的路径，conf模版等</p>
+</li>
+<li><p>CRI中的containerd的配置，如各种runtime配置、默认的runtime配置、默认的snapshotter等，该配置[plugins.’io.containerd.grpc.v1.cri’.containerd]</p>
+</li>
+<li><p>CRI的镜像和仓库配置：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[plugins.&#x27;io.containerd.cri.v1.images&#x27;.registry]</span><br><span class="line">  config_path = &#x27;&#x27;</span><br><span class="line"></span><br><span class="line">[plugins.&#x27;io.containerd.cri.v1.images&#x27;.image_decryption]</span><br><span class="line">  key_model = &#x27;node&#x27;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️CNI Plugin配置仅仅作用于CNI Plugin，使用nerdctl、docker、ctr不起作用</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="cgroup-Driver配置"><a href="#cgroup-Driver配置" class="headerlink" title="cgroup Driver配置"></a>cgroup Driver配置</h3><ul>
+<li>尽管containerd和K8s默认都适用cgroupfs管理cgroup，但是基于一个系统采用一个cgroup 管理器，推荐生产中使用systemd</li>
+</ul>
+<ol>
+<li><p>配置containerd cgroup驱动（以runc）</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">version=2</span><br><span class="line">[plugin.&#x27;io.containerd.grpc.v1.cri&#x27;.conntainerd.runtime.runc.options]</span><br><span class="line"> SystemdCgroup=true</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>配置kubelet cgroup驱动</p>
+<p>除了container的驱动，在k8s中还需要配置kubelet驱动</p>
+<p>KubeletConfiguration默认位置<code>/var/lib/kubelet/config.yaml</code></p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">bash: /var/lib/kubelet/config.yaml:</span> <span class="string">Permission</span> <span class="string">denied</span></span><br><span class="line">[<span class="string">root@hcss-ecs-5425</span> <span class="string">~</span>]<span class="comment"># cat /var/lib/kubelet/config.yaml</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">kubelet.config.k8s.io/v1beta1</span></span><br><span class="line"><span class="attr">authentication:</span></span><br><span class="line">  <span class="attr">anonymous:</span></span><br><span class="line">    <span class="attr">enabled:</span> <span class="literal">false</span></span><br><span class="line">  <span class="attr">webhook:</span></span><br><span class="line">    <span class="attr">cacheTTL:</span> <span class="string">0s</span></span><br><span class="line">    <span class="attr">enabled:</span> <span class="literal">true</span></span><br><span class="line">  <span class="attr">x509:</span></span><br><span class="line">    <span class="attr">clientCAFile:</span> <span class="string">/etc/kubernetes/pki/ca.crt</span></span><br><span class="line"><span class="attr">authorization:</span></span><br><span class="line">  <span class="attr">mode:</span> <span class="string">Webhook</span></span><br><span class="line">  <span class="attr">webhook:</span></span><br><span class="line">    <span class="attr">cacheAuthorizedTTL:</span> <span class="string">0s</span></span><br><span class="line">    <span class="attr">cacheUnauthorizedTTL:</span> <span class="string">0s</span></span><br><span class="line"><span class="attr">cgroupDriver:</span> <span class="string">systemd</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>在1.22之后。不设置cgroupDriver，kubeadm默认systemd</p>
+</blockquote>
+</li>
+</ol>
+<h3 id="snapshotter配置"><a href="#snapshotter配置" class="headerlink" title="snapshotter配置"></a>snapshotter配置</h3><p>snapshotter是containerd为容器准备rootfs的存储插件</p>
+<ul>
+<li><p>containerd默认的snapshotter是overlayfs（同Docker的overlay2）</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[plugins.&#x27;io.containerd.cri.v1.images&#x27;]</span><br><span class="line">  snapshotter = &#x27;overlayfs&#x27;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>containerd支持aufs、brtfs、devmappper、native、overlayfs、zfs几种</p>
+</li>
+</ul>
+<h3 id="RuntimeClass配置"><a href="#RuntimeClass配置" class="headerlink" title="RuntimeClass配置"></a>RuntimeClass配置</h3><p>RuntimeClass是一种内置的资源，在K8sv1.14中</p>
+<p>使用RuntimeClass可以为不同的pod选择不同的容器运行时，以提供安全性与性能</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line">[root@hcss-ecs-5425 ~]# kubectl explain runtimeclass</span><br><span class="line">KIND:     RuntimeClass</span><br><span class="line">VERSION:  node.k8s.io/v1</span><br><span class="line"></span><br><span class="line">DESCRIPTION:</span><br><span class="line">     RuntimeClass defines a class of container runtime supported in the cluster.</span><br><span class="line">     The RuntimeClass is used to determine which container runtime is used to</span><br><span class="line">     run all containers in a pod. RuntimeClasses are manually defined by a user</span><br><span class="line">     or cluster provisioner, and referenced in the PodSpec. The Kubelet is</span><br><span class="line">     responsible for resolving the RuntimeClassName reference before running the</span><br><span class="line">     pod. For more details, see</span><br><span class="line">     https://kubernetes.io/docs/concepts/containers/runtime-class/</span><br><span class="line"></span><br><span class="line">FIELDS:</span><br><span class="line">   apiVersion   &lt;string&gt;</span><br><span class="line">     APIVersion defines the versioned schema of this representation of an</span><br><span class="line">     object. Servers should convert recognized schemas to the latest internal</span><br><span class="line">     value, and may reject unrecognized values. More info:</span><br><span class="line">     https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources</span><br><span class="line"></span><br><span class="line">   handler      &lt;string&gt; -required-</span><br><span class="line">     Handler specifies the underlying runtime and configuration that the CRI</span><br><span class="line">     implementation will use to handle pods of this class. The possible values</span><br><span class="line">     are specific to the node &amp; CRI configuration. It is assumed that all</span><br><span class="line">     handlers are available on every node, and handlers of the same name are</span><br><span class="line">     equivalent on every node. For example, a handler called &quot;runc&quot; might</span><br><span class="line">     specify that the runc OCI runtime (using native Linux containers) will be</span><br><span class="line">     used to run the containers in a pod. The Handler must be lowercase, conform</span><br><span class="line">     to the DNS Label (RFC 1123) requirements, and is immutable.</span><br><span class="line"></span><br><span class="line">   kind &lt;string&gt;</span><br><span class="line">     Kind is a string value representing the REST resource this object</span><br><span class="line">     represents. Servers may infer this from the endpoint the client submits</span><br><span class="line">     requests to. Cannot be updated. In CamelCase. More info:</span><br><span class="line">     https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds</span><br><span class="line"></span><br><span class="line">   metadata     &lt;Object&gt;</span><br><span class="line">     More info:</span><br><span class="line">     https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata</span><br><span class="line"></span><br><span class="line">   overhead     &lt;Object&gt;</span><br><span class="line">     Overhead represents the resource overhead associated with running a pod for</span><br><span class="line">     a given RuntimeClass. For more details, see</span><br><span class="line">     https://kubernetes.io/docs/concepts/scheduling-eviction/pod-overhead/ This</span><br><span class="line">     field is in beta starting v1.18 and is only honored by servers that enable</span><br><span class="line">     the PodOverhead feature.</span><br><span class="line"></span><br><span class="line">   scheduling   &lt;Object&gt;</span><br><span class="line">     Scheduling holds the scheduling constraints to ensure that pods running</span><br><span class="line">     with this RuntimeClass are scheduled to nodes that support it. If</span><br><span class="line">     scheduling is nil, this RuntimeClass is assumed to be supported by all</span><br><span class="line">     nodes.</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p>如果没有配置RuntimeClass，containerd默认handler使用runc（还支持crun\kata\gvisor)</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[plugins.&#x27;io.containerd.cri.v1.runtime&#x27;.containerd]</span><br><span class="line">   default_runtime_name = &#x27;runc&#x27;</span><br><span class="line">   ignore_blockio_not_enabled_errors = false</span><br><span class="line">   ignore_rdt_not_enabled_errors = false</span><br></pre></td></tr></table></figure>
+
+<p>除了containerd还需要为K8s集群配置和创建RuntimeClass才能自定义</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">node.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">RuntimeClass</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">	<span class="attr">name:</span> <span class="string">crun</span></span><br><span class="line"><span class="attr">handler:</span> <span class="string">crun</span></span><br></pre></td></tr></table></figure>
+
+<p>pod引用某个容器运行时，通过runtimeClassName指定</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Pod</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">	<span class="attr">runtimeClassName:</span> <span class="string">crun</span></span><br></pre></td></tr></table></figure></li>
+</ul>
+<h3 id="镜像仓库配置"><a href="#镜像仓库配置" class="headerlink" title="镜像仓库配置"></a>镜像仓库配置</h3><p>  在containerd1.5之后。配置项中为ctr、containerd image服务的客户端以及CRI的客户端增加了配置镜像仓库的能力 </p>
+<p> 在containerd中可以为每个镜像仓库指定一个hosts.toml配置文件完成对镜像仓库的配置，如使用证书、mirror镜像仓库等</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[plugins.&#x27;io.containerd.cri.v1.images&#x27;.registry]</span><br><span class="line">  config_path = &#x27;&#x27;</span><br></pre></td></tr></table></figure>
+
+<p>配置私有仓库：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">[plugins.&quot;io.containerd.grpc.v1.cri&quot;.registry]</span><br><span class="line">   [plugins.&quot;io.containerd.grpc.v1.cri&quot;.registry.mirrors]</span><br><span class="line">       [plugins.&quot;io.containerd.grpc.v1.cri&quot;.registry.mirrors.&quot;docker.io&quot;]</span><br><span class="line">          		endpoint = [&quot;https://registry-1.docker.io&quot;] //到此为配置文件默认生成，之后为需要添加的内容</span><br><span class="line">       [plugins.&quot;io.containerd.grpc.v1.cri&quot;.registry.mirrors.&quot;192.168.66.4&quot;]</span><br><span class="line">         		endpoint = [&quot;https://192.168.66.4:443&quot;]</span><br><span class="line">   [plugins.&quot;io.containerd.grpc.v1.cri&quot;.registry.configs]</span><br><span class="line">   		 [plugins.&quot;io.containerd.grpc.v1.cri&quot;.registry.configs.&quot;192.168.66.4&quot;.tls]</span><br><span class="line">          		insecure_skip_verify = true</span><br><span class="line">       	 [plugins.&quot;io.containerd.grpc.v1.cri&quot;.registry.configs.&quot;192.168.66.4&quot;.auth]</span><br><span class="line">          		username = &quot;admin&quot;</span><br><span class="line">          		password = &quot;Harbor12345&quot;</span><br></pre></td></tr></table></figure>
+
+<h3 id="镜像解密配置"><a href="#镜像解密配置" class="headerlink" title="镜像解密配置"></a>镜像解密配置</h3><p>OCI镜像规范中，一个镜像是由多层镜像层构成的，镜像层可以通过加密机制来加密机密数据或代码，防止未经授权的访问</p>
+<p>OIC镜像加密主要是在原来的OCI镜像规范基础上，添加了一种新的mediaType，表示数据被加密；同时在annotation中添加具体加密相关信息</p>
+<p>K8s中的containerd加密：</p>
+<ol>
+<li><p>K8s生态的镜像加密&#x2F;解密</p>
+<p>K8s支持俩种镜像解密模式：</p>
+<ol>
+<li><p>Node Key Model：将密钥放在K8s工作节点上，以节点为粒度实现解密</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[plugins.&#x27;io.containerd.cri.v1.images&#x27;.image_decryption]</span><br><span class="line">  key_model = &#x27;node&#x27;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/image202412252125986.png"></p>
+</li>
+<li><p>Mulit-tenancy Key Model：多租户模式，以集群粒度实现解密（当前社区未实现）</p>
+</li>
+</ol>
+</li>
+<li><p>containerd中的stream_processor</p>
+<p>stream_processor是containerd中一种基于内容流的二进制API</p>
+<p>传入内容流通过STDN传递给对应的二进制文件，经过二进制处理后输出STDOUT到stream_processor</p>
+<p>stream_processor是二进制的调用，相当于每层镜像都进行了unpiz操作</p>
+</li>
+</ol>
+<h2 id="CNI配置"><a href="#CNI配置" class="headerlink" title="CNI配置"></a>CNI配置</h2><p>containerd中通过配置项[plugin.’io.containerd.grpc.vc.cri’.cni]对CNI进行配置，CNI支持配置的配置有：</p>
+<ul>
+<li>bin_dir:指定CNI插件二进制所在的目录：如flannel、ipvlan、macvlan、host-local</li>
+<li>conf_dir:CNI conf文件所在目录，默认为&#x2F;etc&#x2F;cni&#x2F;net.d</li>
+<li>max_conf_num:指定要从CNI配置目录加载的CNI插件配置文件的最大数量.<ul>
+<li>默认情况下，只会加载一个CNI配置插件</li>
+<li>如果配置为0就会从conf_dir加载所有CNI插件配置文件</li>
+</ul>
+</li>
+<li>ip_pref:指定选择pod主IP地址时使用的策略，目前支持三种策略<ul>
+<li>IPv4:选择第一个IPv4地址，该策略是默认策略</li>
+<li>IPv6:选择第一个IPv6地址</li>
+<li>cni：使用CNI插件返回顺序，返回结果中的第一个IP地址</li>
+</ul>
+</li>
+<li>conf_templdate:该配置主要是kubenet用户（尚未在生产中CNI damonset的用户）提供的临时向后兼容</li>
+</ul>
+<h3 id="CNI配置全解"><a href="#CNI配置全解" class="headerlink" title="CNI配置全解"></a>CNI配置全解</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"></span><br></pre></td></tr></table></figure>
+
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2024/12/24/cloud/k8s/containerd/containerd-CRI/">https://piwriw.github.io/2024/12/24/cloud/k8s/containerd/containerd-CRI/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a><a class="post-meta__tags" href="/tags/cloud/">cloud</a><a class="post-meta__tags" href="/tags/containerd/">containerd</a></div><div class="post-share"><div class="social-share" data-image="/img/containerd.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2024/12/25/cloud/k8s/containerd/containerd-%E5%AE%89%E8%A3%85/" title="containerd-安装"><img class="cover" src="/img/containerd.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">containerd-安装</div></div><div class="info-2"><div class="info-item-1">containerd-安装官方提供三种类型安装包  containerd：仅包含containerd相关二进制精简安装包，格式为containerd-${VERSION}.${OS}-${ARCH}.tar.gz cri-containerd：包含containerd、cri与runc工具的安装包，格式为cri-containerd-${VERSION}.${OS}-${ARCH}.tar.gz cri-containerd-cni：包含containerd、cri、runc、cni工具的安装包，格式为cri-containerd-cni-${VERSION}.${OS}-${ARCH}.tar.gz  目前主流支持window和linux平台 大致流程安装 下载containerd release安装包  1wget https://github.com/containerd/containerd/releases/download/v1.7.24/cri-containerd-cni-1.7.24-linux-amd64.tar.gz   安装包解压  1tar -zxvf ...</div></div></div></a><a class="pagination-related" href="/2024/12/16/cloud/k8s/kubelet/K8s-kubelet(HTTP%E6%9C%8D%E5%8A%A1%E6%8E%A5%E5%8F%A3)/" title="K8s-kubelet(HTTP服务接口)"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">K8s-kubelet(HTTP服务接口)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(HTTP服务接口) 基于1.25  kubelet通过HTTP Server对外暴露API，为了确保接口安全，kubelet按照安全等级从低到高顺序支持3种HTTP Server，分别是healthz server、readonly server和kubelet core server    一级类目 二级类目 Path路径 描述    Default Handlerers healthz &#x2F;healthz 检查kubelet是否健康，重点检查syncLoop是否持续在规定时间内完成。检查syncLoop四因为其他组件故障会间接导致syncLoop不能执行成功   Default Handlerers pods &#x2F;pods 读取当前节点运行的Pod列表（通过PodManager获取）   Default Handlerers stats &#x2F;stats&#x2F;summary 读取资源使用状态   Default Handlerers metrics &#x2F;metrics 读取kubelet监控指标数据   Defaul...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2024/12/26/cloud/k8s/containerd/nerdctl%E7%9A%84%E4%BD%BF%E7%94%A8/" title="nerdctl的使用"><img class="cover" src="/img/nerdctl.svg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-26</div><div class="info-item-2">nerdctl的使用</div></div><div class="info-2"><div class="info-item-1">nerdctl的使用什么是nerdctlnerdctl是containerd官方提供的兼容Docker命令行的工具，支持Docker Cli所有命令，并且支持dokcer-compose 设计初衷不是Docker Cli复制品，希望促进containerd创新实验的发展，Docker不支持这些实验特性如镜像延迟加载，镜像加密  安装nerdctl官方提供俩种安装包  精简安装包：nerdctl--linux-amd64.tar.gz 仅包含nerdctl的二进制文件，以及rootless模式下的辅助安装脚本，需要解压到&#x2F;user&#x2F;local&#x2F;bin目录 完整安装包：nerdctl-full--linux-amd64-.tar.gz。包含containerd、CNI、runc、BUildKit、rootlesskit等完整组件，需要解压到&#x2F;user&#x2F;local目录   cat share&#x2F;doc&#x2F;nerdctl-full&#x2F;README.md可以看见组件版本  下载nerdctl完整安装包 12wget ...</div></div></div></a><a class="pagination-related" href="/2024/12/25/cloud/k8s/containerd/ctr%E7%9A%84%E4%BD%BF%E7%94%A8/" title="ctr的使用"><img class="cover" src="/img/containerd.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-25</div><div class="info-item-2">ctr的使用</div></div><div class="info-2"><div class="info-item-1">ctr的使用 安装完containerd之后，ctr也安装好   ctr上containerd提供的客户端，内置在containerd中  查看支持命令 12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849505152535455[root@iZbp1ebizftw2vpbpm737wZ ~]# ctr --help                                                                                                                                                               NAME:                                                                                                               ...</div></div></div></a><a class="pagination-related" href="/2024/12/25/cloud/k8s/containerd/crictl/" title="crictl"><img class="cover" src="/img/containerd.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-25</div><div class="info-item-2">crictl</div></div><div class="info-2"><div class="info-item-1">crictl什么是crictlCRI的CLI工具-crictl 安装与配置安装12wget https://github.com/kubernetes-sigs/cri-tools/releases/download/v1.32.0/crictl-v1.32.0-linux-amd64.tar.gztar -zxvf crictl-v1.32.0-linux-amd64.tar.gz -C /usr/local/bin  配置 crictl连接containerd 默认情况下（没有配置crictl配置文件），crictl在Linux节点下会通过几种sock连接运行时的endpoint  docker：unix:&#x2F;&#x2F;&#x2F;var&#x2F;run&#x2F;dockershim.sock containerd: unix:&#x2F;&#x2F;&#x2F;run&#x2F;contianerd&#x2F;containerd.sock Ciro: unix:&#x2F;&#x2F;&#x2F;run&#x2F;crio&#x2F;crio&#x2F;so...</div></div></div></a><a class="pagination-related" href="/2024/12/25/cloud/k8s/containerd/containerd-%E5%AE%89%E8%A3%85/" title="containerd-安装"><img class="cover" src="/img/containerd.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-25</div><div class="info-item-2">containerd-安装</div></div><div class="info-2"><div class="info-item-1">containerd-安装官方提供三种类型安装包  containerd：仅包含containerd相关二进制精简安装包，格式为containerd-${VERSION}.${OS}-${ARCH}.tar.gz cri-containerd：包含containerd、cri与runc工具的安装包，格式为cri-containerd-${VERSION}.${OS}-${ARCH}.tar.gz cri-containerd-cni：包含containerd、cri、runc、cni工具的安装包，格式为cri-containerd-cni-${VERSION}.${OS}-${ARCH}.tar.gz  目前主流支持window和linux平台 大致流程安装 下载containerd release安装包  1wget https://github.com/containerd/containerd/releases/download/v1.7.24/cri-containerd-cni-1.7.24-linux-amd64.tar.gz   安装包解压  1tar -zxvf ...</div></div></div></a><a class="pagination-related" href="/2025/08/24/cloud/k8s/K8s%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97-%E5%AE%A2%E6%88%B7%E7%AB%AF/" title="K8s开发指南-客户端"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-08-24</div><div class="info-item-2">K8s开发指南-客户端</div></div><div class="info-2"><div class="info-item-1">K8s开发指南-客户端 基于K8s v1.29  API客户端 Ref：https://github.com/kubernetes/client-go  K8s认证方式主要一下俩类：  集群外的认证：客户端程序运行在集群外，以独立进程访问API Server 集群内的认证：客户端在K8s内以Pod形式运行，通过内部服务名访问API Server  客户端访问API Server常见的认证方式有以下的几种  数字证书方式 ServiceAccount方式 BearerToken方式  对于运行在K8s集群之外的客户端，建议使用数字证书方式连接API Server，客户端需要配置的信息包括CA根证书、客户端证书、客户段私钥以及API Server地址 对于运行在集群内的Pod，建议使用ServiceAccount认证方式，需要为Pod增加ServiceAccount资源，并为ServiceAccount配置好正确的RBAC权限 基于kubeconfig文件的配置方式有以下几种：  用户HOME目录中的约定目录，例如$HOME&#x2F;.kube&#x2F;config 在环境变量K...</div></div></div></a><a class="pagination-related" href="/2025/08/23/cloud/k8s/K8s%E5%BC%80%E5%8F%91-API%E8%AF%A6%E8%A7%A3/" title="K8s开发-API详解"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-08-23</div><div class="info-item-2">K8s开发-API详解</div></div><div class="info-2"><div class="info-item-1">K8s开发-API详解 基于K8s v1.29  资源对象一个K8s资源对象描述一般是kind、apiVersion、metadata、spec和status五个部分 资源对象的类型资源对象的类型用Kind属性表示，总体分为3个类型：  对象（Object）、代表系统中永久资源实体，比如Pod、RC 列表（List）：资源对象的合集 简单类别（Simple）：作用于资源对象或非持久辅助实体的特定操作，比如Status、Scale、ListOptions等  资源对象的元数据metadata是资源对象的元数据定义，由一组属性来定义，在K8s中，每个资源对象都必须包含以下元数据属性：  namespec：对象所属的命名空间，如果不指定，则昔日会将对象置于名为default中 name：对象的名称、在一个ns下，唯一性 uid：系统为每个对象生成唯一的ID，符合RFC4122 labels：自定义标签 annotations：用户自定义注解，被K8s内部进程或者外部工具使用 resourceVersion：用于识别资源内部斑斑的字符串，在Watch操作，可以避免Get和下一次Watch...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#containerd-CRI"><span class="toc-number">1.</span> <span class="toc-text">containerd-CRI</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#Overview"><span class="toc-number">1.1.</span> <span class="toc-text">Overview</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#RuntimeService"><span class="toc-number">1.1.1.</span> <span class="toc-text">RuntimeService</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#ImageService"><span class="toc-number">1.1.2.</span> <span class="toc-text">ImageService</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%87%A0%E7%A7%8DCRI%E5%AE%9E%E7%8E%B0%E4%BB%A5%E5%8F%8A%E6%A6%82%E8%BF%B0"><span class="toc-number">1.2.</span> <span class="toc-text">几种CRI实现以及概述</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#crio"><span class="toc-number">1.2.1.</span> <span class="toc-text">crio</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#PouchConatiner"><span class="toc-number">1.2.2.</span> <span class="toc-text">PouchConatiner</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#fireacker-containerd"><span class="toc-number">1.2.3.</span> <span class="toc-text">fireacker-containerd</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#virtlet"><span class="toc-number">1.2.4.</span> <span class="toc-text">virtlet</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#containerd%E5%92%8CCRI-Plugin"><span class="toc-number">1.3.</span> <span class="toc-text">containerd和CRI Plugin</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%87%8D%E8%A6%81%E9%85%8D%E7%BD%AE"><span class="toc-number">1.3.1.</span> <span class="toc-text">重要配置</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#cgroup-Driver%E9%85%8D%E7%BD%AE"><span class="toc-number">1.3.2.</span> <span class="toc-text">cgroup Driver配置</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#snapshotter%E9%85%8D%E7%BD%AE"><span class="toc-number">1.3.3.</span> <span class="toc-text">snapshotter配置</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#RuntimeClass%E9%85%8D%E7%BD%AE"><span class="toc-number">1.3.4.</span> <span class="toc-text">RuntimeClass配置</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%95%9C%E5%83%8F%E4%BB%93%E5%BA%93%E9%85%8D%E7%BD%AE"><span class="toc-number">1.3.5.</span> <span class="toc-text">镜像仓库配置</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%95%9C%E5%83%8F%E8%A7%A3%E5%AF%86%E9%85%8D%E7%BD%AE"><span class="toc-number">1.3.6.</span> <span class="toc-text">镜像解密配置</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#CNI%E9%85%8D%E7%BD%AE"><span class="toc-number">1.4.</span> <span class="toc-text">CNI配置</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#CNI%E9%85%8D%E7%BD%AE%E5%85%A8%E8%A7%A3"><span class="toc-number">1.4.1.</span> <span class="toc-text">CNI配置全解</span></a></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-日志系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明">Gorm-日志系统模块原理说明</a><time datetime="2026-01-11T11:56:27.000Z" title="发表于 2026-01-11 19:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-迁移功能模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明">Gorm-迁移功能模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-插件系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明">Gorm-插件系统模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-事务处理模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明">Gorm-事务处理模块原理说明</a><time datetime="2026-01-11T09:56:27.000Z" title="发表于 2026-01-11 17:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-关联关系模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明">Gorm-关联关系模块原理说明</a><time datetime="2026-01-11T08:56:27.000Z" title="发表于 2026-01-11 16:56:27">2026-01-11</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

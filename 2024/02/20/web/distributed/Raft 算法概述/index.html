@@ -1,0 +1,344 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Raft 算法概述 | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="Raft 算法概述What is RaftRaft 协议是一种共识算法（consensus algorithm） 简单来说，其实就是大家投票，超过半数，通过✅ 为什么需要 Raft ？ 回答该问题之前可以思考一下另一个问题：为什么需要共识算法？ 为了解决单点问题，软件系统工程师引入了数据复制技术，实现多副本。而多副本间的数据复制就会出现一致性问题。所以需要共识算法来解决该问题。 共识算法的祖师爷是">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Raft 算法概述">
+<meta property="og:url" content="https://piwriw.github.io/2024/02/20/web/distributed/Raft%20%E7%AE%97%E6%B3%95%E6%A6%82%E8%BF%B0/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="Raft 算法概述What is RaftRaft 协议是一种共识算法（consensus algorithm） 简单来说，其实就是大家投票，超过半数，通过✅ 为什么需要 Raft ？ 回答该问题之前可以思考一下另一个问题：为什么需要共识算法？ 为了解决单点问题，软件系统工程师引入了数据复制技术，实现多副本。而多副本间的数据复制就会出现一致性问题。所以需要共识算法来解决该问题。 共识算法的祖师爷是">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/go.png">
+<meta property="article:published_time" content="2024-02-20T04:56:27.000Z">
+<meta property="article:modified_time" content="2026-02-28T13:29:12.676Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="web">
+<meta property="article:tag" content="go">
+<meta property="article:tag" content="分布式">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/go.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Raft 算法概述",
+  "url": "https://piwriw.github.io/2024/02/20/web/distributed/Raft%20%E7%AE%97%E6%B3%95%E6%A6%82%E8%BF%B0/",
+  "image": "https://piwriw.github.io/img/go.png",
+  "datePublished": "2024-02-20T04:56:27.000Z",
+  "dateModified": "2026-02-28T13:29:12.676Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2024/02/20/web/distributed/Raft%20%E7%AE%97%E6%B3%95%E6%A6%82%E8%BF%B0/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Raft 算法概述',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/go.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">Raft 算法概述</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">Raft 算法概述</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2024-02-20T04:56:27.000Z" title="发表于 2024-02-20 12:56:27">2024-02-20</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-02-28T13:29:12.676Z" title="更新于 2026-02-28 21:29:12">2026-02-28</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/web/">web</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/web/%E5%88%86%E5%B8%83%E5%BC%8F/">分布式</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">2k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>6分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-02-28 21:29:12&quot;}" hidden></div><h1 id="Raft-算法概述"><a href="#Raft-算法概述" class="headerlink" title="Raft 算法概述"></a>Raft 算法概述</h1><h2 id="What-is-Raft"><a href="#What-is-Raft" class="headerlink" title="What is Raft"></a>What is Raft</h2><p>Raft 协议是一种共识算法（consensus algorithm）</p>
+<p><strong>简单来说，其实就是大家投票，超过半数，通过✅</strong></p>
+<p><strong>为什么需要 Raft ？</strong></p>
+<p>回答该问题之前可以思考一下另一个问题：<strong>为什么需要共识算法？</strong></p>
+<p>为了解决单点问题，软件系统工程师引入了数据复制技术，实现多副本。而多副本间的数据复制就会出现一致性问题。所以需要共识算法来解决该问题。</p>
+<p>共识算法的祖师爷是 Paxos， 但是由于它过于复杂，难于理解，工程实践上也较难落地，导致在工程界落地较慢。 Raft 算法正是为了可理解性、易实现而诞生的</p>
+<h3 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h3><p>Raft给服务器设置了三种状态，分别是领导者(leader)、跟随者(follower)和候选者(candidate)。跟随者通过投票选出领导者，只有得到“大多数”跟随者投票的服务器能成为领导者；领导者负责将命令同步给跟随者，只有被“大多数”跟随者确认的命令才能提交。</p>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/images/202402211714593.png"></p>
+<p>raft 会先选举出 leader，leader 完全负责 replicated log 的管理。leader 负责接受所有客户端更新请求，然后复制到 follower 节点，并在“安全”的时候执行这些请求。如果 leader 故障，followes 会重新选举出新的 leader。</p>
+<p>通过 leader，raft 将一致性问题分解成三个相当独立的子问题：</p>
+<ul>
+<li><strong>Leader Election</strong>：当集群启动或者 leader 失效时必须选出一个新的l eader。</li>
+<li><strong>Log Replication</strong>：leader 必须接收客户端提交的日志，并将其复制到集群中的其他节点，强制其他节点的日志与 leader 一样。</li>
+<li><strong>Safety</strong>：最关键的安全点就是图3.2中的 State Machine Safety Property。如果任何一个 server 已经在它的状态机apply了一条日志，其他的 server 不可能在相同的 index 处 apply 其他不同的日志条目。后面将会讲述 raft 如何实现这一点</li>
+</ul>
+<h3 id="Leader选举"><a href="#Leader选举" class="headerlink" title="Leader选举"></a>Leader选举</h3><p>在 raft 中，一个节点任一时刻都会处于以下三个状态之一：</p>
+<ul>
+<li>Leader<ul>
+<li>leader 处理所有来自客户端的请求(如果客户端访问 follower，会把请求重定向到 leader)</li>
+</ul>
+</li>
+<li>Follower<ul>
+<li>follower 是消极的，他们不会主动发出请求而仅仅对来自 leader 和 candidate 的请求作出回应。</li>
+</ul>
+</li>
+<li>Candidate<ul>
+<li>Candidate 状态用来选举出一个 leader。</li>
+</ul>
+</li>
+</ul>
+<p>在正常情况下会只有一个 leader，其他节点都是 follower</p>
+<p><strong>Raft 使用心跳机制来触发 leader 选举</strong>，具体状态转换流程如图：</p>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/images/202402211737412.png"></p>
+<p>流程大概如下：</p>
+<ol>
+<li>所有节点处于<code>Follower</code></li>
+<li>大家等待<code>Leader</code>的心跳，一段时间收不到，从<code>follower</code>切换到<code>candidate</code>,在<code>term+1</code>发起选举</li>
+<li>如果收到 majority 的投票（含自己的一票）则切换到 leader 状态；</li>
+<li>如果发现其他节点 term 比自己更新，则主动切换到 follower</li>
+</ol>
+<h3 id="Term如下"><a href="#Term如下" class="headerlink" title="Term如下"></a>Term如下</h3><ul>
+<li>term是一段一段的</li>
+</ul>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/images/202402211740910.png"></p>
+<h3 id="election-timeout"><a href="#election-timeout" class="headerlink" title="election timeout"></a>election timeout</h3><p>可能会出现的一种情况是，所有 follower 节点，检测到超时后都同时发起选举，因为都会默认投票给自己，这就会导致最终没有节点可能获取到超过半数的选票，最终选举失败，然后选举超时后又开始下一轮选举，进入死循环。</p>
+<p>Raft 使用随机选举超时来确保选票被瓜分的情况很少出现。election timeout 的值会在一个固定区间内随机的选取(比如150-300ms)。这使得在大部分情况下仅有一个 server 会检测到超时，它将会在其他节点发现超时前发起选举，则有很大概率赢得选举</p>
+<h3 id="Log-Replication"><a href="#Log-Replication" class="headerlink" title="Log Replication"></a>Log Replication</h3><p>当有了 leader，系统就可以对外提供服务了。每一个客户端的写请求都包含着一个待状态机执行的命令，leader 会将这个命令作为新的一条日志追加到自己的日志中，然后并行向其他 server 发出AppendEntries RPC 来复制日志。</p>
+<p>当日志被安全的复制之后，leader可以将日志 apply 到自己的状态机，并将执行结果返回给客户端。如果 follower 宕机或运行很慢，甚至丢包，leader 会无限的重试RPC (即使已经将结果报告给了客户端)，直到所有的 follower 最终都存储了相同的日志。</p>
+<h3 id="Replicated-State-Machine"><a href="#Replicated-State-Machine" class="headerlink" title="Replicated State Machine"></a>Replicated State Machine</h3><p>共识算法的实现一般是基于复制状态机（Replicated state machines）.replicated state machine 用于解决分布式系统中的各种容错问题。</p>
+<p>简单来说：<strong>相同的初始状态 + 相同的输入 &#x3D; 相同的结束状态</strong>。</p>
+<p>通常使用 replicated log 来实现 Replicated state machine ，如下图所示：</p>
+<p><img src="https://github.com/lixd/blog/raw/master/images/distributed/raft/replicated-state-machine.png" alt="https://github.com/lixd/blog/raw/master/images/distributed/raft/replicated-state-machine.png"></p>
+<p>每一个 server 都有一个日志保存了一系列的指令，state machine 会顺序执行这些指令。每一个日志都以相同顺序保存着相同的指令，因此每一个 state machine 处理相同的指令，state machine 是一样的，所以最终会达到相同的状态及输出。</p>
+<p><strong>共识算法的任务则是保证 replicated log 的一致</strong>。server 中的一致性模块接收客户端传来的指令并添加到自己的日志中，它也可以和其他 server 中的一致性模块沟通来确保每一条 log 都能有相同的内容和顺序，即使其中一些 server 宕机。 一旦指令被正确复制，就可以称作<strong>committed</strong>。每一个 server 中的状态机按日志顺序处理committed 指令，并将输出返回客户端。</p>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/images/202402211745833.png"></p>
+<p>上述情况是个理想的情况，但现实中可能因为各种问题，造成每个 Follower 的日志不一致（如下图）。Raft 在日志复制请求（AppendEntries RPC）的设计上， <strong>不允许直接复制最新的日志，而跳过中间尚未复制的日志</strong> 。如下图领导者如果发送索引 8 的日志复制请求给第一个跟随者，这个跟随者目前最新的日志只有到索引 5，所以会拒绝领导者的请求，此时领导者会继续发送索引 7 的日志复制请求给第一个跟随者，跟随者一样会拒绝，直到领导者发送索引 6 的日志复制请求给第一个跟随者时，跟随者才会接受，并从索引 6 开始重新同步到索引 8。</p>
+<p>所以如果 Raft 集群要对外服务，则至少要有一半以上的节点有完整的日志记录时，才可以对外服务，因为没有完整日志记录的节点，就无法对最新写进日志的要求回复成功</p>
+<h3 id="Leader-Completeness"><a href="#Leader-Completeness" class="headerlink" title="Leader Completeness"></a>Leader Completeness</h3><p>在任何基于leader的一致性算法中，leader必须最终存有全部committed日志。</p>
+<blockquote>
+<p>在一些一致性算法（如Viewstamped Replication），节点 即使不包含全部 committed 日志也能被选举为 leader，这些算法通过其他的机制来定位缺失的日志，并将其转移给新的 leader。然而这增加了系统的复杂度，raft 使用了更加简单的方法来确保所有 committed 的日志存在于每个新选举出来的 leader，不需要转移日志。因此日志只需要从 leader 流向 follower 即可，而且不需要重写自己的日志。</p>
+</blockquote>
+<p>Raft 使用投票过程来确保选举成为 leader 的 candidate 一定包含全部committed 的日志。</p>
+<p>具体如下：</p>
+<ul>
+<li>1）选举时，各个节点只会投票给 commited 日志大于等于自己的节点；</li>
+<li>2）Candidate 必须获得超过半数的选票才能赢得选举；</li>
+<li>3）Leader 复制日志时也需要复制给超过半数的节点。</li>
+</ul>
+<p>这也就意味着，每次选举出来的 leader 一定包含最新的 committed 日志</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://www.lixueduan.com/posts/distributed/raft/#1-%E8%83%8C%E6%99%AF">https://www.lixueduan.com/posts/distributed/raft/#1-%E8%83%8C%E6%99%AF</a></li>
+</ul>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2024/02/20/web/distributed/Raft%20%E7%AE%97%E6%B3%95%E6%A6%82%E8%BF%B0/">https://piwriw.github.io/2024/02/20/web/distributed/Raft 算法概述/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/web/">web</a><a class="post-meta__tags" href="/tags/go/">go</a><a class="post-meta__tags" href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/">分布式</a></div><div class="post-share"><div class="social-share" data-image="/img/go.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2024/02/20/cloud/prometheus/Grafana-%E6%95%B4%E5%90%88%E6%97%A5%E5%BF%97%E6%9F%A5%E8%AF%A2Loki/" title="Grafana-整合日志查询Loki"><img class="cover" src="/img/grafana.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">Grafana-整合日志查询Loki</div></div><div class="info-2"><div class="info-item-1">Grafana-整合日志查询LokiIntroduce为Grafana添加日志指标 flubit-bitFluent Bit：Fluent Bit 是一个轻量级的日志收集器和处理器。它设计用于从各种来源（如应用程序、容器、操作系统等）收集日志数据，并将其发送到不同的目标。Fluent Bit 可以将日志数据发送到多种目标，包括存储系统、消息队列和分析工具等。它提供了灵活的插件机制，可用于解析、过滤和转换日志数据 LokiLoki 是一个开源的日志聚合系统，专门用于处理和查询大规模分布式日志数据。它是由 Grafana Labs 开发的，作为 Grafana 生态系统的一部分。Loki 使用了 Prometheus 的标签索引和查询语言，可以高效地存储和查询日志数据。Loki 的设计目标是可扩展性和低资源消耗，适用于云原生环境 123456# 1. 添加Helm仓库helm repo add grafana https://grafana.github.io/helm-charts# *2. 拉取本地Helm文件helm pull grafana/loki-stack# 3. he...</div></div></div></a><a class="pagination-related" href="/2024/02/20/cloud/prometheus/Grafana-%E5%B5%8C%E5%85%A5%E5%89%8D%E7%AB%AF/" title="Grafana-嵌入前端"><img class="cover" src="/img/grafana.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">Grafana-嵌入前端</div></div><div class="info-2"><div class="info-item-1">Grafana-嵌入前端IntroduceGrafana能展示好看的图表，但是前端不能直接展示 Quick Startiframe模式演示使用prometheus中的grafana,K8s部署  添加配grafana置项 123456# 允许嵌入[security]                                                                                                                                                                 allow_embedding = true   # 允许匿名登入[auth.anonymous]                                                                                                                                                          ...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2024/07/23/basic/go/Go-%E6%A0%87%E5%87%86%E5%BA%93%E6%97%A5%E5%BF%97Slog/" title="Go-标准库日志Slog"><img class="cover" src="/img/go.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-07-23</div><div class="info-item-2">Go-标准库日志Slog</div></div><div class="info-2"><div class="info-item-1">Go的标准库日志Slog背景在Go1.21中，在Go的标准库函数中引入了Slog 据说使用的内存比Zap还要小 基础用法12345678slog.Info(&quot;This is info log&quot;)slog.Warn(&quot;This is warning log&quot;)slog.Error(&quot;This is error log&quot;)日志输出：2024/07/23 15:26:01 INFO This is info log2024/07/23 15:26:01 WARN This is warning log2024/07/23 15:26:01 ERROR This is error log  输出参数的日志12345678	name := &quot;sss&quot;	slog.Info(&quot;msg&quot;, slog.String(&quot;name&quot;, name))	slog.Error(&quot;ERROR: value is empty&quot;, slog.Any(&quot;name&qu...</div></div></div></a><a class="pagination-related" href="/2024/03/31/basic/go/Go-%E6%8E%A7%E5%88%B6%E5%8D%8F%E7%A8%8B%E6%95%B0%E9%87%8F/" title="Go-控制协程数量"><img class="cover" src="/img/go.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-03-31</div><div class="info-item-2">Go-控制协程数量</div></div><div class="info-2"><div class="info-item-1">Go-控制协程数量背景GMP的无限创建Goroutine基于共享用户态资源，过多的协程会导致CPU利用率浮动上涨、内存占用上涨、主进程崩溃 如何控制Goroutine数量基于buffer的channel原理：通过buffer的缓冲区的大小和阻塞等待来控制最大的数量 1234567891011121314151617181920212223242526package mainimport (	&quot;fmt&quot;	&quot;runtime&quot;	&quot;time&quot;)func doGoroutine(i int, ch chan bool) &#123;	fmt.Println(&quot;go func&quot;, i, &quot;goroutine count&quot;, runtime.NumGoroutine())	// 结束了一个任务	&lt;-ch&#125;func main() &#123;	task_cnt := 10	// 容量控制了 Goroutine 的数量	ch := make(chan bool, 3)	// for的...</div></div></div></a><a class="pagination-related" href="/2024/03/30/web/distributed/%E5%88%86%E5%B8%83%E5%BC%8F-CAP%E7%90%86%E8%AE%BA/" title="分布式-CAP理论"><img class="cover" src="/img/go.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-03-30</div><div class="info-item-2">分布式-CAP理论</div></div><div class="info-2"><div class="info-item-1">分布式-CAP理论背景在大规模拓展服务下存在三个特性：  C（Consistency）：一致性  A（Availability）：可用性  D（Partition Tolerance）：分区容错性    一致性一致性： All nodes see the same data at the same time 所有节点数据，在同一时刻，读数据都是最新的  流程：  对主存储写数据  进行上锁，要求对从存储进行同步  同步成功，释放锁，返回成功   可用性可用性：Reads and writes always succeed 服务永远可用，用户感知不到异常  流程：  用户向master请求  master从从存储请求   分区容错性分区容错性：The system continues to operate despite arbitrary message loss or failure of part of the system 在分布式系统中，尽管部分节点出现任何消息丢失或者故障，系统还应继续运⾏   流程： 尽使⽤异步取代同步操作，例如使⽤异步⽅式将数据从主数据库同步到从数据...</div></div></div></a><a class="pagination-related" href="/2024/03/30/web/distributed/%E5%88%86%E5%B8%83%E5%BC%8F-Base%E7%90%86%E8%AE%BA/" title="分布式-Base理论"><img class="cover" src="/img/go.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-03-30</div><div class="info-item-2">分布式-Base理论</div></div><div class="info-2"><div class="info-item-1">分布式-Base理论介绍CAP无法同时满足，为了同时实现CAP系统，所以出现了BASE  BA（Basically Available）：基本 可用  S(Soft State)：软状态  E（Eventually Consistent）：最终一致性   ACID和BASE是对冲理论：  ACID追求强一制性  BASE牺牲强一致性，追求高可用性   Basically Available 通过妥协响应时间和功能损失 场景:  断电，增大响应时间  高并发下，电商提示抢购失败   Soft State软状态本质就是系统中的数据有中间状态，多节点的副本数据等待同步数据延迟 Eventually Consistent软状态数据不可以一直持续，必须在一段时间内完成同步，达到最终一致性 </div></div></div></a><a class="pagination-related" href="/2024/03/30/web/distributed/%E5%88%86%E5%B8%83%E5%BC%8F%20id%20%E7%94%9F%E6%88%90%E5%99%A8/" title="分布式 id 生成器（snowflake，雪花算法）"><img class="cover" src="/img/go.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-03-30</div><div class="info-item-2">分布式 id 生成器（snowflake，雪花算法）</div></div><div class="info-2"><div class="info-item-1">分布式 id 生成器（snowflake，雪花算法）背景在某些场景下，需要生成增长ID并且不能重复 snowflakeSnowflake 雪花算法，由Twitter提出并开源，可在分布式环境下用于生成唯一ID的算法。该算法生成的是一个64位的ID，故在Java下正好可以通过8字节的long类型存放。所生成的ID结构如下所示  1 bit：首位无效因为二进制里第一个 bit 为如果是 1，那么都是负数，但是我们生成的 id 都是正数，所以第一个 bit 统一都是 0。 41 bit：表示的是时间戳，单位是毫秒41 bit 可以表示的数字多达 2^41 - 1，也就是可以标识 2 ^ 41 - 1 个毫秒值，换算成年就是表示 69 年的时间。 10 bit：记录工作机器 id，代表的是这个服务最多可以部署在 2^10 台机器上，也就是 1024 台机器10 bit 里 5 个 bit 代表机房 id，5 个 bit 代表机器 id。意思就是最多代表 2 ^ 5 个机房（32 个机房），每个机房里可以代表 2 ^ 5 个机器（32 台机器），也可以根据自己公司的实际情况确定。 12 b...</div></div></div></a><a class="pagination-related" href="/2024/03/30/web/distributed/ACID%E7%90%86%E8%AE%BA/" title="ACID理论"><img class="cover" src="/img/go.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-03-30</div><div class="info-item-2">ACID理论</div></div><div class="info-2"><div class="info-item-1">ACID理论背景ACID主要是事务中的概念，分别是 A（Atomicit）：原子性 C（Consistency）：一致性 I（Isolation）：隔离性 D（Durability）：持久性 A原子性主要是在一个事务中，“要么全部完成、要么全部不完成” 经典的银行转账案例： A：从A账户去一百 B：从存入100 AB是在一个事务里面，不能只有A|B其中一个成功，不然银行账户对不上金额 C一致性一致性代表：事务开始前和事务结束之后，数据库的一致性没有改变，事务中的数据一致性  I隔离性隔离性代表：多个并发事务同时拥有对数据进行读书和修改的能力，如果⼀个事务要访问的数据正在被另外⼀个事务修改，只要另外⼀个事务未提交，则它所访问的数据就不受未提交事务的影响 D持久性持久性代表：事务处理结束后，对数据的修改是永久的，即便系统故障也不会丢失 优点1、数据一致性：ACID 确保数据在任何事务执行后保持一致和准确。 2、数据完整性：ACID 通过确保对数据库的任何更改都是永久性的，并且不会丢失，从而维护了数据的完整性。 3、并发控制：ACID 通过防止事务之间的干扰来帮助管理并发创建的多个事务...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Raft-%E7%AE%97%E6%B3%95%E6%A6%82%E8%BF%B0"><span class="toc-number">1.</span> <span class="toc-text">Raft 算法概述</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#What-is-Raft"><span class="toc-number">1.1.</span> <span class="toc-text">What is Raft</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%A6%82%E8%BF%B0"><span class="toc-number">1.1.1.</span> <span class="toc-text">概述</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Leader%E9%80%89%E4%B8%BE"><span class="toc-number">1.1.2.</span> <span class="toc-text">Leader选举</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Term%E5%A6%82%E4%B8%8B"><span class="toc-number">1.1.3.</span> <span class="toc-text">Term如下</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#election-timeout"><span class="toc-number">1.1.4.</span> <span class="toc-text">election timeout</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Log-Replication"><span class="toc-number">1.1.5.</span> <span class="toc-text">Log Replication</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Replicated-State-Machine"><span class="toc-number">1.1.6.</span> <span class="toc-text">Replicated State Machine</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Leader-Completeness"><span class="toc-number">1.1.7.</span> <span class="toc-text">Leader Completeness</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%82%E8%80%83"><span class="toc-number">1.2.</span> <span class="toc-text">参考</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-日志系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明">Gorm-日志系统模块原理说明</a><time datetime="2026-01-11T11:56:27.000Z" title="发表于 2026-01-11 19:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-迁移功能模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明">Gorm-迁移功能模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-插件系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明">Gorm-插件系统模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-事务处理模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明">Gorm-事务处理模块原理说明</a><time datetime="2026-01-11T09:56:27.000Z" title="发表于 2026-01-11 17:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-关联关系模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明">Gorm-关联关系模块原理说明</a><time datetime="2026-01-11T08:56:27.000Z" title="发表于 2026-01-11 16:56:27">2026-01-11</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

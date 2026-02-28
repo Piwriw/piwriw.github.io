@@ -1,0 +1,305 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Istio-初识 | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="Istio-初识What is Istio？ Istio是一个用于服务治理的开发平台 Istio是一个Service Mesh形态的服务治理开发平台 Istio是一个Kubernetes紧密结合的适用于云原生场景的Service Mesh形态的平台  Main of Istio  自动注入：创建应用程序自动注入Sidecar代理。在K8s下创建Pod，Kube-apiserver调用管理面组件的S">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Istio-初识">
+<meta property="og:url" content="https://piwriw.github.io/2024/02/02/cloud/istio/Istion-%E5%88%9D%E8%AF%86/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="Istio-初识What is Istio？ Istio是一个用于服务治理的开发平台 Istio是一个Service Mesh形态的服务治理开发平台 Istio是一个Kubernetes紧密结合的适用于云原生场景的Service Mesh形态的平台  Main of Istio  自动注入：创建应用程序自动注入Sidecar代理。在K8s下创建Pod，Kube-apiserver调用管理面组件的S">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/istio.png">
+<meta property="article:published_time" content="2024-02-02T14:08:55.000Z">
+<meta property="article:modified_time" content="2026-02-28T13:29:12.660Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="Istio">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/istio.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Istio-初识",
+  "url": "https://piwriw.github.io/2024/02/02/cloud/istio/Istion-%E5%88%9D%E8%AF%86/",
+  "image": "https://piwriw.github.io/img/istio.png",
+  "datePublished": "2024-02-02T14:08:55.000Z",
+  "dateModified": "2026-02-28T13:29:12.660Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2024/02/02/cloud/istio/Istion-%E5%88%9D%E8%AF%86/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Istio-初识',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/istio.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">Istio-初识</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">Istio-初识</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2024-02-02T14:08:55.000Z" title="发表于 2024-02-02 22:08:55">2024-02-02</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-02-28T13:29:12.660Z" title="更新于 2026-02-28 21:29:12">2026-02-28</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/Istio/">Istio</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">962</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>3分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-02-28 21:29:12&quot;}" hidden></div><h1 id="Istio-初识"><a href="#Istio-初识" class="headerlink" title="Istio-初识"></a>Istio-初识</h1><h2 id="What-is-Istio？"><a href="#What-is-Istio？" class="headerlink" title="What is Istio？"></a>What is Istio？</h2><ol>
+<li>Istio是一个用于服务治理的开发平台</li>
+<li>Istio是一个Service Mesh形态的服务治理开发平台</li>
+<li>Istio是一个Kubernetes紧密结合的适用于云原生场景的Service Mesh形态的平台</li>
+</ol>
+<h2 id="Main-of-Istio"><a href="#Main-of-Istio" class="headerlink" title="Main of Istio"></a>Main of Istio</h2><p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/images/202402020049827.png"></p>
+<ol>
+<li>自动注入：创建应用程序自动注入Sidecar代理。在K8s下创建Pod，Kube-apiserver调用管理面组件的Sidecar-Injector服务，自动修改应用程序的描述信息并注入Sidecar。在真正创建Pod，创建业务容器会在容器Pod内创建Sidecar容器</li>
+<li>流量拦截：在Pod初始化的时候设置iptables规则，当流量到达根据iptables的规则拦截Inbound流量和Outbound流量到Sidecar</li>
+<li>服务发现：服务发起方的Envoy调用管理面组件Pilot的服务发现接口获取目标服务的实例列表</li>
+<li>负载均衡：服务发起方的Envoy根据配置的负载均衡策略选择服务实例，连接对应的实例地址</li>
+<li>流量治理：Envoy从Pilot中获取配置的流量规则，在拦截到Inbound流量和Outbound流量执行治理逻辑</li>
+<li>访问安全：在服务间访问时通过双方的Envoy进行双向认证和通道加密，并基于服务进行授权管理</li>
+<li>服务遥测：在服务间通信，通信双方的Envoy都会链接到管理面的Mixer上报访问数据，并且通过Mixer将数据转发给对应的监控后端</li>
+<li>策略执行：在进行服务访问，通过Mixer来判断是否可以访问</li>
+<li>外部访问：在网格入口有一个Envoy扮演入口网关的角色</li>
+</ol>
+<h2 id="Components"><a href="#Components" class="headerlink" title="Components"></a>Components</h2><h3 id="istio-pilot"><a href="#istio-pilot" class="headerlink" title="istio-pilot"></a>istio-pilot</h3><ol>
+<li>Istio-pilot 是Istio 的控制中枢Pilot服务，Pilot只提供了<strong>服务发现</strong>，没有支持<strong>服务注册</strong>所以有解耦</li>
+<li>向数据面下方规则，包括VirtualService、DestinationRule、Gateway、ServiceEntry等流量治理规则，也包括认证授权等安全规则。Pilot负责将各种规则转换成Envoy可识别的格式，通过标准的xDS协议发送给Envoy</li>
+</ol>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/images/202402021639472.png"></p>
+<h3 id="istio-telemetry"><a href="#istio-telemetry" class="headerlink" title="istio- telemetry"></a>istio- telemetry</h3><ol>
+<li><p>istio- telemetry是专门收集遥测数据的Mixer服务组件。在部署上，Istio控制面部署了俩个Mixer组件：istio- telemetry和istio-policy，分别处理遥测数据和策略执行。他们的容器镜像是相同的&#x2F;istio&#x2F;mixer</p>
+</li>
+<li><p>俩个服务发生调用的时候，服务的代理Envoy就会上报遥测数据给istio-telemtry服务组件，istio-telemetry服务组件则根据配置生成访问Metric等数据分发给后端的遥测服务。</p>
+</li>
+</ol>
+<p><img src="https://raw.githubusercontent.com/Piwriw/PicGo/master/images/202402021716016.png"></p>
+<h3 id="istio-policy"><a href="#istio-policy" class="headerlink" title="istio-policy"></a>istio-policy</h3><p>istio-policy是另外一个Mixer服务，和istio- telemetry基本上是完全相同的机制和流程。数据面会在转发服务的请求前调用istio-policy的Check进行检查是否访问，Mixer根据配置将请求转发到对应的Adapter做鸡纳差</p>
+<h3 id="istio-citadel"><a href="#istio-citadel" class="headerlink" title="istio- citadel"></a>istio- citadel</h3><p>服务列表的istio- citadel是Istio的安全组件，提供了自动生成、分发、轮换和撤销密钥和证书功能。Citadel一直监听Kube-apiserver，以Secret形式给每个服务生成证书密钥，并在Pod进行挂载</p>
+<h3 id="istio-gallery"><a href="#istio-gallery" class="headerlink" title="istio- gallery"></a>istio- gallery</h3><p>istio- gallery不给数据面提供业务能力，而是提供控制面的组件支持，网关服务</p>
+<h3 id="istio-sidecar-injector"><a href="#istio-sidecar-injector" class="headerlink" title="istio- sidecar-injector"></a>istio- sidecar-injector</h3><p>Istio-sidecar-injector负责自动主任，开启自动注入之后在Pod创建时，就会注入Sidecar容器</p>
+<h3 id="istio-proxy"><a href="#istio-proxy" class="headerlink" title="istio-proxy"></a>istio-proxy</h3><p>但关注Pod的详细信息，会发 现这个容器的正式名字是istio-proxy，不是通用的Envoy镜像，而是叠 加了Istio的Proxy功能的一个扩展版本</p>
+<h3 id="istio-ingressgateway"><a href="#istio-ingressgateway" class="headerlink" title="istio-ingressgateway"></a>istio-ingressgateway</h3><p>istio-ingressgateway 就是入口处的 Gateway，从网格外访问网格内 的服务就是通过这个Gateway进行的。istio-ingressgateway比较特别， 是一个Loadbalancer类型的Service，不同于其他服务组件只有一两个端 口，istio-ingressgateway 开放了一组端口，这些就是网格内服务的外部 访问端口</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2024/02/02/cloud/istio/Istion-%E5%88%9D%E8%AF%86/">https://piwriw.github.io/2024/02/02/cloud/istio/Istion-初识/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/Istio/">Istio</a></div><div class="post-share"><div class="social-share" data-image="/img/istio.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2024/02/03/cloud/k8s/netwotk/K8s-%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B/" title="K8s-网络模型"><img class="cover" src="/img/k8s-go.jpg" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">K8s-网络模型</div></div><div class="info-2"><div class="info-item-1">K8s-网络模型K8s场景网络主要有以下几种：  Container-to-Container网络 Pod-to-Pod网络 Pod-to-Service网络 Internet-to- Service网络  Container-to-Container网络虚拟机网络：  在Linux 系统中，其实本质上在network namespace通信，每一个network namespace提供逻辑的网络堆栈，创建的namespace，会被挂载到/var/run/netns 123456# 添加一个network namespaceip netns add ns1# 查看所有network namespaceip netns# 查看挂载点ls /var/run/netns  默认情况下，Linux所有的进程都被分配到root network namespace  在K8s网络下，所有Pod下的容器共享一个网络：  在这个network namespace下使用同一个IP和同一个端口空间 通过localhost自然也可以访问Pod下的其他容器   Pod-to-Pod的网络Pod和Pod之...</div></div></div></a><a class="pagination-related" href="/2024/01/16/cloud/cri-o%E7%9A%84%E5%AE%89%E8%A3%85/" title="cri-o的安装"><img class="cover" src="/img/crio.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">cri-o的安装</div></div><div class="info-2"><div class="info-item-1">cri-o的安装CRI-O是一个为容器运行时提供轻量级、高效和符合标准的解决方案的开源项目。它是Kubernetes使用的容器运行时接口（CRI）规范的实现之一。 安装1.关闭防火墙等123456789101112131415161718192021222324252627282930#!/bin/bash# 关闭 防火墙systemctl stop firewalldsystemctl disable firewalld# 关闭 SeLinuxsetenforce 0sed -i &quot;s/SELINUX=enforcing/SELINUX=disabled/g&quot; /etc/selinux/config# 关闭 swapswapoff -ayes | cp /etc/fstab /etc/fstab_bakcat /etc/fstab_bak |grep -v swap &gt; /etc/fstab# 修改 /etc/sysctl.conf# modprobe  br_netfilter# 如果有配置，则修改sed -i &quot;s#^net.ipv4.i...</div></div></div></a></nav><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">259</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">76</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Istio-%E5%88%9D%E8%AF%86"><span class="toc-number">1.</span> <span class="toc-text">Istio-初识</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#What-is-Istio%EF%BC%9F"><span class="toc-number">1.1.</span> <span class="toc-text">What is Istio？</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Main-of-Istio"><span class="toc-number">1.2.</span> <span class="toc-text">Main of Istio</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Components"><span class="toc-number">1.3.</span> <span class="toc-text">Components</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#istio-pilot"><span class="toc-number">1.3.1.</span> <span class="toc-text">istio-pilot</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#istio-telemetry"><span class="toc-number">1.3.2.</span> <span class="toc-text">istio- telemetry</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#istio-policy"><span class="toc-number">1.3.3.</span> <span class="toc-text">istio-policy</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#istio-citadel"><span class="toc-number">1.3.4.</span> <span class="toc-text">istio- citadel</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#istio-gallery"><span class="toc-number">1.3.5.</span> <span class="toc-text">istio- gallery</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#istio-sidecar-injector"><span class="toc-number">1.3.6.</span> <span class="toc-text">istio- sidecar-injector</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#istio-proxy"><span class="toc-number">1.3.7.</span> <span class="toc-text">istio-proxy</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#istio-ingressgateway"><span class="toc-number">1.3.8.</span> <span class="toc-text">istio-ingressgateway</span></a></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-日志系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/09-logger/" title="Gorm-日志系统模块原理说明">Gorm-日志系统模块原理说明</a><time datetime="2026-01-11T11:56:27.000Z" title="发表于 2026-01-11 19:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-迁移功能模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/08-migration/" title="Gorm-迁移功能模块原理说明">Gorm-迁移功能模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-插件系统模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/10-plugin/" title="Gorm-插件系统模块原理说明">Gorm-插件系统模块原理说明</a><time datetime="2026-01-11T10:56:27.000Z" title="发表于 2026-01-11 18:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-事务处理模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/07-transaction/" title="Gorm-事务处理模块原理说明">Gorm-事务处理模块原理说明</a><time datetime="2026-01-11T09:56:27.000Z" title="发表于 2026-01-11 17:56:27">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明"><img src="/img/go.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Gorm-关联关系模块原理说明"/></a><div class="content"><a class="title" href="/2026/01/11/web/gorm/06-associations/" title="Gorm-关联关系模块原理说明">Gorm-关联关系模块原理说明</a><time datetime="2026-01-11T08:56:27.000Z" title="发表于 2026-01-11 16:56:27">2026-01-11</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

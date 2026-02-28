@@ -1,0 +1,407 @@
+/* ============================================
+   ECHARTS DASHBOARD STYLE - Tags Page
+   Data Visualization Inspired Design (Light Theme)
+   ============================================ */
+
+/* === CSS Variables - ECharts Light Theme === */
+:root {
+  /* ECharts Color Palette - Light */
+  --echarts-bg: #F8FAFC;
+  --echarts-surface: #FFFFFF;
+  --echarts-surface-elevated: #F1F5F9;
+  --echarts-border: #E2E8F0;
+  --echarts-border-light: #CBD5E1;
+
+  /* Primary Colors - Blue Series */
+  --echarts-primary: #1E40AF;
+  --echarts-primary-light: #3B82F6;
+  --echarts-primary-glow: rgba(59, 130, 246, 0.15);
+
+  /* Accent Colors */
+  --echarts-accent: #F59E0B;
+  --echarts-accent-light: #FBBF24;
+  --echarts-success: #10B981;
+  --echarts-danger: #EF4444;
+
+  /* Text Colors */
+  --echarts-text: #1E293B;
+  --echarts-text-muted: #64748B;
+  --echarts-text-dim: #94A3B8;
+
+  /* Gradients */
+  --echarts-gradient-primary: linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%);
+  --echarts-gradient-accent: linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%);
+  --echarts-gradient-bg: radial-gradient(ellipse at top, #FFFFFF 0%, #F8FAFC 100%);
+
+  /* Shadows */
+  --echarts-shadow-sm: 0 2px 8px rgba(30, 64, 175, 0.08);
+  --echarts-shadow-md: 0 4px 16px rgba(30, 64, 175, 0.12);
+  --echarts-shadow-lg: 0 8px 32px rgba(30, 64, 175, 0.15);
+  --echarts-shadow-glow: 0 0 30px rgba(59, 130, 246, 0.1);
+  --echarts-shadow-accent-glow: 0 0 30px rgba(245, 158, 11, 0.1);
+
+  /* Typography */
+  --echarts-font-heading: 'Fira Code', 'JetBrains Mono', monospace;
+  --echarts-font-body: 'Fira Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Spacing */
+  --echarts-space-1: 8px;
+  --echarts-space-2: 16px;
+  --echarts-space-3: 24px;
+  --echarts-space-4: 32px;
+  --echarts-space-6: 48px;
+  --echarts-space-8: 64px;
+
+  /* Border Radius */
+  --echarts-radius-sm: 4px;
+  --echarts-radius-md: 8px;
+  --echarts-radius-lg: 12px;
+  --echarts-radius-xl: 16px;
+
+  /* Transitions */
+  --echarts-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --echarts-duration: 250ms;
+}
+
+/* === Google Fonts === */
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap');
+
+/* === Base Styles === */
+#tags {
+  font-family: var(--echarts-font-body);
+  background: var(--echarts-bg);
+  color: var(--echarts-text);
+  position: relative;
+  min-height: 100vh;
+  overflow-x: hidden;
+  padding: var(--echarts-space-6) var(--echarts-space-3);
+}
+
+/* Ambient background effect */
+#tags::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(30, 64, 175, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(245, 158, 11, 0.05) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Subtle grid pattern */
+#tags::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(203, 213, 225, 0.5) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(203, 213, 225, 0.5) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.6;
+}
+
+/* === Container === */
+.tags-container {
+  position: relative;
+  z-index: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* === Page Title === */
+.tags-title {
+  font-family: var(--echarts-font-heading);
+  font-size: clamp(2rem, 6vw, 3.5rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--echarts-text);
+  margin-bottom: var(--echarts-space-6);
+  position: relative;
+  text-align: center;
+}
+
+.tags-title span {
+  color: var(--echarts-primary-light);
+}
+
+/* === Stats Dashboard === */
+.tags-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--echarts-space-3);
+  margin-bottom: var(--echarts-space-6);
+  animation: fadeInUp 0.6s var(--echarts-ease) backwards;
+}
+
+.tag-stat-card {
+  background: var(--echarts-surface);
+  border: 1px solid var(--echarts-border);
+  border-radius: var(--echarts-radius-lg);
+  padding: var(--echarts-space-3);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  transition: all var(--echarts-duration) var(--echarts-ease);
+}
+
+.tag-stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--echarts-gradient-primary);
+  opacity: 0;
+  transition: opacity var(--echarts-duration) var(--echarts-ease);
+}
+
+.tag-stat-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--echarts-primary-light);
+  box-shadow: var(--echarts-shadow-glow);
+}
+
+.tag-stat-card:hover::before {
+  opacity: 1;
+}
+
+.tag-stat-card.accent::before {
+  background: var(--echarts-gradient-accent);
+}
+
+.tag-stat-label {
+  font-family: var(--echarts-font-heading);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--echarts-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  margin-bottom: var(--echarts-space-1);
+}
+
+.tag-stat-value {
+  font-family: var(--echarts-font-heading);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--echarts-text);
+}
+
+.tag-stat-value.primary {
+  color: var(--echarts-primary-light);
+}
+
+.tag-stat-value.accent {
+  color: var(--echarts-accent);
+}
+
+/* === Tag Cloud === */
+.tag-cloud-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--echarts-space-2);
+  position: relative;
+  z-index: 1;
+  padding: var(--echarts-space-4);
+  background: var(--echarts-surface);
+  border: 1px solid var(--echarts-border);
+  border-radius: var(--echarts-radius-xl);
+  box-shadow: var(--echarts-shadow-sm);
+}
+
+/* Tag items */
+.tag-cloud-list a {
+  display: inline-block;
+  padding: var(--echarts-space-1) var(--echarts-space-2);
+  background: var(--echarts-surface-elevated);
+  border: 1px solid var(--echarts-border);
+  border-radius: var(--echarts-radius-md);
+  font-family: var(--echarts-font-body);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--echarts-text-muted);
+  text-decoration: none;
+  transition: all var(--echarts-duration) var(--echarts-ease);
+  position: relative;
+  overflow: hidden;
+}
+
+.tag-cloud-list a::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--echarts-gradient-primary);
+  opacity: 0;
+  transition: opacity var(--echarts-duration) var(--echarts-ease);
+  z-index: -1;
+}
+
+.tag-cloud-list a:hover {
+  color: white;
+  border-color: var(--echarts-primary);
+  transform: translateY(-2px);
+  box-shadow: var(--echarts-shadow-glow);
+}
+
+.tag-cloud-list a:hover::before {
+  opacity: 1;
+}
+
+/* Different sizes for tag cloud */
+.tag-cloud-list a.size-1 {
+  font-size: 0.75rem;
+  padding: 4px 8px;
+}
+
+.tag-cloud-list a.size-2 {
+  font-size: 0.875rem;
+  padding: 6px 12px;
+}
+
+.tag-cloud-list a.size-3 {
+  font-size: 1rem;
+  padding: 8px 16px;
+}
+
+.tag-cloud-list a.size-4 {
+  font-size: 1.125rem;
+  padding: 10px 20px;
+}
+
+.tag-cloud-list a.size-5 {
+  font-size: 1.25rem;
+  padding: 12px 24px;
+}
+
+/* Tag count badge */
+.tag-count {
+  display: inline-block;
+  font-family: var(--echarts-font-heading);
+  font-size: 0.625rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  background: var(--echarts-border);
+  border-radius: 99px;
+  margin-left: 4px;
+  transition: all var(--echarts-duration) var(--echarts-ease);
+}
+
+.tag-cloud-list a:hover .tag-count {
+  background: rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+/* === Tag Categories Section === */
+.tag-categories {
+  margin-top: var(--echarts-space-6);
+}
+
+.tag-category-title {
+  font-family: var(--echarts-font-heading);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--echarts-text);
+  margin-bottom: var(--echarts-space-3);
+  padding-bottom: var(--echarts-space-2);
+  border-bottom: 2px solid var(--echarts-border);
+}
+
+/* === Animations === */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Staggered animation */
+.tag-stat-card:nth-child(1) { animation-delay: 0s; }
+.tag-stat-card:nth-child(2) { animation-delay: 0.1s; }
+.tag-stat-card:nth-child(3) { animation-delay: 0.2s; }
+
+.tag-cloud-list {
+  animation: fadeIn 0.6s var(--echarts-ease) 0.3s backwards;
+}
+
+/* Tag hover animations */
+.tag-cloud-list a {
+  animation: fadeInUp 0.4s var(--echarts-ease) backwards;
+}
+
+.tag-cloud-list a:nth-child(1) { animation-delay: 0.05s; }
+.tag-cloud-list a:nth-child(2) { animation-delay: 0.1s; }
+.tag-cloud-list a:nth-child(3) { animation-delay: 0.15s; }
+.tag-cloud-list a:nth-child(4) { animation-delay: 0.2s; }
+.tag-cloud-list a:nth-child(5) { animation-delay: 0.25s; }
+.tag-cloud-list a:nth-child(6) { animation-delay: 0.3s; }
+.tag-cloud-list a:nth-child(7) { animation-delay: 0.35s; }
+.tag-cloud-list a:nth-child(8) { animation-delay: 0.4s; }
+.tag-cloud-list a:nth-child(9) { animation-delay: 0.45s; }
+.tag-cloud-list a:nth-child(10) { animation-delay: 0.5s; }
+.tag-cloud-list a:nth-child(n+11) { animation-delay: 0.55s; }
+
+/* === Responsive Design === */
+@media (max-width: 768px) {
+  #tags {
+    padding: var(--echarts-space-4) var(--echarts-space-2);
+  }
+
+  .tags-stats {
+    grid-template-columns: 1fr;
+    gap: var(--echarts-space-2);
+  }
+
+  .tag-stat-value {
+    font-size: 1.5rem;
+  }
+
+  .tag-cloud-list {
+    padding: var(--echarts-space-3);
+    gap: var(--echarts-space-1);
+  }
+
+  .tag-cloud-list a {
+    padding: 6px 10px;
+    font-size: 0.8125rem;
+  }
+
+  .tag-cloud-list a.size-4,
+  .tag-cloud-list a.size-5 {
+    font-size: 0.9375rem;
+    padding: 8px 14px;
+  }
+}
+
+/* === Focus States === */
+.tag-cloud-list a:focus-visible {
+  outline: 2px solid var(--echarts-primary-light);
+  outline-offset: 2px;
+}
+
+/* === Reduced Motion === */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

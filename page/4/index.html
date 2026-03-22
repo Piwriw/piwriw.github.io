@@ -1,0 +1,336 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="该知道的都知道，不知道的慢慢了解">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Joohwan">
+<meta property="og:url" content="https://piwriw.github.io/page/4/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="该知道的都知道，不知道的慢慢了解">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/avatar.jpg">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="Joohwan">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/avatar.jpg"><script type="application/ld+json"></script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/page/4/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          const hour = new Date().getHours()
+          const isNight = hour <= 6 || hour >= 18
+          if (theme === undefined) isNight ? activateDarkMode() : activateLightMode()
+          else theme === 'light' ? activateLightMode() : activateDarkMode()
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '天',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Joohwan',
+  isHighlightShrink: false,
+  isToc: false,
+  pageType: 'home'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">272</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">94</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="page" id="body-wrap"><header class="full_page" id="page-header" style="background-image: url(/img/background.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="site-info"><h1 id="site-title">Joohwan</h1><div id="site-subtitle"><span id="subtitle"></span></div><div id="site_social_icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div id="scroll-down"><i class="fas fa-angle-down scroll-down-effects"></i></div></header><main class="layout" id="content-inner"><div class="recent-posts nc" id="recent-posts"><div class="recent-post-items"><div class="recent-post-item"><div class="post_cover left"><a href="/2025/07/26/cloud/prometheus/Prometheus-Rules%E5%91%8A%E8%AD%A6%E8%AF%84%E4%BC%B0/" title="Prometheus-Rules告警评估"><img class="post-bg" src="/img/prometheus.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Prometheus-Rules告警评估"></a></div><div class="recent-post-info"><a class="article-title" href="/2025/07/26/cloud/prometheus/Prometheus-Rules%E5%91%8A%E8%AD%A6%E8%AF%84%E4%BC%B0/" title="Prometheus-Rules告警评估">Prometheus-Rules告警评估</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2025-07-26T14:08:55.000Z" title="发表于 2025-07-26 22:08:55">2025-07-26</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/prometheus/">prometheus</a></span></div><div class="content">Prometheus-Rules告警评估 基于v3.5  工作原理graph TD     A[Rule Files] --&gt; B[Manager.LoadGroups]     B --&gt; C[Parse Rule Groups]     C --&gt; D[Create Rule Objects]     D --&gt; E[Analyse Rule Dependencies]     E --&gt; F[Build Dependency Map]     F --&gt; G[Set Rule Dependencies]          H[Manager.Run] --&gt; I[Group Evaluation Loop]     I --&gt; J[Split Rules into Batches]     J --&gt; K&#123;Concurrent Evaluation Enabled?&#125;     K --&gt;|Yes| L[Concurrent Rule Execution]     K --&gt;|No| M[S...</div></div></div><div class="recent-post-item"><div class="post_cover right"><a href="/2025/07/25/cloud/prometheus/Prometheus-Srape%E6%8C%87%E6%A0%87%E6%8A%93%E5%8F%96/" title="Prometheus-Scrape指标抓取"><img class="post-bg" src="/img/prometheus.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Prometheus-Scrape指标抓取"></a></div><div class="recent-post-info"><a class="article-title" href="/2025/07/25/cloud/prometheus/Prometheus-Srape%E6%8C%87%E6%A0%87%E6%8A%93%E5%8F%96/" title="Prometheus-Scrape指标抓取">Prometheus-Scrape指标抓取</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2025-07-25T14:08:55.000Z" title="发表于 2025-07-25 22:08:55">2025-07-25</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/prometheus/">prometheus</a></span></div><div class="content">Prometheus-Scrape指标抓取 基于v3.5  工作原理graph TD     A[ScrapePool] --&gt; B[Target Discovery]     A --&gt; C[Scrape Loop Management]     A --&gt; D[HTTP Client] B --&gt; B1[Sync Targets] B1 --&gt; B2[Target Group Processing] B2 --&gt; B3[Target Creation/Deduplication] B3 --&gt; B4[Active Targets Update]  C --&gt; C1[Loop Creation] C1 --&gt; C2[Scrape Interval Setup] C2 --&gt; C3[Scraper Initialization]  D --&gt; D1[Target Scraper] D1 --&gt; D2[HTTP Request] D2 --&gt; D3[Metrics Endpoint]  C3 --&gt;...</div></div></div><div class="recent-post-item"><div class="post_cover left"><a href="/2025/07/24/cloud/prometheus/Prometheus-notifier%E5%91%8A%E8%AD%A6%E6%8E%A8%E9%80%81/" title="Prometheus-notifier告警推送"><img class="post-bg" src="/img/prometheus.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Prometheus-notifier告警推送"></a></div><div class="recent-post-info"><a class="article-title" href="/2025/07/24/cloud/prometheus/Prometheus-notifier%E5%91%8A%E8%AD%A6%E6%8E%A8%E9%80%81/" title="Prometheus-notifier告警推送">Prometheus-notifier告警推送</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2025-07-24T14:08:55.000Z" title="发表于 2025-07-24 22:08:55">2025-07-24</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/prometheus/">prometheus</a></span></div><div class="content">Prometheus-notifier告警推送 基于v3.5  工作原理sequenceDiagram     participant Q as Queue     participant M as Manager     participant AM as Alertmanager     participant AL as Alertmanager API Q-&gt;&gt;M: nextBatch() M-&gt;&gt;M: 分批处理告警 M-&gt;&gt;AM: sendAll() AM-&gt;&gt;AM: 应用特定于 AM 的 relabel AM-&gt;&gt;AL: HTTP POST /api/v2/alerts AL--&gt;&gt;AM: Response AM-&gt;&gt;M: 返回发送结果  关键特性  告警队列管理 有界队列，防止内存无限增长 支持队列满时的丢弃策略 可配置的批处理大小 Relabeling（重新标记） 发送前对告警应用 relabel 配置 支持每个 Alertmanager 集合的特定 relabel 规则 高可用性...</div></div></div><div class="recent-post-item"><div class="post_cover right"><a href="/2025/07/23/cloud/prometheus/Prometheus-Discoverer%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0/" title="Prometheus-Discoverer服务发现"><img class="post-bg" src="/img/prometheus.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Prometheus-Discoverer服务发现"></a></div><div class="recent-post-info"><a class="article-title" href="/2025/07/23/cloud/prometheus/Prometheus-Discoverer%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0/" title="Prometheus-Discoverer服务发现">Prometheus-Discoverer服务发现</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2025-07-23T14:08:55.000Z" title="发表于 2025-07-23 22:08:55">2025-07-23</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/prometheus/">prometheus</a></span></div><div class="content">Prometheus-Discoverer服务发现 基于v3.5  启动流程sequenceDiagram     participant main.go     participant Manager     participant Provider     participant Discoverer     participant TargetGroup main.go-&gt;&gt;Manager: NewManager()  main.go-&gt;&gt;Manager: ApplyConfig()  Manager-&gt;&gt;Provider: 创建Provider实例 Manager-&gt;&gt;Provider: startProvider()  Provider-&gt;&gt;Discoverer: 初始化具体发现器(如K8s/Consul等) Provider-&gt;&gt;Discoverer: Run(ctx, updatesCh)  loop 发现循环     Discoverer-&gt;&gt;TargetGroup: 获取目标组 ...</div></div></div><div class="recent-post-item"><div class="post_cover left"><a href="/2025/07/22/cloud/prometheus/Prometheus-%E9%85%8D%E7%BD%AE%E7%AE%A1%E7%90%86/" title="Prometheus-载入配置"><img class="post-bg" src="/img/prometheus.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Prometheus-载入配置"></a></div><div class="recent-post-info"><a class="article-title" href="/2025/07/22/cloud/prometheus/Prometheus-%E9%85%8D%E7%BD%AE%E7%AE%A1%E7%90%86/" title="Prometheus-载入配置">Prometheus-载入配置</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2025-07-22T14:08:55.000Z" title="发表于 2025-07-22 22:08:55">2025-07-22</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/prometheus/">prometheus</a></span></div><div class="content">Prometheus-载入配置 基于v3.5  启动顺序sequenceDiagram     participant main.go     participant Config     participant GlobalConfig     participant ScrapeConfig     participant RemoteWriteConfig     participant RuntimeConfig     participant Storage          main.go-&gt;&gt;Config: 加载配置文件(Load/LoadFile)     Config-&gt;&gt;GlobalConfig: 初始化全局配置     Config-&gt;&gt;ScrapeConfig: 初始化抓取配置     Config-&gt;&gt;RemoteWriteConfig: 初始化远程写入配置     Config-&gt;&gt;RuntimeConfig: 初始化运行时配置          main.go-&gt;&gt;Storage...</div></div></div><div class="recent-post-item"><div class="post_cover right"><a href="/2025/07/21/cloud/prometheus/Prometheus-%E9%A1%B9%E7%9B%AE%E5%90%AF%E5%8A%A8main.go/" title="Prometheus-项目启动main.go"><img class="post-bg" src="/img/prometheus.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Prometheus-项目启动main.go"></a></div><div class="recent-post-info"><a class="article-title" href="/2025/07/21/cloud/prometheus/Prometheus-%E9%A1%B9%E7%9B%AE%E5%90%AF%E5%8A%A8main.go/" title="Prometheus-项目启动main.go">Prometheus-项目启动main.go</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2025-07-21T14:08:55.000Z" title="发表于 2025-07-21 22:08:55">2025-07-21</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/prometheus/">prometheus</a></span></div><div class="content">Prometheus-项目启动main.go 基于v3.5  启动顺序flowchart TD     A[启动 main 函数] --&gt; B[解析命令行参数/配置文件]     B --&gt; C[初始化日志系统]     C --&gt; D[初始化通知系统]     D --&gt; E[校验参数和配置]     E --&gt; F[初始化核心组件]     F --&gt; F1[本地存储 localStorage]     F --&gt; F2[抓取管理器 scrapeManager]     F --&gt; F3[远程存储 remoteStorage]     F --&gt; F4[规则管理器 ruleManager]     F --&gt; F5[Web 服务 webHandler]     F --&gt; F6[服务发现 discoveryManager]     F --&gt; F7[告警通知 notifierManager]     F --&gt; F8[Tracing 管理 tracingManager]     F1 &amp; F...</div></div></div><div class="recent-post-item"><div class="post_cover left"><a href="/2025/07/20/cloud/alertmanager/Alertmanager-%E5%91%8A%E8%AD%A6%E5%8F%91%E9%80%81/" title="Alertmanager-告警发送"><img class="post-bg" src="/img/prometheus.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Alertmanager-告警发送"></a></div><div class="recent-post-info"><a class="article-title" href="/2025/07/20/cloud/alertmanager/Alertmanager-%E5%91%8A%E8%AD%A6%E5%8F%91%E9%80%81/" title="Alertmanager-告警发送">Alertmanager-告警发送</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2025-07-20T13:08:55.000Z" title="发表于 2025-07-20 21:08:55">2025-07-20</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/alertmanager/">alertmanager</a></span></div><div class="content">Alertmanager-告警发送 基于v0.28  启动顺序sequenceDiagram     participant Alert as 新告警     participant Dispatcher as Dispatcher     participant Route as Route     participant AggrGroup as aggrGroup     participant NotifyStage as notify.Stage     participant Notifier as Notifier(邮件/微信等)      Alert-&gt;&gt;Dispatcher: 新告警流入     Dispatcher-&gt;&gt;Route: 路由树匹配     Route--&gt;&gt;Dispatcher: 匹配到的 Route     Dispatcher-&gt;&gt;AggrGroup: 插入/创建分组     Note over AggrGroup: run 协程定时触发通知     AggrGroup-&gt;&gt;Noti...</div></div></div><div class="recent-post-item"><div class="post_cover right"><a href="/2025/07/18/cloud/alertmanager/Alertmanager-dispatch%E5%91%8A%E8%AD%A6%E5%88%86%E7%BB%84/" title="Alertmanager-dispatch告警分组"><img class="post-bg" src="/img/prometheus.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Alertmanager-dispatch告警分组"></a></div><div class="recent-post-info"><a class="article-title" href="/2025/07/18/cloud/alertmanager/Alertmanager-dispatch%E5%91%8A%E8%AD%A6%E5%88%86%E7%BB%84/" title="Alertmanager-dispatch告警分组">Alertmanager-dispatch告警分组</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2025-07-18T13:08:55.000Z" title="发表于 2025-07-18 21:08:55">2025-07-18</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/alertmanager/">alertmanager</a></span></div><div class="content">Alertmanager-dispatch告警分组 基于v0.28  总体流程flowchart TD     A[告警流入 Alertmanager] --&gt; B[dispatch 路由树匹配]     B --&gt; C&#123;匹配到哪些 Route?&#125;     C -- 无匹配 --&gt; Z[丢弃或默认处理]     C -- 有匹配 --&gt; D[分组聚合（按 group_by 标签）]     D --&gt; E[分组等待 group_wait]     E --&gt; F[分组内聚合告警]     F --&gt; G&#123;到达 group_interval 或有新告警?&#125;     G -- 否 --&gt; F     G -- 是 --&gt; H[触发通知管道]     H --&gt; I[通知发送（邮件/微信/钉钉等）]     I --&gt; J[分组生命周期管理]     J --&gt; K&#123;分组内还有活跃告警?&#125;     K -- 有 --&gt; F     K -- 无 --...</div></div></div><div class="recent-post-item"><div class="post_cover left"><a href="/2025/07/17/cloud/alertmanager/Alertmanager-silencer%E5%91%8A%E8%AD%A6%E9%9D%99%E9%BB%98/" title="Alertmanager-silencer告警静默"><img class="post-bg" src="/img/prometheus.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Alertmanager-silencer告警静默"></a></div><div class="recent-post-info"><a class="article-title" href="/2025/07/17/cloud/alertmanager/Alertmanager-silencer%E5%91%8A%E8%AD%A6%E9%9D%99%E9%BB%98/" title="Alertmanager-silencer告警静默">Alertmanager-silencer告警静默</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2025-07-17T13:08:55.000Z" title="发表于 2025-07-17 21:08:55">2025-07-17</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/alertmanager/">alertmanager</a></span></div><div class="content">Alertmanager-silencer告警静默 基于v0.28  总体流程sequenceDiagram     participant Alert as 告警(Labels)     participant Silencer as Silencer     participant Silences as Silences     participant Store as state(存储)     participant Marker as AlertMarker      Alert-&gt;&gt;Silencer: 新告警流入，调用 Mutes(lset)     Silencer-&gt;&gt;Marker: 查询该告警指纹的静默状态     alt Marker 版本与 Silences 一致         Silencer-&gt;&gt;Silences: 仅查询已知静默ID是否仍然有效     else Marker 版本不一致         Silencer-&gt;&gt;Silences: 全量查询所有匹配该告警的静默     end     S...</div></div></div><div class="recent-post-item"><div class="post_cover right"><a href="/2025/07/16/cloud/alertmanager/Alertmanager-%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%E5%8A%A0%E8%BD%BD/" title="Alertmanager-inhibitor告警抑制"><img class="post-bg" src="/img/prometheus.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="Alertmanager-inhibitor告警抑制"></a></div><div class="recent-post-info"><a class="article-title" href="/2025/07/16/cloud/alertmanager/Alertmanager-%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%E5%8A%A0%E8%BD%BD/" title="Alertmanager-inhibitor告警抑制">Alertmanager-inhibitor告警抑制</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2025-07-16T13:08:55.000Z" title="发表于 2025-07-16 21:08:55">2025-07-16</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/alertmanager/">alertmanager</a></span></div><div class="content">Alertmanager-inhibitor告警抑制 基于v0.28  总体流程flowchart TD     A[告警流入 Alertmanager] --&gt; B&#123;是否匹配抑制规则?&#125;     B -- 否 --&gt; E[正常进入分发/通知流程]     B -- 是 --&gt; C[遍历所有 InhibitRule]     C --&gt; D&#123;目标告警是否匹配 TargetMatchers?&#125;     D -- 否 --&gt; C     D -- 是 --&gt; F&#123;是否存在源告警满足 SourceMatchers 且 Equal 标签相等?&#125;     F -- 否 --&gt; C     F -- 是 --&gt; G[该告警被抑制, 不再通知]     C --&gt;|遍历完所有规则| H&#123;是否被抑制?&#125;     H -- 是 --&gt; G     H -- 否 --&gt; E          subgraph 规则说明       direction LR...</div></div></div></div><nav id="pagination"><div class="pagination"><a class="extend prev" rel="prev" href="/page/3/#content-inner"><i class="fas fa-chevron-left fa-fw"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/3/#content-inner">3</a><span class="page-number current">4</span><a class="page-number" href="/page/5/#content-inner">5</a><span class="space">&hellip;</span><a class="page-number" href="/page/28/#content-inner">28</a><a class="extend next" rel="next" href="/page/5/#content-inner"><i class="fas fa-chevron-right fa-fw"></i></a></div></nav></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">272</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">94</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/03/22/cloud/k8s/CSI%E5%8D%B7%E6%8C%82%E8%BD%BD%E6%B5%81%E7%A8%8B/" title="K8s-CSI卷挂载流程"><img src="/img/k8sLogo.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s-CSI卷挂载流程"/></a><div class="content"><a class="title" href="/2026/03/22/cloud/k8s/CSI%E5%8D%B7%E6%8C%82%E8%BD%BD%E6%B5%81%E7%A8%8B/" title="K8s-CSI卷挂载流程">K8s-CSI卷挂载流程</a><time datetime="2026-03-22T13:22:55.000Z" title="发表于 2026-03-22 21:22:55">2026-03-22</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/22/cloud/k8s/DNS%E8%A7%A3%E6%9E%90%E6%B5%81%E7%A8%8B/" title="K8s-DNS解析流程"><img src="/img/k8sLogo.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s-DNS解析流程"/></a><div class="content"><a class="title" href="/2026/03/22/cloud/k8s/DNS%E8%A7%A3%E6%9E%90%E6%B5%81%E7%A8%8B/" title="K8s-DNS解析流程">K8s-DNS解析流程</a><time datetime="2026-03-22T13:22:55.000Z" title="发表于 2026-03-22 21:22:55">2026-03-22</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/22/cloud/k8s/Deployment%E6%BB%9A%E5%8A%A8%E6%9B%B4%E6%96%B0%E6%B5%81%E7%A8%8B/" title="K8s-Deployment滚动更新流程"><img src="/img/k8sLogo.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s-Deployment滚动更新流程"/></a><div class="content"><a class="title" href="/2026/03/22/cloud/k8s/Deployment%E6%BB%9A%E5%8A%A8%E6%9B%B4%E6%96%B0%E6%B5%81%E7%A8%8B/" title="K8s-Deployment滚动更新流程">K8s-Deployment滚动更新流程</a><time datetime="2026-03-22T13:22:55.000Z" title="发表于 2026-03-22 21:22:55">2026-03-22</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/22/cloud/k8s/EndpointSlice%E6%8E%A7%E5%88%B6%E5%99%A8%E6%B5%81%E7%A8%8B/" title="K8s-EndpointSlice控制器流程"><img src="/img/k8sLogo.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s-EndpointSlice控制器流程"/></a><div class="content"><a class="title" href="/2026/03/22/cloud/k8s/EndpointSlice%E6%8E%A7%E5%88%B6%E5%99%A8%E6%B5%81%E7%A8%8B/" title="K8s-EndpointSlice控制器流程">K8s-EndpointSlice控制器流程</a><time datetime="2026-03-22T13:22:55.000Z" title="发表于 2026-03-22 21:22:55">2026-03-22</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/22/cloud/k8s/PVC%E4%BE%9B%E5%BA%94%E4%B8%8E%E7%BB%91%E5%AE%9A%E6%B5%81%E7%A8%8B/" title="K8s-PVC供应与绑定流程"><img src="/img/k8sLogo.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s-PVC供应与绑定流程"/></a><div class="content"><a class="title" href="/2026/03/22/cloud/k8s/PVC%E4%BE%9B%E5%BA%94%E4%B8%8E%E7%BB%91%E5%AE%9A%E6%B5%81%E7%A8%8B/" title="K8s-PVC供应与绑定流程">K8s-PVC供应与绑定流程</a><time datetime="2026-03-22T13:22:55.000Z" title="发表于 2026-03-22 21:22:55">2026-03-22</time></div></div></div></div><div class="card-widget card-categories"><div class="item-headline">
+            <i class="fas fa-folder-open"></i>
+            <span>分类</span>
+            <a class="card-more-btn" href="/categories/" title="查看更多">
+      <i class="fas fa-angle-right"></i></a>
+          </div>
+          <ul class="card-category-list" id="aside-cat-list">
+            <li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/"><span class="card-category-list-name">basic</span><span class="card-category-list-count">36</span></a><ul class="card-category-list child"><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/go/"><span class="card-category-list-name">go</span><span class="card-category-list-count">14</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/"><span class="card-category-list-name">设计模式</span><span class="card-category-list-count">13</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/%E9%9D%A2%E8%AF%95/"><span class="card-category-list-name">面试</span><span class="card-category-list-count">9</span></a></li></ul></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/braveheart/"><span class="card-category-list-name">braveheart</span><span class="card-category-list-count">1</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/cloud/"><span class="card-category-list-name">cloud</span><span class="card-category-list-count">179</span></a><ul class="card-category-list child"><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/cloud/Harbor/"><span class="card-category-list-name">Harbor</span><span class="card-category-list-count">1</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/cloud/Istio/"><span class="card-category-list-name">Istio</span><span class="card-category-list-count">1</span></a></li></ul></li>
+          </ul></div><div class="card-widget card-tags"><div class="item-headline"><i class="fas fa-tags"></i><span>标签</span></div><div class="card-tag-cloud"><a href="/tags/iptables/" style="font-size: 1.13em; color: #999a9c">iptables</a> <a href="/tags/network/" style="font-size: 1.19em; color: #999ca1">network</a> <a href="/tags/ReplicaSet/" style="font-size: 1.1em; color: #999">ReplicaSet</a> <a href="/tags/CKAD/" style="font-size: 1.13em; color: #999a9c">CKAD</a> <a href="/tags/Linux%E9%83%A8%E7%BD%B2Go/" style="font-size: 1.1em; color: #999">Linux部署Go</a> <a href="/tags/2024/" style="font-size: 1.1em; color: #999">2024</a> <a href="/tags/hpa/" style="font-size: 1.1em; color: #999">hpa</a> <a href="/tags/%E6%8E%88%E6%9D%83/" style="font-size: 1.13em; color: #999a9c">授权</a> <a href="/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/" style="font-size: 1.24em; color: #999fa7">微服务</a> <a href="/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" style="font-size: 1.16em; color: #999b9e">数据结构</a> <a href="/tags/EndpointSlice/" style="font-size: 1.1em; color: #999">EndpointSlice</a> <a href="/tags/go/" style="font-size: 1.47em; color: #99a8bc">go</a> <a href="/tags/crio/" style="font-size: 1.1em; color: #999">crio</a> <a href="/tags/service/" style="font-size: 1.19em; color: #999ca1">service</a> <a href="/tags/event/" style="font-size: 1.1em; color: #999">event</a> <a href="/tags/Gin/" style="font-size: 1.16em; color: #999b9e">Gin</a> <a href="/tags/Gorm/" style="font-size: 1.36em; color: #99a3b1">Gorm</a> <a href="/tags/Kube-scheduler/" style="font-size: 1.19em; color: #999ca1"> Kube-scheduler</a> <a href="/tags/poem/" style="font-size: 1.19em; color: #999ca1">poem</a> <a href="/tags/kube-apiserver/" style="font-size: 1.3em; color: #99a1ac">kube-apiserver</a> <a href="/tags/kubelet/" style="font-size: 1.1em; color: #999">kubelet'</a> <a href="/tags/devops/" style="font-size: 1.1em; color: #999">devops</a> <a href="/tags/braveheart/" style="font-size: 1.1em; color: #999">braveheart</a> <a href="/tags/jwt/" style="font-size: 1.1em; color: #999">jwt</a> <a href="/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" style="font-size: 1.39em; color: #99a4b4">设计模式</a> <a href="/tags/kubemark/" style="font-size: 1.1em; color: #999">kubemark</a> <a href="/tags/pod/" style="font-size: 1.3em; color: #99a1ac">pod</a> <a href="/tags/install/" style="font-size: 1.21em; color: #999ea4">install</a> <a href="/tags/dasemonset/" style="font-size: 1.16em; color: #999b9e">dasemonset</a> <a href="/tags/zap/" style="font-size: 1.13em; color: #999a9c">zap</a> <a href="/tags/web/" style="font-size: 1.44em; color: #99a7ba">web</a> <a href="/tags/K8s%E6%BA%90%E7%A0%81/" style="font-size: 1.5em; color: #99a9bf">K8s源码</a> <a href="/tags/gc/" style="font-size: 1.1em; color: #999">gc</a> <a href="/tags/grafana/" style="font-size: 1.13em; color: #999a9c">grafana</a> <a href="/tags/CSI/" style="font-size: 1.1em; color: #999">CSI</a> <a href="/tags/prometheus/" style="font-size: 1.41em; color: #99a6b7">prometheus</a> <a href="/tags/Harbor/" style="font-size: 1.1em; color: #999">Harbor</a> <a href="/tags/tools/" style="font-size: 1.27em; color: #99a0a9">tools</a> <a href="/tags/viper/" style="font-size: 1.1em; color: #999">viper</a> <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" style="font-size: 1.33em; color: #99a2af">分布式</a></div></div><div class="card-widget card-archives">
+    <div class="item-headline">
+      <i class="fas fa-archive"></i>
+      <span>归档</span>
+      <a class="card-more-btn" href="/archives/"
+            title="查看更多">
+            <i class="fas fa-angle-right"></i>
+          </a>
+    </div>
+  
+    <ul class="card-archive-list">
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2026/03/">
+            <span class="card-archive-list-date">
+              三月 2026
+            </span>
+            <span class="card-archive-list-count">13</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2026/01/">
+            <span class="card-archive-list-date">
+              一月 2026
+            </span>
+            <span class="card-archive-list-count">10</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/09/">
+            <span class="card-archive-list-date">
+              九月 2025
+            </span>
+            <span class="card-archive-list-count">1</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/08/">
+            <span class="card-archive-list-date">
+              八月 2025
+            </span>
+            <span class="card-archive-list-count">6</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/07/">
+            <span class="card-archive-list-date">
+              七月 2025
+            </span>
+            <span class="card-archive-list-count">11</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/06/">
+            <span class="card-archive-list-date">
+              六月 2025
+            </span>
+            <span class="card-archive-list-count">1</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/05/">
+            <span class="card-archive-list-date">
+              五月 2025
+            </span>
+            <span class="card-archive-list-count">1</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/03/">
+            <span class="card-archive-list-date">
+              三月 2025
+            </span>
+            <span class="card-archive-list-count">11</span>
+          </a>
+        </li>
+      
+    </ul>
+  </div><div class="card-widget card-webinfo"><div class="item-headline"><i class="fas fa-chart-line"></i><span>网站信息</span></div><div class="webinfo"><div class="webinfo-item"><div class="item-name">文章数目 :</div><div class="item-count">272</div></div><div class="webinfo-item"><div class="item-name">运行时间 :</div><div class="item-count" id="runtimeshow" data-publishDate="2023-07-01T00:00:00.000Z"><i class="fa-solid fa-spinner fa-spin"></i></div></div><div class="webinfo-item"><div class="item-name">本站总字数 :</div><div class="item-count">612.9k</div></div><div class="webinfo-item"><div class="item-name">本站访客数 :</div><div class="item-count" id="busuanzi_value_site_uv"><i class="fa-solid fa-spinner fa-spin"></i></div></div><div class="webinfo-item"><div class="item-name">本站总浏览量 :</div><div class="item-count" id="busuanzi_value_site_pv"><i class="fa-solid fa-spinner fa-spin"></i></div></div><div class="webinfo-item"><div class="item-name">最后更新时间 :</div><div class="item-count" id="last-push-date" data-lastPushDate="2026-03-22T13:05:56.718Z"><i class="fa-solid fa-spinner fa-spin"></i></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>window.typedJSFn = {
+  init: str => {
+    window.typed = new Typed('#subtitle', Object.assign({
+      strings: str,
+      startDelay: 300,
+      typeSpeed: 150,
+      loop: true,
+      backSpeed: 50,
+    }, null))
+  },
+  run: subtitleType => {
+    if (true) {
+      if (typeof Typed === 'function') {
+        subtitleType()
+      } else {
+        btf.getScript('https://cdn.jsdelivr.net/npm/typed.js/dist/typed.umd.min.js').then(subtitleType)
+      }
+    } else {
+      subtitleType()
+    }
+  },
+  processSubtitle: (content, extraContents = []) => {
+    if (true) {
+      const sub = ["我们登上并非我们所选择的舞台，演出并非我们所选择的剧本","该知道的都知道，不知道的慢慢了解","偶尔怀念一下就好了，脚下的路更重要"].slice()
+
+      if (extraContents.length > 0) {
+        sub.unshift(...extraContents)
+      }
+
+      if (typeof content === 'string') {
+        sub.unshift(content)
+      } else if (Array.isArray(content)) {
+        sub.unshift(...content)
+      }
+
+      sub.length > 0 && typedJSFn.init(sub)
+    } else {
+      document.getElementById('subtitle').textContent = typeof content === 'string' ? content :
+        (Array.isArray(content) && content.length > 0 ? content[0] : '')
+    }
+  }
+}
+btf.addGlobalFn('pjaxSendOnce', () => { typed.destroy() }, 'typedDestroy')
+</script><script>function subtitleType () {
+  typedJSFn.processSubtitle(["我们登上并非我们所选择的舞台，演出并非我们所选择的剧本","该知道的都知道，不知道的慢慢了解","偶尔怀念一下就好了，脚下的路更重要"])
+}
+typedJSFn.run(subtitleType)</script><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script></div><script src="/js/categories.js" defer></script><script src="/js/reading-progress.js"></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

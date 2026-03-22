@@ -1,0 +1,483 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>K8s-DNS解析流程 | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="DNS 解析流程本文档描述 Kubernetes 集群中 CoreDNS 如何解析 Service 到 Pod IP 的完整流程。 概述Kubernetes DNS 解析涉及以下核心组件：  CoreDNS：集群 DNS 服务器 kube-dns Service：指向 CoreDNS Pod 的 Service EndpointSlice：记录 CoreDNS Pod 的 IP 地址 Pod &amp;#">
+<meta property="og:type" content="article">
+<meta property="og:title" content="K8s-DNS解析流程">
+<meta property="og:url" content="https://piwriw.github.io/2026/03/22/cloud/k8s/DNS%E8%A7%A3%E6%9E%90%E6%B5%81%E7%A8%8B/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="DNS 解析流程本文档描述 Kubernetes 集群中 CoreDNS 如何解析 Service 到 Pod IP 的完整流程。 概述Kubernetes DNS 解析涉及以下核心组件：  CoreDNS：集群 DNS 服务器 kube-dns Service：指向 CoreDNS Pod 的 Service EndpointSlice：记录 CoreDNS Pod 的 IP 地址 Pod &amp;#">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/k8sLogo.png">
+<meta property="article:published_time" content="2026-03-22T13:22:55.000Z">
+<meta property="article:modified_time" content="2026-03-22T13:05:25.119Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="k8s">
+<meta property="article:tag" content="cloud">
+<meta property="article:tag" content="K8s源码">
+<meta property="article:tag" content="DNS">
+<meta property="article:tag" content="CoreDNS">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/k8sLogo.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "K8s-DNS解析流程",
+  "url": "https://piwriw.github.io/2026/03/22/cloud/k8s/DNS%E8%A7%A3%E6%9E%90%E6%B5%81%E7%A8%8B/",
+  "image": "https://piwriw.github.io/img/k8sLogo.png",
+  "datePublished": "2026-03-22T13:22:55.000Z",
+  "dateModified": "2026-03-22T13:05:25.119Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2026/03/22/cloud/k8s/DNS%E8%A7%A3%E6%9E%90%E6%B5%81%E7%A8%8B/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          const hour = new Date().getHours()
+          const isNight = hour <= 6 || hour >= 18
+          if (theme === undefined) isNight ? activateDarkMode() : activateLightMode()
+          else theme === 'light' ? activateLightMode() : activateDarkMode()
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '天',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'K8s-DNS解析流程',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">272</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">94</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/k8sLogo.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">K8s-DNS解析流程</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">K8s-DNS解析流程</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-03-22T13:22:55.000Z" title="发表于 2026-03-22 21:22:55">2026-03-22</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-03-22T13:05:25.119Z" title="更新于 2026-03-22 21:05:25">2026-03-22</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/">k8s</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">1.6k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>7分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-03-22 21:05:25&quot;}" hidden></div><h1 id="DNS-解析流程"><a href="#DNS-解析流程" class="headerlink" title="DNS 解析流程"></a>DNS 解析流程</h1><p>本文档描述 Kubernetes 集群中 CoreDNS 如何解析 Service 到 Pod IP 的完整流程。</p>
+<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>Kubernetes DNS 解析涉及以下核心组件：</p>
+<ul>
+<li><strong>CoreDNS</strong>：集群 DNS 服务器</li>
+<li><strong>kube-dns Service</strong>：指向 CoreDNS Pod 的 Service</li>
+<li><strong>EndpointSlice</strong>：记录 CoreDNS Pod 的 IP 地址</li>
+<li><strong>Pod &#x2F;etc&#x2F;resolv.conf</strong>：Pod 内的 DNS 配置</li>
+</ul>
+<pre><code class="highlight mermaid">flowchart TD
+    subgraph Pod[&quot;Pod (应用容器)&quot;]
+        A[&quot;应用发起 DNS 查询&quot;]
+        B[&quot;读取 /etc/resolv.conf&quot;]
+    end
+
+    subgraph CoreDNS[&quot;CoreDNS Pod&quot;]
+        C[&quot;CoreDNS 服务&quot;]
+        D[&quot;Watch API Server&quot;]
+        E[&quot;Service/Endpoint 缓存&quot;]
+    end
+
+    subgraph APIServer[&quot;API Server&quot;]
+        F[&quot;Service 资源&quot;]
+        G[&quot;EndpointSlice 资源&quot;]
+        H[&quot;Pod 资源&quot;]
+    end
+
+    A --&gt; B
+    B --&gt;|&quot;nameserver 10.96.0.10&quot;| I[&quot;kube-dns Service ClusterIP&quot;]
+    I --&gt; J[&quot;iptables/IPVS 规则&quot;]
+    J --&gt;|&quot;DNAT&quot;| C
+
+    D --&gt;|Watch| F
+    D --&gt;|Watch| G
+    D --&gt;|Watch| H
+
+    C --&gt; E
+    E --&gt;|&quot;返回解析结果&quot;| A
+
+    style A fill:#e1f5fe
+    style C fill:#c8e6c9
+    style F fill:#fff3e0</code></pre>
+
+<h2 id="流程详解"><a href="#流程详解" class="headerlink" title="流程详解"></a>流程详解</h2><h3 id="1-Pod-DNS-配置生成"><a href="#1-Pod-DNS-配置生成" class="headerlink" title="1. Pod DNS 配置生成"></a>1. Pod DNS 配置生成</h3><p>Kubelet 为每个 Pod 生成 <code>/etc/resolv.conf</code> 文件，配置 DNS 服务器地址。</p>
+<p><strong>代码路径</strong>: <code>pkg/kubelet/network/dns/dns.go</code></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// GetPodDNS 配置 Pod 的 DNS 策略</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(d *dnsConfigurer)</span></span> GetPodDNS(pod *v1.Pod) (*dns.Config, <span class="type">error</span>) &#123;</span><br><span class="line">    <span class="keyword">switch</span> pod.Spec.DNSPolicy &#123;</span><br><span class="line">    <span class="keyword">case</span> v1.DNSClusterFirstWithHostNet:</span><br><span class="line">        <span class="keyword">return</span> d.dnsConfigForHostNetworkPod(pod)</span><br><span class="line">    <span class="keyword">case</span> v1.DNSClusterFirst:</span><br><span class="line">        <span class="keyword">if</span> !kubecontainer.IsHostNetworkPod(pod) &#123;</span><br><span class="line">            <span class="keyword">return</span> d.dnsConfig(pod)</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// hostNetwork Pod 默认使用节点 DNS</span></span><br><span class="line">        <span class="keyword">fallthrough</span></span><br><span class="line">    <span class="keyword">case</span> v1.DNSDefault:</span><br><span class="line">        <span class="keyword">return</span> d.hostDNS(pod)</span><br><span class="line">    <span class="keyword">case</span> v1.DNSNone:</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>DNS 配置示例</strong>:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">nameserver 10.96.0.10</span><br><span class="line">search default.svc.cluster.local svc.cluster.local cluster.local</span><br><span class="line">options ndots:5</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-kube-dns-Service"><a href="#2-kube-dns-Service" class="headerlink" title="2. kube-dns Service"></a>2. kube-dns Service</h3><p><code>kube-dns</code> Service 是集群 DNS 的入口点：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">kube-dns</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">kube-system</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">clusterIP:</span> <span class="number">10.96</span><span class="number">.0</span><span class="number">.10</span>  <span class="comment"># 固定 ClusterIP</span></span><br><span class="line">  <span class="attr">ports:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">dns</span></span><br><span class="line">    <span class="attr">port:</span> <span class="number">53</span></span><br><span class="line">    <span class="attr">protocol:</span> <span class="string">UDP</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">dns-tcp</span></span><br><span class="line">    <span class="attr">port:</span> <span class="number">53</span></span><br><span class="line">    <span class="attr">protocol:</span> <span class="string">TCP</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">k8s-app:</span> <span class="string">kube-dns</span>    <span class="comment"># 选择 CoreDNS Pod</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="3-CoreDNS-工作原理"><a href="#3-CoreDNS-工作原理" class="headerlink" title="3. CoreDNS 工作原理"></a>3. CoreDNS 工作原理</h3><p>CoreDNS 通过 Watch API Server 获取 Service 和 EndpointSlice 信息：</p>
+<pre><code class="highlight mermaid">sequenceDiagram
+    participant API as API Server
+    participant Coredns as CoreDNS
+    participant Cache as 本地缓存
+    participant Client as 客户端 Pod
+
+    API-&gt;&gt;Coredns: Watch Service/EndpointSlice 事件
+    Coredns-&gt;&gt;Cache: 更新本地缓存
+
+    Client-&gt;&gt;Coredns: DNS 查询 my-svc.default.svc.cluster.local
+    Coredns-&gt;&gt;Cache: 查找 Service 记录
+    Cache-&gt;&gt;Coredns: 返回 ClusterIP 或 Endpoint IPs
+    Coredns-&gt;&gt;Client: 返回 DNS 响应</code></pre>
+
+<h3 id="4-Service-DNS-记录类型"><a href="#4-Service-DNS-记录类型" class="headerlink" title="4. Service DNS 记录类型"></a>4. Service DNS 记录类型</h3><h4 id="4-1-ClusterIP-Service"><a href="#4-1-ClusterIP-Service" class="headerlink" title="4.1 ClusterIP Service"></a>4.1 ClusterIP Service</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"># 服务名格式</span><br><span class="line">&lt;service-name&gt;.&lt;namespace&gt;.svc.cluster.local</span><br><span class="line"></span><br><span class="line"># 示例</span><br><span class="line">my-service.default.svc.cluster.local -&gt; 10.96.100.1</span><br></pre></td></tr></table></figure>
+
+<h4 id="4-2-Headless-Service（无-ClusterIP）"><a href="#4-2-Headless-Service（无-ClusterIP）" class="headerlink" title="4.2 Headless Service（无 ClusterIP）"></a>4.2 Headless Service（无 ClusterIP）</h4><p>Headless Service（<code>clusterIP: None</code>）直接返回后端 Pod IP：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">headless-svc</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">clusterIP:</span> <span class="string">None</span>  <span class="comment"># Headless</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">myapp</span></span><br></pre></td></tr></table></figure>
+
+<p>DNS 解析返回所有 Ready Pod 的 IP：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">headless-svc.default.svc.cluster.local -&gt; 10.244.1.5, 10.244.2.3</span><br></pre></td></tr></table></figure>
+
+<h4 id="4-3-ExternalName-Service"><a href="#4-3-ExternalName-Service" class="headerlink" title="4.3 ExternalName Service"></a>4.3 ExternalName Service</h4><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">external-svc</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">ExternalName</span></span><br><span class="line">  <span class="attr">externalName:</span> <span class="string">external.example.com</span></span><br></pre></td></tr></table></figure>
+
+<p>DNS 返回 CNAME 记录：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">external-svc.default.svc.cluster.local -&gt; CNAME external.example.com</span><br></pre></td></tr></table></figure>
+
+<h3 id="5-Pod-DNS-记录（Headless-Service-场景）"><a href="#5-Pod-DNS-记录（Headless-Service-场景）" class="headerlink" title="5. Pod DNS 记录（Headless Service 场景）"></a>5. Pod DNS 记录（Headless Service 场景）</h3><p>当 Pod 配置了 <code>hostname</code> 和 <code>subdomain</code>：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Pod</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">my-pod</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">hostname:</span> <span class="string">my-hostname</span></span><br><span class="line">  <span class="attr">subdomain:</span> <span class="string">my-subdomain</span>  <span class="comment"># 必须匹配 Headless Service 名称</span></span><br><span class="line">  <span class="attr">containers:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">app</span></span><br><span class="line">    <span class="attr">image:</span> <span class="string">nginx</span></span><br></pre></td></tr></table></figure>
+
+<p>DNS 记录格式：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&lt;pod-hostname&gt;.&lt;subdomain&gt;.&lt;namespace&gt;.svc.cluster.local</span><br><span class="line"></span><br><span class="line"># 示例</span><br><span class="line">my-hostname.my-subdomain.default.svc.cluster.local -&gt; 10.244.1.5</span><br></pre></td></tr></table></figure>
+
+<p><strong>代码路径</strong>: <code>staging/src/k8s.io/api/core/v1/types.go</code></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Pod DNS 名称格式</span></span><br><span class="line"><span class="comment">// &lt;hostname&gt;.&lt;subdomain&gt;.&lt;namespace&gt;.svc.&lt;cluster-domain&gt;</span></span><br><span class="line">Hostname <span class="type">string</span> <span class="string">`json:&quot;hostname,omitempty&quot;`</span></span><br><span class="line">Subdomain <span class="type">string</span> <span class="string">`json:&quot;subdomain,omitempty&quot;`</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="6-CoreDNS-插件配置"><a href="#6-CoreDNS-插件配置" class="headerlink" title="6. CoreDNS 插件配置"></a>6. CoreDNS 插件配置</h3><p>CoreDNS 使用 Corefile 配置插件：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">.:53 &#123;</span><br><span class="line">    errors</span><br><span class="line">    health &#123;</span><br><span class="line">        lameduck 5s</span><br><span class="line">    &#125;</span><br><span class="line">    ready</span><br><span class="line">    kubernetes cluster.local in-addr.arpa ip6.arpa &#123;</span><br><span class="line">        pods insecure</span><br><span class="line">        fallthrough in-addr.arpa ip6.arpa</span><br><span class="line">        ttl 30</span><br><span class="line">    &#125;</span><br><span class="line">    prometheus :9153</span><br><span class="line">    forward . /etc/resolv.conf &#123;</span><br><span class="line">        max_concurrent 1000</span><br><span class="line">    &#125;</span><br><span class="line">    cache 30</span><br><span class="line">    loop</span><br><span class="line">    reload</span><br><span class="line">    loadbalance</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>关键插件说明</strong>:</p>
+<ul>
+<li><strong>kubernetes</strong>: 处理 Service&#x2F;Pod DNS 记录</li>
+<li><strong>forward</strong>: 转发外部域名到上游 DNS</li>
+<li><strong>cache</strong>: 缓存 DNS 响应</li>
+<li><strong>loadbalance</strong>: 负载均衡 DNS 响应</li>
+</ul>
+<h2 id="关键代码锚点"><a href="#关键代码锚点" class="headerlink" title="关键代码锚点"></a>关键代码锚点</h2><table>
+<thead>
+<tr>
+<th>功能</th>
+<th>文件路径</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Kubelet DNS 配置</td>
+<td><code>pkg/kubelet/network/dns/dns.go</code></td>
+</tr>
+<tr>
+<td>HostNetwork 判断</td>
+<td><code>pkg/kubelet/container/helpers.go:IsHostNetworkPod</code></td>
+</tr>
+<tr>
+<td>Service DNS 名称格式</td>
+<td><code>staging/src/k8s.io/api/core/v1/types.go</code></td>
+</tr>
+<tr>
+<td>EndpointSlice 工具</td>
+<td><code>staging/src/k8s.io/endpointslice/util/controller_utils.go</code></td>
+</tr>
+</tbody></table>
+<h2 id="DNS-查询流程总结"><a href="#DNS-查询流程总结" class="headerlink" title="DNS 查询流程总结"></a>DNS 查询流程总结</h2><ol>
+<li><strong>应用发起 DNS 查询</strong> → 读取 <code>/etc/resolv.conf</code></li>
+<li><strong>查询发送到 kube-dns ClusterIP</strong> → iptables&#x2F;IPVS 转发</li>
+<li><strong>CoreDNS 接收查询</strong> → 查找本地缓存</li>
+<li><strong>返回结果</strong>:<ul>
+<li>ClusterIP Service → 返回 Service ClusterIP</li>
+<li>Headless Service → 返回 Pod IP 列表</li>
+<li>ExternalName → 返回 CNAME</li>
+<li>外部域名 → 转发到上游 DNS</li>
+</ul>
+</li>
+</ol>
+<h2 id="常见问题"><a href="#常见问题" class="headerlink" title="常见问题"></a>常见问题</h2><h3 id="DNS-解析慢"><a href="#DNS-解析慢" class="headerlink" title="DNS 解析慢"></a>DNS 解析慢</h3><ul>
+<li>检查 CoreDNS Pod 状态</li>
+<li>检查 <code>ndots</code> 配置（过多会导致多次查询）</li>
+<li>考虑使用 NodeLocal DNSCache</li>
+</ul>
+<h3 id="Service-无法解析"><a href="#Service-无法解析" class="headerlink" title="Service 无法解析"></a>Service 无法解析</h3><ul>
+<li>检查 Service 是否存在</li>
+<li>检查 EndpointSlice 是否正常</li>
+<li>检查 CoreDNS 日志</li>
+</ul>
+<h2 id="高频面试题"><a href="#高频面试题" class="headerlink" title="高频面试题"></a>高频面试题</h2><h3 id="Q1-Kubernetes-中-Service-的-DNS-解析流程是怎样的？"><a href="#Q1-Kubernetes-中-Service-的-DNS-解析流程是怎样的？" class="headerlink" title="Q1: Kubernetes 中 Service 的 DNS 解析流程是怎样的？"></a>Q1: Kubernetes 中 Service 的 DNS 解析流程是怎样的？</h3><p><strong>参考答案：</strong></p>
+<ol>
+<li>Pod 内应用发起 DNS 查询，读取 <code>/etc/resolv.conf</code> 获取 DNS 服务器地址</li>
+<li>查询发送到 <code>kube-dns</code> Service 的 ClusterIP（通常是 10.96.0.10）</li>
+<li>iptables&#x2F;IPVS 将请求 DNAT 到后端 CoreDNS Pod</li>
+<li>CoreDNS 查找本地缓存（通过 Watch API Server 获取 Service&#x2F;EndpointSlice 信息）</li>
+<li>返回解析结果：<ul>
+<li>ClusterIP Service → 返回 Service 的 ClusterIP</li>
+<li>Headless Service → 返回所有 Ready Pod 的 IP 列表</li>
+<li>ExternalName Service → 返回 CNAME 记录</li>
+</ul>
+</li>
+</ol>
+<h3 id="Q2-Headless-Service-和普通-Service-的-DNS-解析有什么区别？"><a href="#Q2-Headless-Service-和普通-Service-的-DNS-解析有什么区别？" class="headerlink" title="Q2: Headless Service 和普通 Service 的 DNS 解析有什么区别？"></a>Q2: Headless Service 和普通 Service 的 DNS 解析有什么区别？</h3><p><strong>参考答案：</strong></p>
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>普通 ClusterIP Service</th>
+<th>Headless Service</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>DNS 返回</td>
+<td>返回 Service 的 ClusterIP</td>
+<td>返回所有后端 Pod IP 列表</td>
+</tr>
+<tr>
+<td>负载均衡</td>
+<td>由 kube-proxy&#x2F;iptables 完成</td>
+<td>由客户端 DNS 轮询或应用层处理</td>
+</tr>
+<tr>
+<td>适用场景</td>
+<td>普通服务访问</td>
+<td>StatefulSet、直接 Pod 寻址</td>
+</tr>
+<tr>
+<td>配置</td>
+<td><code>clusterIP: 10.96.x.x</code></td>
+<td><code>clusterIP: None</code></td>
+</tr>
+</tbody></table>
+<h3 id="Q3-Pod-的-DNSPolicy-有哪几种？分别是什么作用？"><a href="#Q3-Pod-的-DNSPolicy-有哪几种？分别是什么作用？" class="headerlink" title="Q3: Pod 的 DNSPolicy 有哪几种？分别是什么作用？"></a>Q3: Pod 的 DNSPolicy 有哪几种？分别是什么作用？</h3><p><strong>参考答案：</strong></p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 1. ClusterFirst（默认）</span></span><br><span class="line"><span class="comment"># - 使用集群 DNS（CoreDNS）</span></span><br><span class="line"><span class="comment"># - hostNetwork 的 Pod 会回退到 Default</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 2. ClusterFirstWithHostNet</span></span><br><span class="line"><span class="comment"># - 即使是 hostNetwork 的 Pod 也使用集群 DNS</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 3. Default</span></span><br><span class="line"><span class="comment"># - 使用节点 DNS 配置（继承宿主机 /etc/resolv.conf）</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 4. None</span></span><br><span class="line"><span class="comment"># - 使用自定义 DNS 配置，必须指定 dnsConfig</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="Q4-CoreDNS-是如何获取-Service-和-Pod-信息的？"><a href="#Q4-CoreDNS-是如何获取-Service-和-Pod-信息的？" class="headerlink" title="Q4: CoreDNS 是如何获取 Service 和 Pod 信息的？"></a>Q4: CoreDNS 是如何获取 Service 和 Pod 信息的？</h3><p><strong>参考答案：</strong></p>
+<ol>
+<li>CoreDNS 通过 ServiceAccount 获得 RBAC 权限，可以 list&#x2F;watch Service、Pod、EndpointSlice、Namespace 资源</li>
+<li>使用 client-go 的 Informer 机制 Watch API Server</li>
+<li>当资源变化时，Informer 触发回调，更新 CoreDNS 本地缓存</li>
+<li>kubernetes 插件根据缓存数据生成 DNS 记录</li>
+</ol>
+<h3 id="Q5-如何排查-Pod-DNS-解析失败的问题？"><a href="#Q5-如何排查-Pod-DNS-解析失败的问题？" class="headerlink" title="Q5: 如何排查 Pod DNS 解析失败的问题？"></a>Q5: 如何排查 Pod DNS 解析失败的问题？</h3><p><strong>参考答案：</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 1. 检查 Pod 的 DNS 配置</span></span><br><span class="line">kubectl <span class="built_in">exec</span> -it &lt;pod&gt; -- <span class="built_in">cat</span> /etc/resolv.conf</span><br><span class="line"></span><br><span class="line"><span class="comment"># 2. 测试 DNS 解析</span></span><br><span class="line">kubectl <span class="built_in">exec</span> -it &lt;pod&gt; -- nslookup kubernetes.default</span><br><span class="line"></span><br><span class="line"><span class="comment"># 3. 检查 CoreDNS Pod 状态</span></span><br><span class="line">kubectl get pods -n kube-system -l k8s-app=kube-dns</span><br><span class="line"></span><br><span class="line"><span class="comment"># 4. 查看 CoreDNS 日志</span></span><br><span class="line">kubectl logs -n kube-system -l k8s-app=kube-dns</span><br><span class="line"></span><br><span class="line"><span class="comment"># 5. 检查 kube-dns Service 和 EndpointSlice</span></span><br><span class="line">kubectl get svc kube-dns -n kube-system</span><br><span class="line">kubectl get endpointslice -n kube-system -l kubernetes.io/service-name=kube-dns</span><br><span class="line"></span><br><span class="line"><span class="comment"># 6. 常见原因：</span></span><br><span class="line"><span class="comment">#    - CoreDNS Pod 未正常运行</span></span><br><span class="line"><span class="comment">#    - ndots 配置导致查询超时</span></span><br><span class="line"><span class="comment">#    - ndots:5 使得短域名需要多次查询</span></span><br><span class="line"><span class="comment">#    - 节点 DNS 配置问题</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="延伸阅读"><a href="#延伸阅读" class="headerlink" title="延伸阅读"></a>延伸阅读</h2><ul>
+<li><a href="./EndpointSlice%E6%8E%A7%E5%88%B6%E5%99%A8%E6%B5%81%E7%A8%8B.md">EndpointSlice控制器流程</a></li>
+<li><a href="./Pod%E5%9C%A8%E8%8A%82%E7%82%B9%E4%B8%8A%E5%AE%9E%E7%8E%B0%E6%B5%81%E7%A8%8B.md">Pod在节点上实现流程</a></li>
+<li><a href="./kube-proxy%E6%9C%8D%E5%8A%A1%E4%BB%A3%E7%90%86%E6%B5%81%E7%A8%8B.md">kube-proxy服务代理流程</a></li>
+</ul>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2026/03/22/cloud/k8s/DNS%E8%A7%A3%E6%9E%90%E6%B5%81%E7%A8%8B/">https://piwriw.github.io/2026/03/22/cloud/k8s/DNS解析流程/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a><a class="post-meta__tags" href="/tags/cloud/">cloud</a><a class="post-meta__tags" href="/tags/K8s%E6%BA%90%E7%A0%81/">K8s源码</a><a class="post-meta__tags" href="/tags/DNS/">DNS</a><a class="post-meta__tags" href="/tags/CoreDNS/">CoreDNS</a></div><div class="post-share"><div class="social-share" data-image="/img/k8sLogo.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2026/03/22/cloud/k8s/Deployment%E6%BB%9A%E5%8A%A8%E6%9B%B4%E6%96%B0%E6%B5%81%E7%A8%8B/" title="K8s-Deployment滚动更新流程"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">K8s-Deployment滚动更新流程</div></div><div class="info-2"><div class="info-item-1">Deployment 滚动更新流程本文档描述 Kubernetes Deployment 如何通过 ReplicaSet Controller 管理滚动更新的完整流程。 概述Deployment 滚动更新涉及以下核心组件：  Deployment Controller：管理 Deployment 生命周期 ReplicaSet Controller：管理 Pod 副本数 API Server：存储和分发资源状态  flowchart TD     subgraph User[&quot;用户操作&quot;]         A[&quot;kubectl apply -f deployment.yaml&quot;]     end      subgraph APIServer[&quot;API Server&quot;]         B[&quot;Deployment 资源&quot;]         C[&quot;ReplicaSet 资源&quot;]         D[&quot;Pod 资源&quot;]     end      subgraph D...</div></div></div></a><a class="pagination-related" href="/2026/03/22/cloud/k8s/CSI%E5%8D%B7%E6%8C%82%E8%BD%BD%E6%B5%81%E7%A8%8B/" title="K8s-CSI卷挂载流程"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">K8s-CSI卷挂载流程</div></div><div class="info-2"><div class="info-item-1">CSI 存储卷挂载通信流程目标这篇文档只回答一个核心问题：kubelet 如何通过 CSI (Container Storage Interface) 完成 Pod 存储卷的挂载？ 重点放在 VolumeManager 与 CSI driver 的交互，以及 attach&#x2F;mount 的完整流程。 一句话摘要kubelet 的 VolumeManager 通过 CSINode 和 CSIDriver 对象发现 CSI driver，然后通过 gRPC 调用 CSI driver 的 NodeStageVolume&#x2F;NodePublishVolume 完成卷的挂载。  1. 流程总览从通信视角看，这条链路可以拆成 3 个阶段：  卷准备阶段：CSI controller 完成 attach (对于块存储)。 节点挂载阶段：kubelet 通过 CSI driver 完成 stage 和 publish。 容器挂载阶段：kubelet 将卷 bind mount 到容器内。  架构总览图flowchart TB     subgraph 控制面[&quot;控制面...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2026/03/22/cloud/k8s/CSI%E5%8D%B7%E6%8C%82%E8%BD%BD%E6%B5%81%E7%A8%8B/" title="K8s-CSI卷挂载流程"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-22</div><div class="info-item-2">K8s-CSI卷挂载流程</div></div><div class="info-2"><div class="info-item-1">CSI 存储卷挂载通信流程目标这篇文档只回答一个核心问题：kubelet 如何通过 CSI (Container Storage Interface) 完成 Pod 存储卷的挂载？ 重点放在 VolumeManager 与 CSI driver 的交互，以及 attach&#x2F;mount 的完整流程。 一句话摘要kubelet 的 VolumeManager 通过 CSINode 和 CSIDriver 对象发现 CSI driver，然后通过 gRPC 调用 CSI driver 的 NodeStageVolume&#x2F;NodePublishVolume 完成卷的挂载。  1. 流程总览从通信视角看，这条链路可以拆成 3 个阶段：  卷准备阶段：CSI controller 完成 attach (对于块存储)。 节点挂载阶段：kubelet 通过 CSI driver 完成 stage 和 publish。 容器挂载阶段：kubelet 将卷 bind mount 到容器内。  架构总览图flowchart TB     subgraph 控制面[&quot;控制面...</div></div></div></a><a class="pagination-related" href="/2026/03/22/cloud/k8s/Deployment%E6%BB%9A%E5%8A%A8%E6%9B%B4%E6%96%B0%E6%B5%81%E7%A8%8B/" title="K8s-Deployment滚动更新流程"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-22</div><div class="info-item-2">K8s-Deployment滚动更新流程</div></div><div class="info-2"><div class="info-item-1">Deployment 滚动更新流程本文档描述 Kubernetes Deployment 如何通过 ReplicaSet Controller 管理滚动更新的完整流程。 概述Deployment 滚动更新涉及以下核心组件：  Deployment Controller：管理 Deployment 生命周期 ReplicaSet Controller：管理 Pod 副本数 API Server：存储和分发资源状态  flowchart TD     subgraph User[&quot;用户操作&quot;]         A[&quot;kubectl apply -f deployment.yaml&quot;]     end      subgraph APIServer[&quot;API Server&quot;]         B[&quot;Deployment 资源&quot;]         C[&quot;ReplicaSet 资源&quot;]         D[&quot;Pod 资源&quot;]     end      subgraph D...</div></div></div></a><a class="pagination-related" href="/2026/03/22/cloud/k8s/EndpointSlice%E6%8E%A7%E5%88%B6%E5%99%A8%E6%B5%81%E7%A8%8B/" title="K8s-EndpointSlice控制器流程"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-22</div><div class="info-item-2">K8s-EndpointSlice控制器流程</div></div><div class="info-2"><div class="info-item-1">EndpointSlice 控制器流程本文档描述 Kubernetes EndpointSlice 控制器如何让 Service 感知后端 Pod 变化的完整流程。 概述EndpointSlice 控制器负责：  监听 Service 和 Pod 变化 生成和管理 EndpointSlice 资源 记录 Service 后端 Pod 的 IP 地址和端口  flowchart TD     subgraph APIServer[&quot;API Server&quot;]         A[&quot;Service 资源&quot;]         B[&quot;Pod 资源&quot;]         C[&quot;EndpointSlice 资源&quot;]         D[&quot;Node 资源&quot;]     end      subgraph EndpointSliceController[&quot;EndpointSlice Controller&quot;]         E[&quot;Watch Service&quot;]  ...</div></div></div></a><a class="pagination-related" href="/2026/03/22/cloud/k8s/PVC%E4%BE%9B%E5%BA%94%E4%B8%8E%E7%BB%91%E5%AE%9A%E6%B5%81%E7%A8%8B/" title="K8s-PVC供应与绑定流程"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-22</div><div class="info-item-2">K8s-PVC供应与绑定流程</div></div><div class="info-2"><div class="info-item-1">PVC 供应与绑定流程本文档描述 Kubernetes 中 PVC（PersistentVolumeClaim）、PV（PersistentVolume）和 StorageClass 的完整交互流程。 概述PVC 供应与绑定涉及以下核心组件：  PV Controller：管理 PV 和 PVC 的绑定 StorageClass：定义动态供应参数 Provisioner：实际创建存储卷（in-tree 或 CSI） Scheduler：处理 WaitForFirstConsumer 模式  flowchart TD     subgraph User[&quot;用户操作&quot;]         A[&quot;创建 PVC&quot;]     end      subgraph APIServer[&quot;API Server&quot;]         B[&quot;PVC 资源&quot;]         C[&quot;PV 资源&quot;]         D[&quot;StorageClass&quot;]     end      subgra...</div></div></div></a><a class="pagination-related" href="/2026/03/22/cloud/k8s/Pod%E5%9C%A8%E8%8A%82%E7%82%B9%E4%B8%8A%E5%AE%9E%E7%8E%B0%E6%B5%81%E7%A8%8B/" title="K8s-Pod在节点落地流程"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-22</div><div class="info-item-2">K8s-Pod在节点落地流程</div></div><div class="info-2"><div class="info-item-1">Pod 在节点落地通信流程目标这篇文档只回答一个核心问题：kubelet 如何把“期望运行”的 Pod 变成“真实运行”的容器？ 重点放在 kubelet 内部各组件之间的协作与 CRI 通信边界，而不是每一个 gRPC 字段的含义。 一句话摘要kubelet 收到 Pod 更新后，把期望态交给 podWorkers；podWorkers 驱动单 Pod 生命周期状态机，再由 kubeGenericRuntimeManager 通过 CRI 调用容器运行时完成 sandbox、镜像与容器操作。  1. 流程总览从通信视角看，这条链路可以拆成 3 个阶段：  更新接入阶段：kubelet 从 Pod source 收到属于本节点的 Pod 更新，并交给内部子系统。 状态机驱动阶段：podWorkers 根据当前状态决定执行同步、终止还是清理。 运行时执行阶段：runtime manager 通过 CRI 把操作翻译给容器运行时，完成 sandbox 和容器的创建&#x2F;销毁。  Mermaid：总览图flowchart LR     A[Pod update from sour...</div></div></div></a><a class="pagination-related" href="/2026/03/22/cloud/k8s/Pod%E8%B0%83%E5%BA%A6%E4%B8%8E%E7%BB%91%E5%AE%9A%E6%B5%81%E7%A8%8B/" title="K8s-Pod调度与绑定流程"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-22</div><div class="info-item-2">K8s-Pod调度与绑定流程</div></div><div class="info-2"><div class="info-item-1">Pod 调度与绑定通信流程目标这篇文档只回答一个核心问题：一个 Pod 是怎么从“等待调度”变成“被某个节点上的 kubelet 感知到”的？ 重点放在组件之间的通信与职责边界，而不是调度器内部打分算法细节。 一句话摘要kube-scheduler 负责为 Pod 选节点，kube-apiserver 负责持久化绑定结果，kubelet 通过监听 API Server 中属于本节点的 Pod 更新来感知这次分配。  1. 流程总览从通信视角看，这条链路可以拆成 3 个阶段：  调度决策阶段：scheduler 为 Pod 选择目标节点。 绑定落盘阶段：scheduler 通过 API Server 把绑定结果写回集群状态。 节点感知阶段：目标节点上的 kubelet 观察到这个 Pod 已经分配给自己，开始进入节点侧处理。  Mermaid：总览图flowchart LR     A[Pending Pod] --&gt; B[kube-scheduler]     B --&gt; C[select target node]     C --&gt; D[kube-apiser...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">272</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">94</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#DNS-%E8%A7%A3%E6%9E%90%E6%B5%81%E7%A8%8B"><span class="toc-number">1.</span> <span class="toc-text">DNS 解析流程</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%A6%82%E8%BF%B0"><span class="toc-number">1.1.</span> <span class="toc-text">概述</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%B5%81%E7%A8%8B%E8%AF%A6%E8%A7%A3"><span class="toc-number">1.2.</span> <span class="toc-text">流程详解</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-Pod-DNS-%E9%85%8D%E7%BD%AE%E7%94%9F%E6%88%90"><span class="toc-number">1.2.1.</span> <span class="toc-text">1. Pod DNS 配置生成</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-kube-dns-Service"><span class="toc-number">1.2.2.</span> <span class="toc-text">2. kube-dns Service</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-CoreDNS-%E5%B7%A5%E4%BD%9C%E5%8E%9F%E7%90%86"><span class="toc-number">1.2.3.</span> <span class="toc-text">3. CoreDNS 工作原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-Service-DNS-%E8%AE%B0%E5%BD%95%E7%B1%BB%E5%9E%8B"><span class="toc-number">1.2.4.</span> <span class="toc-text">4. Service DNS 记录类型</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#4-1-ClusterIP-Service"><span class="toc-number">1.2.4.1.</span> <span class="toc-text">4.1 ClusterIP Service</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-2-Headless-Service%EF%BC%88%E6%97%A0-ClusterIP%EF%BC%89"><span class="toc-number">1.2.4.2.</span> <span class="toc-text">4.2 Headless Service（无 ClusterIP）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-3-ExternalName-Service"><span class="toc-number">1.2.4.3.</span> <span class="toc-text">4.3 ExternalName Service</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-Pod-DNS-%E8%AE%B0%E5%BD%95%EF%BC%88Headless-Service-%E5%9C%BA%E6%99%AF%EF%BC%89"><span class="toc-number">1.2.5.</span> <span class="toc-text">5. Pod DNS 记录（Headless Service 场景）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-CoreDNS-%E6%8F%92%E4%BB%B6%E9%85%8D%E7%BD%AE"><span class="toc-number">1.2.6.</span> <span class="toc-text">6. CoreDNS 插件配置</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%B3%E9%94%AE%E4%BB%A3%E7%A0%81%E9%94%9A%E7%82%B9"><span class="toc-number">1.3.</span> <span class="toc-text">关键代码锚点</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#DNS-%E6%9F%A5%E8%AF%A2%E6%B5%81%E7%A8%8B%E6%80%BB%E7%BB%93"><span class="toc-number">1.4.</span> <span class="toc-text">DNS 查询流程总结</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98"><span class="toc-number">1.5.</span> <span class="toc-text">常见问题</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#DNS-%E8%A7%A3%E6%9E%90%E6%85%A2"><span class="toc-number">1.5.1.</span> <span class="toc-text">DNS 解析慢</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Service-%E6%97%A0%E6%B3%95%E8%A7%A3%E6%9E%90"><span class="toc-number">1.5.2.</span> <span class="toc-text">Service 无法解析</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%AB%98%E9%A2%91%E9%9D%A2%E8%AF%95%E9%A2%98"><span class="toc-number">1.6.</span> <span class="toc-text">高频面试题</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Q1-Kubernetes-%E4%B8%AD-Service-%E7%9A%84-DNS-%E8%A7%A3%E6%9E%90%E6%B5%81%E7%A8%8B%E6%98%AF%E6%80%8E%E6%A0%B7%E7%9A%84%EF%BC%9F"><span class="toc-number">1.6.1.</span> <span class="toc-text">Q1: Kubernetes 中 Service 的 DNS 解析流程是怎样的？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Q2-Headless-Service-%E5%92%8C%E6%99%AE%E9%80%9A-Service-%E7%9A%84-DNS-%E8%A7%A3%E6%9E%90%E6%9C%89%E4%BB%80%E4%B9%88%E5%8C%BA%E5%88%AB%EF%BC%9F"><span class="toc-number">1.6.2.</span> <span class="toc-text">Q2: Headless Service 和普通 Service 的 DNS 解析有什么区别？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Q3-Pod-%E7%9A%84-DNSPolicy-%E6%9C%89%E5%93%AA%E5%87%A0%E7%A7%8D%EF%BC%9F%E5%88%86%E5%88%AB%E6%98%AF%E4%BB%80%E4%B9%88%E4%BD%9C%E7%94%A8%EF%BC%9F"><span class="toc-number">1.6.3.</span> <span class="toc-text">Q3: Pod 的 DNSPolicy 有哪几种？分别是什么作用？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Q4-CoreDNS-%E6%98%AF%E5%A6%82%E4%BD%95%E8%8E%B7%E5%8F%96-Service-%E5%92%8C-Pod-%E4%BF%A1%E6%81%AF%E7%9A%84%EF%BC%9F"><span class="toc-number">1.6.4.</span> <span class="toc-text">Q4: CoreDNS 是如何获取 Service 和 Pod 信息的？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Q5-%E5%A6%82%E4%BD%95%E6%8E%92%E6%9F%A5-Pod-DNS-%E8%A7%A3%E6%9E%90%E5%A4%B1%E8%B4%A5%E7%9A%84%E9%97%AE%E9%A2%98%EF%BC%9F"><span class="toc-number">1.6.5.</span> <span class="toc-text">Q5: 如何排查 Pod DNS 解析失败的问题？</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%BB%B6%E4%BC%B8%E9%98%85%E8%AF%BB"><span class="toc-number">1.7.</span> <span class="toc-text">延伸阅读</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/03/22/cloud/k8s/CSI%E5%8D%B7%E6%8C%82%E8%BD%BD%E6%B5%81%E7%A8%8B/" title="K8s-CSI卷挂载流程"><img src="/img/k8sLogo.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s-CSI卷挂载流程"/></a><div class="content"><a class="title" href="/2026/03/22/cloud/k8s/CSI%E5%8D%B7%E6%8C%82%E8%BD%BD%E6%B5%81%E7%A8%8B/" title="K8s-CSI卷挂载流程">K8s-CSI卷挂载流程</a><time datetime="2026-03-22T13:22:55.000Z" title="发表于 2026-03-22 21:22:55">2026-03-22</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/22/cloud/k8s/DNS%E8%A7%A3%E6%9E%90%E6%B5%81%E7%A8%8B/" title="K8s-DNS解析流程"><img src="/img/k8sLogo.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s-DNS解析流程"/></a><div class="content"><a class="title" href="/2026/03/22/cloud/k8s/DNS%E8%A7%A3%E6%9E%90%E6%B5%81%E7%A8%8B/" title="K8s-DNS解析流程">K8s-DNS解析流程</a><time datetime="2026-03-22T13:22:55.000Z" title="发表于 2026-03-22 21:22:55">2026-03-22</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/22/cloud/k8s/Deployment%E6%BB%9A%E5%8A%A8%E6%9B%B4%E6%96%B0%E6%B5%81%E7%A8%8B/" title="K8s-Deployment滚动更新流程"><img src="/img/k8sLogo.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s-Deployment滚动更新流程"/></a><div class="content"><a class="title" href="/2026/03/22/cloud/k8s/Deployment%E6%BB%9A%E5%8A%A8%E6%9B%B4%E6%96%B0%E6%B5%81%E7%A8%8B/" title="K8s-Deployment滚动更新流程">K8s-Deployment滚动更新流程</a><time datetime="2026-03-22T13:22:55.000Z" title="发表于 2026-03-22 21:22:55">2026-03-22</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/22/cloud/k8s/EndpointSlice%E6%8E%A7%E5%88%B6%E5%99%A8%E6%B5%81%E7%A8%8B/" title="K8s-EndpointSlice控制器流程"><img src="/img/k8sLogo.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s-EndpointSlice控制器流程"/></a><div class="content"><a class="title" href="/2026/03/22/cloud/k8s/EndpointSlice%E6%8E%A7%E5%88%B6%E5%99%A8%E6%B5%81%E7%A8%8B/" title="K8s-EndpointSlice控制器流程">K8s-EndpointSlice控制器流程</a><time datetime="2026-03-22T13:22:55.000Z" title="发表于 2026-03-22 21:22:55">2026-03-22</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/22/cloud/k8s/PVC%E4%BE%9B%E5%BA%94%E4%B8%8E%E7%BB%91%E5%AE%9A%E6%B5%81%E7%A8%8B/" title="K8s-PVC供应与绑定流程"><img src="/img/k8sLogo.png" onerror="this.onerror=null;this.src='/img/404.png'" alt="K8s-PVC供应与绑定流程"/></a><div class="content"><a class="title" href="/2026/03/22/cloud/k8s/PVC%E4%BE%9B%E5%BA%94%E4%B8%8E%E7%BB%91%E5%AE%9A%E6%B5%81%E7%A8%8B/" title="K8s-PVC供应与绑定流程">K8s-PVC供应与绑定流程</a><time datetime="2026-03-22T13:22:55.000Z" title="发表于 2026-03-22 21:22:55">2026-03-22</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script src="/js/reading-progress.js"></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

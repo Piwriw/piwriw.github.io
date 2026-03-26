@@ -1,0 +1,1387 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>K8s-kubelet状态与事件反馈流程 | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="Kubelet 状态与事件回传流程目标这篇文档只回答一个核心问题：kubelet 如何把节点侧观察到的 Pod 运行结果回传给控制面？ 重点放在状态回传与事件上报两条通信链路的区别，以及控制器真正依赖的观察面是什么。 一句话摘要kubelet 通过 statusManager 异步批量把 PodStatus 同步到 API Server，并通过事件记录器上报诊断性 Event；控制器主要观察的是">
+<meta property="og:type" content="article">
+<meta property="og:title" content="K8s-kubelet状态与事件反馈流程">
+<meta property="og:url" content="https://piwriw.github.io/2026/03/22/cloud/k8s/kubelet/kubelet%E7%8A%B6%E6%80%81%E4%B8%8E%E4%BA%8B%E4%BB%B6%E5%8F%8D%E9%A6%88%E6%B5%81%E7%A8%8B/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="Kubelet 状态与事件回传流程目标这篇文档只回答一个核心问题：kubelet 如何把节点侧观察到的 Pod 运行结果回传给控制面？ 重点放在状态回传与事件上报两条通信链路的区别，以及控制器真正依赖的观察面是什么。 一句话摘要kubelet 通过 statusManager 异步批量把 PodStatus 同步到 API Server，并通过事件记录器上报诊断性 Event；控制器主要观察的是">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/k8sLogo.png">
+<meta property="article:published_time" content="2026-03-22T13:22:55.000Z">
+<meta property="article:modified_time" content="2026-03-26T15:28:20.125Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="k8s">
+<meta property="article:tag" content="cloud">
+<meta property="article:tag" content="K8s源码">
+<meta property="article:tag" content="kubelet">
+<meta property="article:tag" content="status">
+<meta property="article:tag" content="event">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/k8sLogo.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "K8s-kubelet状态与事件反馈流程",
+  "url": "https://piwriw.github.io/2026/03/22/cloud/k8s/kubelet/kubelet%E7%8A%B6%E6%80%81%E4%B8%8E%E4%BA%8B%E4%BB%B6%E5%8F%8D%E9%A6%88%E6%B5%81%E7%A8%8B/",
+  "image": "https://piwriw.github.io/img/k8sLogo.png",
+  "datePublished": "2026-03-22T13:22:55.000Z",
+  "dateModified": "2026-03-26T15:28:20.125Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2026/03/22/cloud/k8s/kubelet/kubelet%E7%8A%B6%E6%80%81%E4%B8%8E%E4%BA%8B%E4%BB%B6%E5%8F%8D%E9%A6%88%E6%B5%81%E7%A8%8B/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          const hour = new Date().getHours()
+          const isNight = hour <= 6 || hour >= 18
+          if (theme === undefined) isNight ? activateDarkMode() : activateLightMode()
+          else theme === 'light' ? activateLightMode() : activateDarkMode()
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '天',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'K8s-kubelet状态与事件反馈流程',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">303</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">96</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/k8sLogo.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">K8s-kubelet状态与事件反馈流程</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">K8s-kubelet状态与事件反馈流程</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-03-22T13:22:55.000Z" title="发表于 2026-03-22 21:22:55">2026-03-22</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-03-26T15:28:20.125Z" title="更新于 2026-03-26 23:28:20">2026-03-26</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/">k8s</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/kubelet/">kubelet</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">7.2k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>30分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-03-26 23:28:20&quot;}" hidden></div><h1 id="Kubelet-状态与事件回传流程"><a href="#Kubelet-状态与事件回传流程" class="headerlink" title="Kubelet 状态与事件回传流程"></a>Kubelet 状态与事件回传流程</h1><h2 id="目标"><a href="#目标" class="headerlink" title="目标"></a>目标</h2><p>这篇文档只回答一个核心问题：<strong>kubelet 如何把节点侧观察到的 Pod 运行结果回传给控制面？</strong></p>
+<p>重点放在状态回传与事件上报两条通信链路的区别，以及控制器真正依赖的观察面是什么。</p>
+<h2 id="一句话摘要"><a href="#一句话摘要" class="headerlink" title="一句话摘要"></a>一句话摘要</h2><p>kubelet 通过 <code>statusManager</code> 异步批量把 <code>PodStatus</code> 同步到 API Server，并通过事件记录器上报诊断性 Event；控制器主要观察的是 API Server 中资源对象的状态变化，而不是 kubelet 内部事件流本身。</p>
+<hr>
+<h2 id="1-流程总览"><a href="#1-流程总览" class="headerlink" title="1. 流程总览"></a>1. 流程总览</h2><p>从通信视角看，这条链路包含两条并行但职责不同的子链路：</p>
+<ol>
+<li><strong>状态回传链路</strong>：kubelet 把 Pod 运行状态写回 API Server，成为控制面的共享事实。</li>
+<li><strong>事件上报链路</strong>：kubelet 把诊断性 Event 写入 API Server，用于排障与审计。</li>
+</ol>
+<p>这两条链路共享 API Server 作为存储，但消费方和语义完全不同。</p>
+<h3 id="Mermaid：总览图"><a href="#Mermaid：总览图" class="headerlink" title="Mermaid：总览图"></a>Mermaid：总览图</h3><pre><code class="highlight mermaid">flowchart LR
+    A[Kubelet subsystems] --&gt; B[statusManager]
+    A --&gt; C[EventRecorder]
+    B --&gt; D[API Server PodStatus]
+    C --&gt; E[API Server Events]
+    D --&gt; F[Controllers watch Pods]
+    E --&gt; G[Humans / monitoring tools]</code></pre>
+
+<h3 id="状态与事件双链路架构图"><a href="#状态与事件双链路架构图" class="headerlink" title="状态与事件双链路架构图"></a>状态与事件双链路架构图</h3><pre><code class="highlight mermaid">flowchart TB
+    subgraph 状态产生[&quot;状态产生源&quot;]
+        direction TB
+        PW[podWorkers&lt;br/&gt;容器状态]
+        PM[probeManager&lt;br/&gt;健康检查]
+        PLEG[PLEG&lt;br/&gt;生命周期事件]
+        VM[volumeManager&lt;br/&gt;卷状态]
+    end
+
+    subgraph 状态链路[&quot;状态回传链路 (控制面输入)&quot;]
+        direction TB
+        SM[statusManager&lt;br/&gt;状态缓存]
+        SYNC[syncBatch&lt;br/&gt;批量同步]
+        PATCH[PATCH /status&lt;br/&gt;API 调用]
+    end
+
+    subgraph 事件链路[&quot;事件上报链路 (诊断面输入)&quot;]
+        direction TB
+        ER[EventRecorder&lt;br/&gt;事件记录]
+        EB[EventBroadcaster&lt;br/&gt;批量上报]
+        POST[POST Events&lt;br/&gt;API 调用]
+    end
+
+    subgraph API层[&quot;API Server&quot;]
+        API[kube-apiserver]
+        ETCD[(etcd)]
+    end
+
+    subgraph 消费者[&quot;消费方&quot;]
+        direction TB
+        CTRL[Controllers&lt;br/&gt;驱动控制逻辑]
+        KUBECTL[kubectl describe&lt;br/&gt;调试工具]
+        MON[监控系统&lt;br/&gt;Prometheus/ELK]
+    end
+
+    PW --&gt; SM
+    PM --&gt; SM
+    PLEG --&gt; SM
+    VM --&gt; SM
+
+    PW -.-&gt;|异常事件| ER
+    PM -.-&gt;|探针失败| ER
+    PLEG -.-&gt;|容器死亡| ER
+
+    SM --&gt; SYNC
+    SYNC --&gt; PATCH
+    PATCH --&gt; API
+
+    ER --&gt; EB
+    EB --&gt; POST
+    POST --&gt; API
+
+    API &lt;--&gt; ETCD
+
+    API --&gt;|watch Pod| CTRL
+    API --&gt;|读取 Event| KUBECTL
+    API --&gt;|读取 Event| MON</code></pre>
+
+<h3 id="StatusManager-内部工作机制图"><a href="#StatusManager-内部工作机制图" class="headerlink" title="StatusManager 内部工作机制图"></a>StatusManager 内部工作机制图</h3><pre><code class="highlight mermaid">flowchart TD
+    subgraph 输入[&quot;状态输入&quot;]
+        I1[SetPodStatus]
+        I2[SetContainerReadiness]
+        I3[TerminatePod]
+    end
+
+    subgraph 缓存层[&quot;本地缓存&quot;]
+        PS[&quot;podStatuses&lt;br&gt;map UID versionedPodStatus&quot;]
+        ASV[&quot;apiStatusVersions&lt;br&gt;已同步版本&quot;]
+        CH[&quot;podStatusChannel&lt;br&gt;变更通知&quot;]
+    end
+
+    subgraph 同步循环[&quot;同步循环&quot;]
+        START[Start goroutine]
+        BATCH[syncBatch]
+        CHECK&#123;需要同步&#125;
+        BUILD[构建 PATCH 请求]
+        SEND[发送到 API Server]
+        RETRY&#123;成功&#125;
+        UPDATE[更新 apiStatusVersions]
+        WAIT[等待下一周期]
+    end
+
+    I1 --&gt; PS
+    I2 --&gt; PS
+    I3 --&gt; PS
+    PS --&gt; CH
+
+    START --&gt; BATCH
+    CH --&gt; BATCH
+    BATCH --&gt; CHECK
+    CHECK --&gt;|是| BUILD
+    CHECK --&gt;|否| WAIT
+    BUILD --&gt; SEND
+    SEND --&gt; RETRY
+    RETRY --&gt;|是| UPDATE
+    RETRY --&gt;|否| WAIT
+    UPDATE --&gt; WAIT
+    WAIT --&gt; BATCH</code></pre>
+
+<h3 id="这张图想表达什么"><a href="#这张图想表达什么" class="headerlink" title="这张图想表达什么"></a>这张图想表达什么</h3><ul>
+<li>状态是控制面的输入，事件是诊断面的输入。</li>
+<li>控制器主要看对象状态，而不是事件流。</li>
+<li>状态同步是异步批量的，有本地缓存和版本控制机制。</li>
+</ul>
+<hr>
+<h2 id="2-分阶段通信流程"><a href="#2-分阶段通信流程" class="headerlink" title="2. 分阶段通信流程"></a>2. 分阶段通信流程</h2><hr>
+<h3 id="阶段一：kubelet-内部产生状态变更"><a href="#阶段一：kubelet-内部产生状态变更" class="headerlink" title="阶段一：kubelet 内部产生状态变更"></a>阶段一：kubelet 内部产生状态变更</h3><p>这个阶段的本质是：<strong>各个子系统把观察到的运行结果汇总到 statusManager。</strong></p>
+<h4 id="步骤-1-1：podWorkers-完成一次-SyncPod"><a href="#步骤-1-1：podWorkers-完成一次-SyncPod" class="headerlink" title="步骤 1.1：podWorkers 完成一次 SyncPod"></a>步骤 1.1：podWorkers 完成一次 SyncPod</h4><p>当 podWorkers 完成一次 <code>SyncPod</code> 后，它会得到容器的创建&#x2F;启动结果。这些结果需要被反映到 PodStatus 中。</p>
+<p><strong>通信方向</strong>：podWorkers → statusManager（通过 SetPodStatus）</p>
+<h4 id="步骤-1-2：probe-manager-执行健康检查"><a href="#步骤-1-2：probe-manager-执行健康检查" class="headerlink" title="步骤 1.2：probe manager 执行健康检查"></a>步骤 1.2：probe manager 执行健康检查</h4><p><code>probeManager</code> 定期执行 liveness&#x2F;readiness&#x2F;startup 探针。当探针结果变化时（例如从成功变失败），它会更新对应的 probe result manager。</p>
+<p><strong>通信方向</strong>：probeManager → livenessManager&#x2F;readinessManager&#x2F;startupManager</p>
+<h4 id="步骤-1-3：probe-result-触发状态更新"><a href="#步骤-1-3：probe-result-触发状态更新" class="headerlink" title="步骤 1.3：probe result 触发状态更新"></a>步骤 1.3：probe result 触发状态更新</h4><p>当探针结果变化时，会触发 statusManager 的状态更新。例如，readiness 探针失败会导致 Pod 的 <code>Ready</code> 条件变为 <code>False</code>。</p>
+<p><strong>通信方向</strong>：probe result manager → statusManager</p>
+<h4 id="步骤-1-4：PLEG-检测到容器变化"><a href="#步骤-1-4：PLEG-检测到容器变化" class="headerlink" title="步骤 1.4：PLEG 检测到容器变化"></a>步骤 1.4：PLEG 检测到容器变化</h4><p>PLEG（Pod Lifecycle Event Generator）定期 relist 容器状态，检测到变化时会生成 Pod 生命周期事件，触发 Pod 同步，间接导致状态更新。</p>
+<p><strong>通信方向</strong>：PLEG → podWorkers → statusManager</p>
+<h4 id="步骤-1-5：statusManager-缓存新状态"><a href="#步骤-1-5：statusManager-缓存新状态" class="headerlink" title="步骤 1.5：statusManager 缓存新状态"></a>步骤 1.5：statusManager 缓存新状态</h4><p><code>statusManager.SetPodStatus(...)</code> 把新状态写入本地缓存 <code>podStatuses</code>。此时状态还没有写入 API Server，只是 kubelet 内部视图更新了。</p>
+<p><strong>通信方向</strong>：statusManager 内部 map 更新</p>
+<hr>
+<h3 id="阶段二：statusManager-异步同步到-API-Server"><a href="#阶段二：statusManager-异步同步到-API-Server" class="headerlink" title="阶段二：statusManager 异步同步到 API Server"></a>阶段二：statusManager 异步同步到 API Server</h3><p>这个阶段的本质是：<strong>把本地缓存的状态批量写回控制面。</strong></p>
+<h4 id="步骤-2-1：statusManager-启动同步循环"><a href="#步骤-2-1：statusManager-启动同步循环" class="headerlink" title="步骤 2.1：statusManager 启动同步循环"></a>步骤 2.1：statusManager 启动同步循环</h4><p><code>statusManager.Start()</code> 启动一个 goroutine，定期或在收到状态变更信号时执行 <code>syncBatch(...)</code>。</p>
+<p><strong>通信方向</strong>：statusManager 内部循环</p>
+<h4 id="步骤-2-2：判断是否需要同步"><a href="#步骤-2-2：判断是否需要同步" class="headerlink" title="步骤 2.2：判断是否需要同步"></a>步骤 2.2：判断是否需要同步</h4><p><code>syncBatch</code> 会检查每个 Pod 的状态是否有变化，以及是否到达同步间隔。只有需要同步的 Pod 才会被处理。</p>
+<p><strong>通信方向</strong>：statusManager 内部判断</p>
+<h4 id="步骤-2-3：构造-Patch-Update-请求"><a href="#步骤-2-3：构造-Patch-Update-请求" class="headerlink" title="步骤 2.3：构造 Patch&#x2F;Update 请求"></a>步骤 2.3：构造 Patch&#x2F;Update 请求</h4><p>对于需要同步的 Pod，statusManager 会构造一个 Patch 或 Update 请求，只更新 <code>status</code> 子资源，而不是整个 Pod 对象。</p>
+<p><strong>通信方向</strong>：statusManager 内部构造</p>
+<h4 id="步骤-2-4：发送到-API-Server"><a href="#步骤-2-4：发送到-API-Server" class="headerlink" title="步骤 2.4：发送到 API Server"></a>步骤 2.4：发送到 API Server</h4><p>statusManager 通过 client-go 向 API Server 发送请求。API Server 校验权限后更新 Pod 的 <code>status</code> 字段。</p>
+<p><strong>通信方向</strong>：statusManager → API Server（HTTP PATCH&#x2F;PUT）</p>
+<h4 id="步骤-2-5：处理同步失败"><a href="#步骤-2-5：处理同步失败" class="headerlink" title="步骤 2.5：处理同步失败"></a>步骤 2.5：处理同步失败</h4><p>如果同步失败（例如网络问题、冲突），statusManager 会保留该 Pod 在缓存中，等待下一个周期重试。</p>
+<p><strong>通信方向</strong>：statusManager 内部错误处理</p>
+<h4 id="步骤-2-6：更新同步版本"><a href="#步骤-2-6：更新同步版本" class="headerlink" title="步骤 2.6：更新同步版本"></a>步骤 2.6：更新同步版本</h4><p>同步成功后，statusManager 会记录当前的 <code>apiStatusVersions</code>，用于后续判断是否需要再次同步。</p>
+<p><strong>通信方向</strong>：statusManager 内部状态更新</p>
+<hr>
+<h3 id="阶段三：事件上报并行发生"><a href="#阶段三：事件上报并行发生" class="headerlink" title="阶段三：事件上报并行发生"></a>阶段三：事件上报并行发生</h3><p>这个阶段的本质是：<strong>除了状态，kubelet 还会并行上报诊断性事件。</strong></p>
+<h4 id="步骤-3-1：子系统检测到需要记录的事件"><a href="#步骤-3-1：子系统检测到需要记录的事件" class="headerlink" title="步骤 3.1：子系统检测到需要记录的事件"></a>步骤 3.1：子系统检测到需要记录的事件</h4><p>当容器启动失败、探针失败、镜像拉取失败等情况发生时，相关子系统会调用 EventRecorder 记录事件。</p>
+<p><strong>通信方向</strong>：各子系统 → EventRecorder</p>
+<h4 id="步骤-3-2：EventRecorder-构造-Event-对象"><a href="#步骤-3-2：EventRecorder-构造-Event-对象" class="headerlink" title="步骤 3.2：EventRecorder 构造 Event 对象"></a>步骤 3.2：EventRecorder 构造 Event 对象</h4><p>EventRecorder 会构造一个 <code>v1.Event</code> 对象，包含：</p>
+<ul>
+<li>事件类型（Normal&#x2F;Warning）</li>
+<li>原因（Reason）</li>
+<li>消息（Message）</li>
+<li>相关对象引用（InvolvedObject）</li>
+</ul>
+<p><strong>通信方向</strong>：EventRecorder 内部构造</p>
+<h4 id="步骤-3-3：EventBroadcaster-批量上报"><a href="#步骤-3-3：EventBroadcaster-批量上报" class="headerlink" title="步骤 3.3：EventBroadcaster 批量上报"></a>步骤 3.3：EventBroadcaster 批量上报</h4><p>EventBroadcaster 会收集多个事件，批量发送到 API Server。这样可以减少 API 调用次数。</p>
+<p><strong>通信方向</strong>：EventBroadcaster → API Server（HTTP POST）</p>
+<h4 id="步骤-3-4：事件存储在-API-Server"><a href="#步骤-3-4：事件存储在-API-Server" class="headerlink" title="步骤 3.4：事件存储在 API Server"></a>步骤 3.4：事件存储在 API Server</h4><p>API Server 收到事件后，会存储在 etcd 中。事件有 TTL（默认 1 小时），过期后自动清理。</p>
+<p><strong>通信方向</strong>：API Server → etcd</p>
+<h4 id="步骤-3-5：事件对控制器的影响"><a href="#步骤-3-5：事件对控制器的影响" class="headerlink" title="步骤 3.5：事件对控制器的影响"></a>步骤 3.5：事件对控制器的影响</h4><p>控制器通常<strong>不消费事件流作为控制输入</strong>。事件主要用于：</p>
+<ul>
+<li><code>kubectl describe</code> 显示</li>
+<li>日志收集系统</li>
+<li>告警系统</li>
+</ul>
+<p><strong>通信方向</strong>：事件是只读的诊断信息</p>
+<hr>
+<h3 id="小结：这条链路的-2-条通信链路"><a href="#小结：这条链路的-2-条通信链路" class="headerlink" title="小结：这条链路的 2 条通信链路"></a>小结：这条链路的 2 条通信链路</h3><table>
+<thead>
+<tr>
+<th>链路</th>
+<th>目的</th>
+<th>消费方</th>
+<th>是否驱动控制逻辑</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PodStatus 同步</td>
+<td>把运行状态变成控制面事实</td>
+<td>控制器</td>
+<td>是</td>
+</tr>
+<tr>
+<td>Event 上报</td>
+<td>记录诊断信息</td>
+<td>人类&#x2F;监控系统</td>
+<td>否（通常）</td>
+</tr>
+</tbody></table>
+<p><strong>核心结论</strong>：控制器主要观察 API Server 中的对象状态，而不是消费事件流。</p>
+<hr>
+<h2 id="2-5-完整流程图"><a href="#2-5-完整流程图" class="headerlink" title="2.5 完整流程图"></a>2.5 完整流程图</h2><p>下面这张图把本文所有步骤串在一起，方便一眼看完整个通信链路：</p>
+<pre><code class="highlight mermaid">flowchart TD
+    subgraph 状态产生[&quot;状态产生&quot;]
+        A1[podWorkers SyncPod 完成] --&gt; A2[容器状态]
+        A2 --&gt; A3[statusManager.SetPodStatus]
+        A4[probeManager 探针] --&gt; A5[liveness/readiness/startup 结果]
+        A5 --&gt; A6[probe result manager]
+        A6 --&gt; A3
+        A7[PLEG relist] --&gt; A8[Pod 生命周期事件]
+        A8 --&gt; A9[podWorkers]
+        A9 --&gt; A3
+        A3 --&gt; A10[本地缓存 podStatuses]
+    end
+
+    subgraph 状态同步[&quot;状态同步&quot;]
+        A10 --&gt; B1[syncBatch 循环]
+        B1 --&gt; B2&#123;需要同步?&#125;
+        B2 --&gt;|是| B3[构造 Patch 请求]
+        B2 --&gt;|否| B4[等待下一周期]
+        B3 --&gt; B5[发送到 API Server]
+        B5 --&gt; B6&#123;成功?&#125;
+        B6 --&gt;|是| B7[更新 apiStatusVersions]
+        B6 --&gt;|否| B8[保留缓存等待重试]
+    end
+
+    subgraph 事件上报[&quot;事件上报&quot;]
+        C1[子系统检测事件] --&gt; C2[EventRecorder.Eventf]
+        C2 --&gt; C3[构造 Event 对象]
+        C3 --&gt; C4[EventBroadcaster 批量]
+        C4 --&gt; C5[POST 到 API Server]
+        C5 --&gt; C6[存储到 etcd]
+        C6 --&gt; C7[kubectl describe 显示]
+    end
+
+    subgraph 控制器观察[&quot;控制器观察&quot;]
+        B5 --&gt; D1[API Server Pod 更新]
+        D1 --&gt; D2[controller informer]
+        D2 --&gt; D3[本地缓存更新]
+        D3 --&gt; D4[触发 reconcile]
+    end</code></pre>
+
+<hr>
+<h2 id="2-6-与其他组件的交互"><a href="#2-6-与其他组件的交互" class="headerlink" title="2.6 与其他组件的交互"></a>2.6 与其他组件的交互</h2><p>这条链路不只是 kubelet 内部的事，还涉及多个外部系统的协作：</p>
+<h3 id="与各类-Controller-的交互"><a href="#与各类-Controller-的交互" class="headerlink" title="与各类 Controller 的交互"></a>与各类 Controller 的交互</h3><p>不同控制器会消费 PodStatus 来驱动各自的收敛逻辑：</p>
+<table>
+<thead>
+<tr>
+<th>控制器</th>
+<th>关注的 PodStatus 字段</th>
+<th>做什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>ReplicaSet Controller</td>
+<td><code>phase</code>, <code>podIP</code></td>
+<td>管理 Pod 生命周期</td>
+</tr>
+<tr>
+<td>Deployment Controller</td>
+<td><code>conditions[Ready]</code></td>
+<td>控制滚动更新</td>
+</tr>
+<tr>
+<td>Service Controller</td>
+<td><code>podIP</code>, <code>ready</code></td>
+<td>更新 Endpoint</td>
+</tr>
+<tr>
+<td>Job Controller</td>
+<td><code>phase</code>, <code>containerStatuses</code></td>
+<td>跟踪任务完成</td>
+</tr>
+</tbody></table>
+<p><strong>关键理解</strong>：控制器通过 informer&#x2F;watch 观察 Pod 对象，而不是被 kubelet 主动通知。</p>
+<h3 id="与监控系统的交互"><a href="#与监控系统的交互" class="headerlink" title="与监控系统的交互"></a>与监控系统的交互</h3><p>Event 是监控系统的重要输入：</p>
+<pre><code class="highlight mermaid">flowchart LR
+    A[EventRecorder] --&gt; B[API Server]
+    B --&gt; C[Event 对象]
+    C --&gt; D[Prometheus Event Exporter]
+    C --&gt; E[ELK/日志系统]
+    C --&gt; F[告警系统]</code></pre>
+
+<table>
+<thead>
+<tr>
+<th>系统</th>
+<th>如何消费 Event</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Prometheus</td>
+<td>通过 Event Exporter 转换为指标</td>
+</tr>
+<tr>
+<td>ELK</td>
+<td>直接索引 Event 对象</td>
+</tr>
+<tr>
+<td>告警系统</td>
+<td>监听 Warning 类型 Event</td>
+</tr>
+</tbody></table>
+<p><strong>关键理解</strong>：Event 有 TTL（默认 1 小时），不适合作为长期存储。</p>
+<h3 id="与-kubectl-describe-的交互"><a href="#与-kubectl-describe-的交互" class="headerlink" title="与 kubectl describe 的交互"></a>与 kubectl describe 的交互</h3><p><code>kubectl describe pod</code> 会聚合显示 Pod 的状态和事件：</p>
+<pre><code class="highlight mermaid">flowchart TD
+    A[kubectl describe] --&gt; B[读取 Pod 对象]
+    B --&gt; C[显示 PodStatus]
+    A --&gt; D[查询相关 Event]
+    D --&gt; E[按时间排序]
+    E --&gt; F[显示事件列表]</code></pre>
+
+<p><strong>关键理解</strong>：Event 的 <code>involvedObject</code> 字段关联到具体 Pod，方便查询。</p>
+<h3 id="与-PLEG（Pod-Lifecycle-Event-Generator）的交互"><a href="#与-PLEG（Pod-Lifecycle-Event-Generator）的交互" class="headerlink" title="与 PLEG（Pod Lifecycle Event Generator）的交互"></a>与 PLEG（Pod Lifecycle Event Generator）的交互</h3><p>PLEG 是状态产生的重要来源：</p>
+<pre><code class="highlight mermaid">flowchart LR
+    A[PLEG] --&gt; B[定期 relist 容器]
+    B --&gt; C[对比上次状态]
+    C --&gt; D&#123;有变化?&#125;
+    D --&gt;|是| E[生成 PodLifecycleEvent]
+    E --&gt; F[podWorkers]
+    F --&gt; G[触发 SyncPod]
+    G --&gt; H[statusManager]</code></pre>
+
+<p><strong>关键理解</strong>：PLEG 不是直接写 API Server，而是通过触发 podWorkers 间接导致状态更新。</p>
+<h3 id="与探针系统的交互"><a href="#与探针系统的交互" class="headerlink" title="与探针系统的交互"></a>与探针系统的交互</h3><p>探针结果直接影响 PodStatus 中的条件：</p>
+<pre><code class="highlight mermaid">flowchart TD
+    A[容器启动成功] --&gt; B[probeManager]
+    B --&gt; C&#123;liveness 探针&#125;
+    B --&gt; D&#123;readiness 探针&#125;
+    B --&gt; E[startup 探针]
+    C --&gt; F[livenessManager]
+    D --&gt; G[readinessManager]
+    E --&gt; H[startupManager]
+    F --&gt; I[statusManager]
+    G --&gt; I
+    H --&gt; I
+    I --&gt; J[更新 Pod conditions]</code></pre>
+
+<table>
+<thead>
+<tr>
+<th>探针类型</th>
+<th>影响的条件</th>
+<th>失败后果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>liveness</td>
+<td>无直接条件</td>
+<td>容器重启</td>
+</tr>
+<tr>
+<td>readiness</td>
+<td><code>Ready</code></td>
+<td>从 Service 移除</td>
+</tr>
+<tr>
+<td>startup</td>
+<td><code>Initialized</code></td>
+<td>阻塞其他探针</td>
+</tr>
+</tbody></table>
+<p><strong>关键理解</strong>：探针结果先写入 probe result manager，再通过 statusManager 同步到 API Server。</p>
+<h3 id="交互总结表"><a href="#交互总结表" class="headerlink" title="交互总结表"></a>交互总结表</h3><table>
+<thead>
+<tr>
+<th>外部系统</th>
+<th>交互方式</th>
+<th>影响什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>各类 Controller</td>
+<td>informer&#x2F;watch Pod</td>
+<td>驱动控制逻辑</td>
+</tr>
+<tr>
+<td>监控系统</td>
+<td>读取 Event</td>
+<td>指标、告警</td>
+</tr>
+<tr>
+<td>kubectl describe</td>
+<td>读取 Pod + Event</td>
+<td>诊断信息</td>
+</tr>
+<tr>
+<td>PLEG</td>
+<td>生成事件触发 SyncPod</td>
+<td>状态产生</td>
+</tr>
+<tr>
+<td>探针系统</td>
+<td>写入 probe result manager</td>
+<td>Pod 条件</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="3-关键时序图"><a href="#3-关键时序图" class="headerlink" title="3. 关键时序图"></a>3. 关键时序图</h2><h3 id="Mermaid：主时序图"><a href="#Mermaid：主时序图" class="headerlink" title="Mermaid：主时序图"></a>Mermaid：主时序图</h3><pre><code class="highlight mermaid">sequenceDiagram
+    participant Subsys as Kubelet Subsystems
+    participant StatusMgr as statusManager
+    participant APIServer
+    participant EventRecorder
+    participant Controller
+
+    Subsys-&gt;&gt;StatusMgr: SetPodStatus(...)
+    StatusMgr-&gt;&gt;StatusMgr: cache new status
+    StatusMgr-&gt;&gt;APIServer: syncBatch patch/update PodStatus
+    Subsys-&gt;&gt;EventRecorder: Eventf(...)
+    EventRecorder-&gt;&gt;APIServer: create Event object
+    APIServer--&gt;&gt;Controller: watch Pod status changes
+    Controller-&gt;&gt;Controller: reconcile based on object state</code></pre>
+
+<h3 id="时序图里的-3-个关键点"><a href="#时序图里的-3-个关键点" class="headerlink" title="时序图里的 3 个关键点"></a>时序图里的 3 个关键点</h3><ul>
+<li><code>statusManager</code> 有本地缓存，状态同步是异步批量的。</li>
+<li>Event 与 PodStatus 是两条独立的写入路径。</li>
+<li>控制器通过 watch 对象状态来驱动收敛，而不是消费 Event 流。</li>
+</ul>
+<hr>
+<h2 id="4-异常与分支路径"><a href="#4-异常与分支路径" class="headerlink" title="4. 异常与分支路径"></a>4. 异常与分支路径</h2><h3 id="Mermaid：异常-分支路径图"><a href="#Mermaid：异常-分支路径图" class="headerlink" title="Mermaid：异常&#x2F;分支路径图"></a>Mermaid：异常&#x2F;分支路径图</h3><pre><code class="highlight mermaid">flowchart TD
+    A[status change observed] --&gt; B[SetPodStatus to local cache]
+    B --&gt; C&#123;syncBatch triggered?&#125;
+    C --&gt;|Yes| D[patch/update PodStatus to API Server]
+    D --&gt; E&#123;write succeeds?&#125;
+    E --&gt;|No| F[retry in next syncBatch cycle]
+    E --&gt;|Yes| G[controllers observe new state]
+    C --&gt;|No| H[wait for next tick or event]
+    I[probe failure / container crash] --&gt; J[EventRecorder.Eventf]
+    J --&gt; K[write Event to API Server]
+    K --&gt; L[visible in kubectl describe / logs]</code></pre>
+
+<h3 id="读这张图时要关注什么"><a href="#读这张图时要关注什么" class="headerlink" title="读这张图时要关注什么"></a>读这张图时要关注什么</h3><ul>
+<li><strong>状态同步失败</strong>：会在下一个 syncBatch 周期重试，而不是立即丢弃。</li>
+<li><strong>Event 写入失败</strong>：通常不会影响控制逻辑，只是诊断信息丢失。</li>
+<li><strong>控制器观察的是对象状态</strong>：即使 Event 丢失，控制器仍然可以根据 PodStatus 做出正确决策。</li>
+</ul>
+<hr>
+<h2 id="5-这个流程里谁负责什么"><a href="#5-这个流程里谁负责什么" class="headerlink" title="5. 这个流程里谁负责什么"></a>5. 这个流程里谁负责什么</h2><table>
+<thead>
+<tr>
+<th>组件</th>
+<th>主要职责</th>
+<th>不负责什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>statusManager</code></td>
+<td>缓存 PodStatus 并异步同步到 API Server</td>
+<td>不直接驱动控制逻辑</td>
+</tr>
+<tr>
+<td><code>EventRecorder</code></td>
+<td>上报诊断性 Event</td>
+<td>不是控制面的主输入</td>
+</tr>
+<tr>
+<td><code>kube-apiserver</code></td>
+<td>持久化 PodStatus 和 Event</td>
+<td>不执行控制器逻辑</td>
+</tr>
+<tr>
+<td><code>controllers</code></td>
+<td>通过 informer&#x2F;watch 观察对象状态</td>
+<td>不消费 Event 作为主控制输入</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="6-常见误解"><a href="#6-常见误解" class="headerlink" title="6. 常见误解"></a>6. 常见误解</h2><h3 id="误解-1：控制器主要靠-Event-驱动控制逻辑"><a href="#误解-1：控制器主要靠-Event-驱动控制逻辑" class="headerlink" title="误解 1：控制器主要靠 Event 驱动控制逻辑"></a>误解 1：控制器主要靠 Event 驱动控制逻辑</h3><p>不是。Event 更偏向诊断信号，主观察面通常是 Pod&#x2F;Node 等对象状态。</p>
+<h3 id="误解-2：每次状态变化都同步阻塞写-API-Server"><a href="#误解-2：每次状态变化都同步阻塞写-API-Server" class="headerlink" title="误解 2：每次状态变化都同步阻塞写 API Server"></a>误解 2：每次状态变化都同步阻塞写 API Server</h3><p>不是。<code>statusManager</code> 有本地缓存与批量异步同步机制。</p>
+<h3 id="误解-3：kubelet-内部事件流-控制面对象状态"><a href="#误解-3：kubelet-内部事件流-控制面对象状态" class="headerlink" title="误解 3：kubelet 内部事件流 &#x3D; 控制面对象状态"></a>误解 3：kubelet 内部事件流 &#x3D; 控制面对象状态</h3><p>不是。对外一致性语义主要体现为 API Server 中的对象状态，而不是 kubelet 内部事件流。</p>
+<hr>
+<h2 id="7-版本差异说明"><a href="#7-版本差异说明" class="headerlink" title="7. 版本差异说明"></a>7. 版本差异说明</h2><p>这条链路在 Kubernetes 1.27&#x2F;1.28&#x2F;1.29 中有一些值得注意的变化：</p>
+<h3 id="1-27-→-1-28-变化"><a href="#1-27-→-1-28-变化" class="headerlink" title="1.27 → 1.28 变化"></a>1.27 → 1.28 变化</h3><table>
+<thead>
+<tr>
+<th>变化点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Job Pod Failure Policy (Beta)</td>
+<td>Job 控制器可以更精细地根据 Pod 失败条件决定是否重试</td>
+</tr>
+<tr>
+<td>Indexed Job 改进</td>
+<td>Indexed Job 的状态回传更准确</td>
+</tr>
+<tr>
+<td>Event API 改进</td>
+<td>Event 的 <code>regarding</code> 字段支持更多对象类型</td>
+</tr>
+</tbody></table>
+<h3 id="1-28-→-1-29-变化"><a href="#1-28-→-1-29-变化" class="headerlink" title="1.28 → 1.29 变化"></a>1.28 → 1.29 变化</h3><table>
+<thead>
+<tr>
+<th>变化点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>终止 Pod IP 字段修复</td>
+<td>修复了终止态 Pod 的 PodIP 字段可能被临时移除的问题</td>
+</tr>
+<tr>
+<td>探针超时处理改进</td>
+<td>startup 探针超时后的状态传播更准确</td>
+</tr>
+<tr>
+<td>Event TTL 可配置</td>
+<td>通过 <code>--event-ttl</code> 可以配置 Event 保留时间</td>
+</tr>
+</tbody></table>
+<h3 id="向后兼容性"><a href="#向后兼容性" class="headerlink" title="向后兼容性"></a>向后兼容性</h3><table>
+<thead>
+<tr>
+<th>版本</th>
+<th>兼容性注意</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1.27+</td>
+<td>Job Pod Failure Policy 需要更新 Job API 使用方式</td>
+</tr>
+<tr>
+<td>1.28+</td>
+<td>Event API 变化对老客户端透明</td>
+</tr>
+<tr>
+<td>1.29+</td>
+<td>终止 Pod IP 修复可能影响依赖该行为的逻辑</td>
+</tr>
+</tbody></table>
+<h3 id="需要关注的废弃"><a href="#需要关注的废弃" class="headerlink" title="需要关注的废弃"></a>需要关注的废弃</h3><table>
+<thead>
+<tr>
+<th>废弃项</th>
+<th>替代方案</th>
+<th>移除版本</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>--event-burst</code> 默认值变更</td>
+<td>调整为 10000</td>
+<td>1.28 已变更</td>
+</tr>
+<tr>
+<td>Event <code>firstTimestamp</code>&#x2F;<code>lastTimestamp</code></td>
+<td>使用 <code>eventTime</code> 和 <code>series</code></td>
+<td>计划移除</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="7-与后续文档的关系"><a href="#7-与后续文档的关系" class="headerlink" title="7. 与后续文档的关系"></a>7. 与后续文档的关系</h2><p>建议按这个顺序阅读：</p>
+<ol>
+<li><a href="./pod-on-node-realization-flow.md"><code>docs/pod-on-node-realization-flow.md</code></a></li>
+<li>本文：理解运行结果如何回到控制面</li>
+<li><a href="./node-heartbeat-and-health-flow.md"><code>docs/node-heartbeat-and-health-flow.md</code></a>：理解节点健康信号如何影响控制面判断</li>
+</ol>
+<hr>
+<h2 id="8-代码入口（精简版）"><a href="#8-代码入口（精简版）" class="headerlink" title="8. 代码入口（精简版）"></a>8. 代码入口（精简版）</h2><p>如果读者想从流程跳回实现，可从下面几个入口开始：</p>
+<ul>
+<li>status manager 启动同步循环：<a href="../pkg/kubelet/status/status_manager.go"><code>pkg/kubelet/status/status_manager.go:194</code></a><ul>
+<li><code>Start()</code></li>
+</ul>
+</li>
+<li>写入 PodStatus：<a href="../pkg/kubelet/status/status_manager.go"><code>pkg/kubelet/status/status_manager.go:283</code></a><ul>
+<li><code>SetPodStatus(...)</code></li>
+</ul>
+</li>
+<li>批量同步到 API Server：<a href="../pkg/kubelet/status/status_manager.go"><code>pkg/kubelet/status/status_manager.go:766</code></a><ul>
+<li><code>syncBatch(all bool)</code></li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="9-详细时序图"><a href="#9-详细时序图" class="headerlink" title="9. 详细时序图"></a>9. 详细时序图</h2><h3 id="9-1-状态同步完整时序图"><a href="#9-1-状态同步完整时序图" class="headerlink" title="9.1 状态同步完整时序图"></a>9.1 状态同步完整时序图</h3><pre><code class="highlight mermaid">sequenceDiagram
+    autonumber
+    participant PW as podWorkers
+    participant PR as probeManager
+    participant PLEG as PLEG
+    participant SM as statusManager
+    participant CACHE as 本地缓存
+    participant API as kube-apiserver
+    participant CTRL as Controller
+
+    Note over PW,SM: 状态产生源
+
+    par 并行状态更新
+        PW-&gt;&gt;SM: SetPodStatus(pod, status)
+        PW-&gt;&gt;CACHE: 写入 podStatuses[UID]
+
+        PR-&gt;&gt;PR: 执行探针
+        PR-&gt;&gt;SM: SetContainerReadiness(pod, containerID, ready)
+
+        PLEG-&gt;&gt;PLEG: relist 容器
+        PLEG-&gt;&gt;PW: PodLifecycleEvent
+        PW-&gt;&gt;SM: SetPodStatus(pod, status)
+    end
+
+    Note over SM: 同步循环
+
+    loop 每 syncBatch 周期
+        SM-&gt;&gt;CACHE: 遍历 podStatuses
+        SM-&gt;&gt;SM: 检查是否需要同步
+
+        alt 状态有变化 或 到达同步间隔
+            SM-&gt;&gt;SM: 构造 PATCH 请求
+            SM-&gt;&gt;API: PATCH /api/v1/namespaces/&lt;ns&gt;/pods/&lt;pod&gt;/status
+
+            alt 同步成功
+                API--&gt;&gt;SM: 200 OK
+                SM-&gt;&gt;SM: 更新 apiStatusVersions
+            else 同步失败 (冲突)
+                API--&gt;&gt;SM: 409 Conflict
+                SM-&gt;&gt;SM: 保留在缓存,下周期重试
+            else 同步失败 (网络)
+                API--&gt;&gt;SM: Error
+                SM-&gt;&gt;SM: 保留在缓存,下周期重试
+            end
+        else 无需同步
+            SM-&gt;&gt;SM: 跳过
+        end
+    end
+
+    Note over API,CTRL: Controller 感知状态变化
+
+    API--&gt;&gt;CTRL: watch 推送 Pod UPDATE
+    CTRL-&gt;&gt;CTRL: 更新本地缓存
+    CTRL-&gt;&gt;CTRL: 触发 reconcile 逻辑</code></pre>
+
+<h3 id="9-2-事件上报时序图"><a href="#9-2-事件上报时序图" class="headerlink" title="9.2 事件上报时序图"></a>9.2 事件上报时序图</h3><pre><code class="highlight mermaid">sequenceDiagram
+    autonumber
+    participant SUBSYS as Kubelet 子系统
+    participant ER as EventRecorder
+    participant EB as EventBroadcaster
+    participant API as kube-apiserver
+    participant ETCD as etcd
+    participant USER as 用户/监控
+
+    Note over SUBSYS: 检测到需要记录的事件
+
+    SUBSYS-&gt;&gt;ER: Eventf(regarding, related, eventtype, reason, message)
+
+    ER-&gt;&gt;ER: 构造 Event 对象
+    Note over ER: Event&#123;&lt;br/&gt;  Type: Normal/Warning,&lt;br/&gt;  Reason: &quot;Started&quot;,&lt;br/&gt;  Message: &quot;...&quot;,&lt;br/&gt;  InvolvedObject: Pod&lt;br/&gt;&#125;
+
+    ER-&gt;&gt;EB: Action(events channel)
+
+    Note over EB: 批量聚合
+
+    loop 批量发送
+        EB-&gt;&gt;API: POST /api/v1/namespaces/&lt;ns&gt;/events
+        API-&gt;&gt;ETCD: 存储 Event
+        ETCD--&gt;&gt;API: 确认
+        API--&gt;&gt;EB: 201 Created
+    end
+
+    Note over API,USER: 事件消费
+
+    par 并行消费
+        USER-&gt;&gt;API: kubectl describe pod
+        API--&gt;&gt;USER: 返回 Pod + Events
+    and
+        USER-&gt;&gt;API: kubectl get events
+        API--&gt;&gt;USER: 返回 Event 列表
+    and
+        MONITOR-&gt;&gt;API: watch events
+        API--&gt;&gt;MONITOR: 实时推送 Events
+    end</code></pre>
+
+<h3 id="9-3-探针状态传播时序图"><a href="#9-3-探针状态传播时序图" class="headerlink" title="9.3 探针状态传播时序图"></a>9.3 探针状态传播时序图</h3><pre><code class="highlight mermaid">sequenceDiagram
+    autonumber
+    participant CTR as 容器
+    participant PR as probeManager
+    participant LM as livenessManager
+    participant RM as readinessManager
+    participant SM as statusManager
+    participant API as kube-apiserver
+    participant SVC as Service/Endpoint
+
+    Note over PR: 定期执行探针
+
+    loop 每个探针周期
+        PR-&gt;&gt;CTR: HTTP GET /healthz (或 TCP/Exec)
+
+        alt 探针成功
+            CTR--&gt;&gt;PR: 200 OK
+            PR-&gt;&gt;RM: Set(containerID, results.Success)
+        else 探针失败
+            CTR--&gt;&gt;PR: Timeout/Error
+            PR-&gt;&gt;RM: Set(containerID, results.Failure)
+        end
+    end
+
+    Note over RM: 探针结果变化
+
+    RM-&gt;&gt;SM: 触发状态更新
+    SM-&gt;&gt;SM: 更新 Pod conditions[Ready]
+
+    alt Ready=True
+        SM-&gt;&gt;API: PATCH Pod status
+        API--&gt;&gt;SVC: watch 触发
+        SVC-&gt;&gt;SVC: 添加 Pod IP 到 Endpoint
+    else Ready=False
+        SM-&gt;&gt;API: PATCH Pod status
+        API--&gt;&gt;SVC: watch 触发
+        SVC-&gt;&gt;SVC: 从 Endpoint 移除 Pod IP
+    end
+
+    Note over LM: Liveness 失败处理
+
+    alt Liveness 探针持续失败
+        LM-&gt;&gt;LM: 记录失败次数
+        LM-&gt;&gt;LM: 超过阈值
+        LM-&gt;&gt;SM: 触发容器重启
+        SM-&gt;&gt;SM: 更新 Pod status
+    end</code></pre>
+
+<hr>
+<h2 id="10-故障排查指南"><a href="#10-故障排查指南" class="headerlink" title="10. 故障排查指南"></a>10. 故障排查指南</h2><h3 id="10-1-常见问题与诊断方法"><a href="#10-1-常见问题与诊断方法" class="headerlink" title="10.1 常见问题与诊断方法"></a>10.1 常见问题与诊断方法</h3><h4 id="问题-1：Pod-状态与实际容器状态不一致"><a href="#问题-1：Pod-状态与实际容器状态不一致" class="headerlink" title="问题 1：Pod 状态与实际容器状态不一致"></a>问题 1：Pod 状态与实际容器状态不一致</h4><p><strong>症状</strong>：<code>kubectl get pod</code> 显示 Running，但容器实际已退出</p>
+<p><strong>排查流程图</strong>：</p>
+<pre><code class="highlight mermaid">flowchart TD
+    A[状态不一致] --&gt; B&#123;检查 PLEG&#125;
+
+    B --&gt; B1[PLEG relist 正常?]
+    B1 --&gt;|否| C[PLEG 问题]
+    C --&gt; C1[检查 relist 错误日志]
+    C --&gt; C2[检查 CRI 连接]
+
+    B1 --&gt;|是| D&#123;检查 statusManager&#125;
+    D --&gt; D1[检查 syncBatch 是否执行]
+    D1 --&gt; D2[检查 API 同步错误]
+
+    D --&gt; E&#123;检查网络&#125;
+    E --&gt; E1[检查与 API Server 连接]
+    E --&gt; E2[检查权限]
+
+    A --&gt; F&#123;手动触发同步&#125;
+    F --&gt; F1[删除 Pod 触发重建]
+    F --&gt; F2[重启 kubelet]</code></pre>
+
+<p><strong>诊断命令</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 检查 Pod 实际状态</span></span><br><span class="line">kubectl get pod &lt;pod-name&gt; -n &lt;namespace&gt; -o yaml</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查节点上容器状态</span></span><br><span class="line">crictl ps -a | grep &lt;pod-name&gt;</span><br><span class="line">crictl inspect &lt;container-id&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 kubelet 状态同步日志</span></span><br><span class="line">journalctl -u kubelet | grep -E <span class="string">&quot;(status|syncBatch)&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 PLEG relist</span></span><br><span class="line">journalctl -u kubelet | grep -i pleg</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 API Server 连接</span></span><br><span class="line">curl -k https://&lt;api-server&gt;:6443/api/v1/namespaces/&lt;ns&gt;/pods/&lt;pod&gt;</span><br></pre></td></tr></table></figure>
+
+<h4 id="问题-2：事件丢失或延迟"><a href="#问题-2：事件丢失或延迟" class="headerlink" title="问题 2：事件丢失或延迟"></a>问题 2：事件丢失或延迟</h4><p><strong>症状</strong>：<code>kubectl describe pod</code> 看不到预期的事件</p>
+<p><strong>排查流程图</strong>：</p>
+<pre><code class="highlight mermaid">flowchart TD
+    A[事件丢失/延迟] --&gt; B&#123;检查 Event 对象&#125;
+
+    B --&gt; B1[检查 Event 是否存在]
+    B1 --&gt;|存在| C[显示问题]
+    C --&gt; C1[检查 kubectl 权限]
+    C --&gt; C2[检查 Event TTL]
+
+    B1 --&gt;|不存在| D&#123;检查事件上报&#125;
+    D --&gt; D1[检查 EventRecorder 日志]
+    D --&gt; D2[检查 EventBroadcaster]
+
+    D --&gt; E&#123;检查 API Server&#125;
+    E --&gt; E1[检查 API Server 负载]
+    E --&gt; E2[检查 etcd 性能]
+
+    A --&gt; F&#123;检查事件量&#125;
+    F --&gt; F1[事件过多被限流]
+    F --&gt; F2[调整 event-burst]</code></pre>
+
+<p><strong>诊断命令</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看 Pod 相关事件</span></span><br><span class="line">kubectl get events -n &lt;namespace&gt; --field-selector involvedObject.name=&lt;pod-name&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看所有 Warning 事件</span></span><br><span class="line">kubectl get events -A --field-selector <span class="built_in">type</span>=Warning</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查事件 TTL</span></span><br><span class="line">kubectl get events -A -o jsonpath=<span class="string">&#x27;&#123;.items[*].metadata.annotations&#125;&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 kubelet 事件上报</span></span><br><span class="line">journalctl -u kubelet | grep -i event</span><br></pre></td></tr></table></figure>
+
+<h4 id="问题-3：探针状态未正确传播"><a href="#问题-3：探针状态未正确传播" class="headerlink" title="问题 3：探针状态未正确传播"></a>问题 3：探针状态未正确传播</h4><p><strong>症状</strong>：容器健康但 Pod Ready&#x3D;False</p>
+<p><strong>排查流程图</strong>：</p>
+<pre><code class="highlight mermaid">flowchart TD
+    A[Ready 状态异常] --&gt; B&#123;检查探针配置&#125;
+
+    B --&gt;|无 readinessProbe| C[无探针,检查默认行为]
+    B --&gt;|有探针| D&#123;检查探针执行&#125;
+
+    D --&gt; D1[检查探针日志]
+    D1 --&gt; D2&#123;探针成功?&#125;
+
+    D2 --&gt;|否| E[探针失败]
+    E --&gt; E1[检查探针端口]
+    E --&gt; E2[检查探针路径]
+    E --&gt; E3[检查容器网络]
+
+    D2 --&gt;|是| F&#123;检查状态传播&#125;
+    F --&gt; F1[检查 readinessManager]
+    F --&gt; F2[检查 statusManager]
+
+    A --&gt; G&#123;检查容器状态&#125;
+    G --&gt; G1[容器是否 Running?]
+    G --&gt; G2[容器是否 Ready?]</code></pre>
+
+<p><strong>诊断命令</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 检查探针配置</span></span><br><span class="line">kubectl get pod &lt;pod-name&gt; -n &lt;namespace&gt; -o jsonpath=<span class="string">&#x27;&#123;.spec.containers[*].readinessProbe&#125;&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查容器 Ready 状态</span></span><br><span class="line">kubectl get pod &lt;pod-name&gt; -n &lt;namespace&gt; -o jsonpath=<span class="string">&#x27;&#123;.status.containerStatuses[*].ready&#125;&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查探针日志</span></span><br><span class="line">journalctl -u kubelet | grep -i probe</span><br><span class="line"></span><br><span class="line"><span class="comment"># 手动测试探针 (在节点上)</span></span><br><span class="line">curl http://&lt;pod-ip&gt;:&lt;probe-port&gt;/&lt;probe-path&gt;</span><br></pre></td></tr></table></figure>
+
+<h3 id="10-2-关键日志关键词"><a href="#10-2-关键日志关键词" class="headerlink" title="10.2 关键日志关键词"></a>10.2 关键日志关键词</h3><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>日志关键词</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>状态同步</td>
+<td><code>syncBatch</code></td>
+<td>批量同步</td>
+</tr>
+<tr>
+<td>状态写入</td>
+<td><code>SetPodStatus</code></td>
+<td>状态写入缓存</td>
+</tr>
+<tr>
+<td>API 同步</td>
+<td><code>PatchPodStatus</code></td>
+<td>API 更新</td>
+</tr>
+<tr>
+<td>探针执行</td>
+<td><code>Probe succeeded/failed</code></td>
+<td>探针结果</td>
+</tr>
+<tr>
+<td>事件上报</td>
+<td><code>Event</code></td>
+<td>事件记录</td>
+</tr>
+<tr>
+<td>PLEG</td>
+<td><code>relist</code></td>
+<td>容器状态列表</td>
+</tr>
+</tbody></table>
+<h3 id="10-3-配置参数参考"><a href="#10-3-配置参数参考" class="headerlink" title="10.3 配置参数参考"></a>10.3 配置参数参考</h3><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>默认值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>--event-burst</code></td>
+<td>10000</td>
+<td>事件突发量</td>
+</tr>
+<tr>
+<td><code>--event-qps</code></td>
+<td>5</td>
+<td>每秒事件数</td>
+</tr>
+<tr>
+<td><code>--sync-frequency</code></td>
+<td>1m</td>
+<td>同步频率</td>
+</tr>
+<tr>
+<td><code>--status-update-frequency</code></td>
+<td>10s</td>
+<td>状态更新频率</td>
+</tr>
+<tr>
+<td><code>--minimum-container-ttl-duration</code></td>
+<td>0s</td>
+<td>容器 TTL</td>
+</tr>
+</tbody></table>
+<h3 id="10-4-一键诊断命令"><a href="#10-4-一键诊断命令" class="headerlink" title="10.4 一键诊断命令"></a>10.4 一键诊断命令</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 状态同步诊断脚本</span></span><br><span class="line">POD_NAME=<span class="variable">$&#123;1:-&quot;&lt;pod-name&gt;&quot;&#125;</span></span><br><span class="line">NAMESPACE=<span class="variable">$&#123;2:-&quot;default&quot;&#125;</span></span><br><span class="line">NODE_NAME=$(kubectl get pod <span class="variable">$POD_NAME</span> -n <span class="variable">$NAMESPACE</span> -o jsonpath=<span class="string">&#x27;&#123;.spec.nodeName&#125;&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;=== Pod Status ===&quot;</span> &amp;&amp; \</span><br><span class="line">kubectl get pod <span class="variable">$POD_NAME</span> -n <span class="variable">$NAMESPACE</span> -o yaml | grep -A 30 <span class="string">&quot;status:&quot;</span> &amp;&amp; \</span><br><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;\n=== Pod Events ===&quot;</span> &amp;&amp; \</span><br><span class="line">kubectl get events -n <span class="variable">$NAMESPACE</span> --field-selector involvedObject.name=<span class="variable">$POD_NAME</span> --sort-by=<span class="string">&#x27;.lastTimestamp&#x27;</span> &amp;&amp; \</span><br><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;\n=== Container Status on Node ===&quot;</span> &amp;&amp; \</span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;Run on node <span class="variable">$NODE_NAME</span>: crictl ps -a | grep <span class="variable">$POD_NAME</span>&quot;</span> &amp;&amp; \</span><br><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;\n=== Probe Status ===&quot;</span> &amp;&amp; \</span><br><span class="line">kubectl get pod <span class="variable">$POD_NAME</span> -n <span class="variable">$NAMESPACE</span> -o jsonpath=<span class="string">&#x27;&#123;.status.containerStatuses&#125;&#x27;</span> | jq <span class="string">&#x27;.[] | &#123;name, ready, state&#125;&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="11-面试题与详细解答"><a href="#11-面试题与详细解答" class="headerlink" title="11. 面试题与详细解答"></a>11. 面试题与详细解答</h2><h3 id="11-1-基础概念题"><a href="#11-1-基础概念题" class="headerlink" title="11.1 基础概念题"></a>11.1 基础概念题</h3><h4 id="Q1-StatusManager-是如何工作的？"><a href="#Q1-StatusManager-是如何工作的？" class="headerlink" title="Q1: StatusManager 是如何工作的？"></a>Q1: StatusManager 是如何工作的？</h4><p><strong>答案</strong>：</p>
+<p><strong>StatusManager</strong> 负责将 kubelet 内部的 Pod 状态同步到 API Server。</p>
+<p><strong>架构设计</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">┌─────────────────────────────────────────────────────┐</span><br><span class="line">│                   kubelet 内部                       │</span><br><span class="line">│  ┌──────────┐  ┌──────────┐  ┌──────────┐         │</span><br><span class="line">│  │podWorkers│  │ probeMgr │  │   PLEG   │         │</span><br><span class="line">│  └────┬─────┘  └────┬─────┘  └────┬─────┘         │</span><br><span class="line">│       │             │              │                │</span><br><span class="line">│       └─────────────┼──────────────┘                │</span><br><span class="line">│                     ▼                               │</span><br><span class="line">│            ┌────────────────┐                       │</span><br><span class="line">│            │  statusManager │                       │</span><br><span class="line">│            │  ┌──────────┐  │                       │</span><br><span class="line">│            │  │podStatuses│  │  本地缓存             │</span><br><span class="line">│            │  │  (map)   │  │                       │</span><br><span class="line">│            │  └──────────┘  │                       │</span><br><span class="line">│            └───────┬────────┘                       │</span><br><span class="line">└────────────────────┼────────────────────────────────┘</span><br><span class="line">                     │ 异步批量同步</span><br><span class="line">                     ▼</span><br><span class="line">            ┌────────────────┐</span><br><span class="line">            │  API Server    │</span><br><span class="line">            │  PATCH /status │</span><br><span class="line">            └────────────────┘</span><br></pre></td></tr></table></figure>
+
+<p><strong>关键特性</strong>：</p>
+<ol>
+<li><strong>本地缓存</strong>：<code>podStatuses</code> map 缓存每个 Pod 的最新状态</li>
+<li><strong>版本控制</strong>：<code>version</code> 字段防止旧状态覆盖新状态</li>
+<li><strong>异步同步</strong>：<code>syncBatch</code> 定期批量同步，不阻塞主流程</li>
+<li><strong>失败重试</strong>：同步失败的状态保留在缓存，下次重试</li>
+</ol>
+<p><strong>代码实现</strong>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// pkg/kubelet/status/status_manager.go:283</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *manager)</span></span> SetPodStatus(pod *v1.Pod, status v1.PodStatus) &#123;</span><br><span class="line">    m.podStatusesLock.Lock()</span><br><span class="line">    <span class="keyword">defer</span> m.podStatusesLock.Unlock()</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 版本检查，防止旧状态覆盖</span></span><br><span class="line">    oldStatus, exists := m.podStatuses[pod.UID]</span><br><span class="line">    <span class="keyword">if</span> exists &amp;&amp; oldStatus.version &gt; version &#123;</span><br><span class="line">        <span class="keyword">return</span>  <span class="comment">// 旧状态，忽略</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 更新缓存</span></span><br><span class="line">    m.podStatuses[pod.UID] = versionedPodStatus&#123;</span><br><span class="line">        version:   version,</span><br><span class="line">        status:    status,</span><br><span class="line">        podName:   pod.Name,</span><br><span class="line">        podNamespace: pod.Namespace,</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h4 id="Q2-Event-和-Status-有什么区别？"><a href="#Q2-Event-和-Status-有什么区别？" class="headerlink" title="Q2: Event 和 Status 有什么区别？"></a>Q2: Event 和 Status 有什么区别？</h4><p><strong>答案</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>Status</th>
+<th>Event</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>目的</strong></td>
+<td>驱动控制逻辑</td>
+<td>诊断和审计</td>
+</tr>
+<tr>
+<td><strong>消费方</strong></td>
+<td>Controllers</td>
+<td>人类&#x2F;监控系统</td>
+</tr>
+<tr>
+<td><strong>存储</strong></td>
+<td>持久化，Pod 对象的一部分</td>
+<td>TTL 限制（默认 1 小时）</td>
+</tr>
+<tr>
+<td><strong>更新方式</strong></td>
+<td>PATCH &#x2F;status</td>
+<td>POST 创建新对象</td>
+</tr>
+<tr>
+<td><strong>格式</strong></td>
+<td>结构化状态数据</td>
+<td>事件描述文本</td>
+</tr>
+<tr>
+<td><strong>是否影响调度</strong></td>
+<td>是（Ready condition）</td>
+<td>否</td>
+</tr>
+</tbody></table>
+<p><strong>使用场景示例</strong>：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Status - 用于控制决策</span></span><br><span class="line"><span class="attr">status:</span></span><br><span class="line">  <span class="attr">phase:</span> <span class="string">Running</span></span><br><span class="line">  <span class="attr">conditions:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">type:</span> <span class="string">Ready</span></span><br><span class="line">    <span class="attr">status:</span> <span class="string">&quot;True&quot;</span>  <span class="comment"># Controller 根据此判断 Pod 是否可用</span></span><br><span class="line">  <span class="attr">containerStatuses:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">app</span></span><br><span class="line">    <span class="attr">ready:</span> <span class="literal">true</span></span><br><span class="line">    <span class="attr">state:</span></span><br><span class="line">      <span class="attr">running:</span></span><br><span class="line">        <span class="attr">startedAt:</span> <span class="string">&quot;2024-01-15T10:00:00Z&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="comment"># Event - 用于诊断问题</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Event</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">app-pod.17a2b3c4</span></span><br><span class="line"><span class="attr">message:</span> <span class="string">&quot;Started container app&quot;</span></span><br><span class="line"><span class="attr">reason:</span> <span class="string">Started</span></span><br><span class="line"><span class="attr">type:</span> <span class="string">Normal</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>关键理解</strong>：控制器主要 watch Pod status，而不是 Event 流。</p>
+<hr>
+<h3 id="11-2-进阶原理题"><a href="#11-2-进阶原理题" class="headerlink" title="11.2 进阶原理题"></a>11.2 进阶原理题</h3><h4 id="Q3-探针（Liveness-Readiness-Startup）如何影响-Pod-状态？"><a href="#Q3-探针（Liveness-Readiness-Startup）如何影响-Pod-状态？" class="headerlink" title="Q3: 探针（Liveness&#x2F;Readiness&#x2F;Startup）如何影响 Pod 状态？"></a>Q3: 探针（Liveness&#x2F;Readiness&#x2F;Startup）如何影响 Pod 状态？</h4><p><strong>答案</strong>：</p>
+<p><strong>三种探针对状态的不同影响</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>探针类型</th>
+<th>失败后果</th>
+<th>影响的状态字段</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>liveness</td>
+<td>容器重启</td>
+<td>无直接 condition</td>
+</tr>
+<tr>
+<td>readiness</td>
+<td>从 Service 移除</td>
+<td><code>conditions[Ready]</code></td>
+</tr>
+<tr>
+<td>startup</td>
+<td>阻塞其他探针</td>
+<td><code>conditions[Initialized]</code></td>
+</tr>
+</tbody></table>
+<p><strong>Readiness 探针影响 Ready Condition 的流程</strong>：</p>
+<pre><code class="highlight mermaid">sequenceDiagram
+    participant PM as ProbeManager
+    participant RM as readinessManager
+    participant SM as statusManager
+    participant API as kube-apiserver
+    participant EP as Endpoint Controller
+
+    PM-&gt;&gt;PM: 执行 readiness probe
+
+    alt 探针成功
+        PM-&gt;&gt;RM: Set(containerID, Success)
+        RM-&gt;&gt;SM: 更新 Ready=True
+        SM-&gt;&gt;API: PATCH Pod status
+        API--&gt;&gt;EP: watch Pod update
+        EP-&gt;&gt;EP: 添加 Pod IP 到 Endpoint
+    else 探针失败
+        PM-&gt;&gt;RM: Set(containerID, Failure)
+        RM-&gt;&gt;SM: 更新 Ready=False
+        SM-&gt;&gt;API: PATCH Pod status
+        API--&gt;&gt;EP: watch Pod update
+        EP-&gt;&gt;EP: 从 Endpoint 移除 Pod IP
+    end</code></pre>
+
+<p><strong>代码实现</strong>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// pkg/kubelet/prober/prober.go</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(pb *prober)</span></span> runProbe(probeType probeType, p *v1.Probe, ...) (probe.Result, <span class="type">error</span>) &#123;</span><br><span class="line">    <span class="comment">// 执行探针</span></span><br><span class="line">    result, err := pb.probeManager.Probe(ctx, probeSpec)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 更新对应的状态管理器</span></span><br><span class="line">    <span class="keyword">switch</span> probeType &#123;</span><br><span class="line">    <span class="keyword">case</span> readiness:</span><br><span class="line">        pb.readinessManager.Set(containerID, result)</span><br><span class="line">    <span class="keyword">case</span> liveness:</span><br><span class="line">        pb.livenessManager.Set(containerID, result)</span><br><span class="line">    <span class="keyword">case</span> startup:</span><br><span class="line">        pb.startupManager.Set(containerID, result)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> result, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h4 id="Q4-为什么-statusManager-采用异步批量同步而不是实时同步？"><a href="#Q4-为什么-statusManager-采用异步批量同步而不是实时同步？" class="headerlink" title="Q4: 为什么 statusManager 采用异步批量同步而不是实时同步？"></a>Q4: 为什么 statusManager 采用异步批量同步而不是实时同步？</h4><p><strong>答案</strong>：</p>
+<p><strong>设计原因</strong>：</p>
+<ol>
+<li><p><strong>性能优化</strong></p>
+<ul>
+<li>减少 API Server 压力</li>
+<li>合并多次小更新为一次批量更新</li>
+<li>避免频繁的 HTTP 请求</li>
+</ul>
+</li>
+<li><p><strong>容错能力</strong></p>
+<ul>
+<li>网络抖动不影响本地状态</li>
+<li>失败自动重试</li>
+<li>最终一致性保证</li>
+</ul>
+</li>
+<li><p><strong>资源效率</strong></p>
+<ul>
+<li>减少网络带宽</li>
+<li>减少 etcd 写入</li>
+<li>降低系统负载</li>
+</ul>
+</li>
+</ol>
+<p><strong>实现细节</strong>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// pkg/kubelet/status/status_manager.go:766</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *manager)</span></span> syncBatch(all <span class="type">bool</span>) <span class="type">int</span> &#123;</span><br><span class="line">    <span class="comment">// 遍历需要同步的 Pod</span></span><br><span class="line">    <span class="keyword">for</span> uid, status := <span class="keyword">range</span> m.podStatuses &#123;</span><br><span class="line">        <span class="comment">// 检查是否需要同步</span></span><br><span class="line">        <span class="keyword">if</span> !m.needsSync(uid, status) &#123;</span><br><span class="line">            <span class="keyword">continue</span></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 构建 PATCH 请求</span></span><br><span class="line">        patch := m.generatePatch(status)</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 发送到 API Server</span></span><br><span class="line">        _, err := m.kubeClient.CoreV1().Pods(status.podNamespace).</span><br><span class="line">            Patch(ctx, status.podName, types.MergePatchType, patch, metav1.PatchOptions&#123;&#125;, <span class="string">&quot;status&quot;</span>)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">            <span class="comment">// 失败保留在缓存，下次重试</span></span><br><span class="line">            <span class="keyword">continue</span></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 成功更新版本号</span></span><br><span class="line">        m.apiStatusVersions[uid] = status.version</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>同步策略</strong>：</p>
+<ul>
+<li>状态变化时立即触发</li>
+<li>定期全量同步（默认 10 秒）</li>
+<li>终止状态的 Pod 优先同步</li>
+</ul>
+<hr>
+<h3 id="11-3-故障排查题"><a href="#11-3-故障排查题" class="headerlink" title="11.3 故障排查题"></a>11.3 故障排查题</h3><h4 id="Q5-Pod-状态与实际容器状态不一致，如何排查？"><a href="#Q5-Pod-状态与实际容器状态不一致，如何排查？" class="headerlink" title="Q5: Pod 状态与实际容器状态不一致，如何排查？"></a>Q5: Pod 状态与实际容器状态不一致，如何排查？</h4><p><strong>答案</strong>：</p>
+<p><strong>排查流程</strong>：</p>
+<pre><code class="highlight mermaid">flowchart TD
+    A[状态不一致] --&gt; B&#123;确认不一致类型&#125;
+
+    B --&gt;|Pod 显示 Running, 容器已退出| C[PLEG 问题]
+    C --&gt; C1[检查 PLEG relist 日志]
+    C --&gt; C2[检查容器运行时连接]
+
+    B --&gt;|Pod 显示 NotReady, 容器正常| D[探针问题]
+    D --&gt; D1[检查探针配置]
+    D --&gt; D2[手动测试探针端点]
+
+    B --&gt;|状态更新延迟| E[statusManager 问题]
+    E --&gt; E1[检查 syncBatch 日志]
+    E --&gt; E2[检查 API Server 连接]
+
+    A --&gt; F&#123;验证步骤&#125;
+    F --&gt; F1[kubectl get pod -o yaml]
+    F --&gt; F2[crictl ps -a]
+    F --&gt; F3[对比两者状态]</code></pre>
+
+<p><strong>诊断命令</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 1. 对比 Pod status 和容器状态</span></span><br><span class="line">kubectl get pod &lt;pod&gt; -o jsonpath=<span class="string">&#x27;&#123;.status.containerStatuses&#125;&#x27;</span></span><br><span class="line">crictl ps -a | grep &lt;pod&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 2. 检查 PLEG 状态</span></span><br><span class="line">journalctl -u kubelet | grep -i pleg</span><br><span class="line"></span><br><span class="line"><span class="comment"># 3. 检查 statusManager 日志</span></span><br><span class="line">journalctl -u kubelet | grep -i <span class="string">&quot;sync.*status&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 4. 强制触发状态同步</span></span><br><span class="line">curl -X POST http://&lt;kubelet-ip&gt;:10250/pods</span><br><span class="line"></span><br><span class="line"><span class="comment"># 5. 检查探针结果</span></span><br><span class="line">kubectl describe pod &lt;pod&gt; | grep -A 5 <span class="string">&quot;Liveness\|Readiness&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>常见原因</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>原因</th>
+<th>症状</th>
+<th>解决方案</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PLEG relist 失败</td>
+<td>状态不更新</td>
+<td>检查 CRI 连接</td>
+</tr>
+<tr>
+<td>探针超时</td>
+<td>Ready&#x3D;False</td>
+<td>调整探针超时时间</td>
+</tr>
+<tr>
+<td>statusManager 同步失败</td>
+<td>状态延迟</td>
+<td>检查 API Server 连接</td>
+</tr>
+<tr>
+<td>容器快速重启</td>
+<td>状态跳动</td>
+<td>检查应用崩溃原因</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="11-4-设计思想题"><a href="#11-4-设计思想题" class="headerlink" title="11.4 设计思想题"></a>11.4 设计思想题</h3><h4 id="Q6-为什么-Kubernetes-将状态和事件分开存储？"><a href="#Q6-为什么-Kubernetes-将状态和事件分开存储？" class="headerlink" title="Q6: 为什么 Kubernetes 将状态和事件分开存储？"></a>Q6: 为什么 Kubernetes 将状态和事件分开存储？</h4><p><strong>答案</strong>：</p>
+<p><strong>分离设计的优势</strong>：</p>
+<ol>
+<li><p><strong>职责分离</strong></p>
+<ul>
+<li>Status：控制面输入，驱动 Controller 决策</li>
+<li>Event：诊断信息，用于调试和审计</li>
+</ul>
+</li>
+<li><p><strong>性能优化</strong></p>
+<ul>
+<li>Status 是高频更新，需要持久化</li>
+<li>Event 是低频诊断，可以 TTL 过期</li>
+</ul>
+</li>
+<li><p><strong>存储效率</strong></p>
+<ul>
+<li>Status：每个 Pod 一个 status 对象</li>
+<li>Event：每次事件一个 Event 对象，但有过期清理</li>
+</ul>
+</li>
+<li><p><strong>访问模式不同</strong></p>
+<ul>
+<li>Status：Controllers watch，需要实时</li>
+<li>Event：人类查询，可以延迟</li>
+</ul>
+</li>
+</ol>
+<p><strong>数据流对比</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">Status 流:</span><br><span class="line">kubelet → statusManager → API Server → etcd → Controller watch</span><br><span class="line">                                          ↓</span><br><span class="line">                                    持久化存储</span><br><span class="line"></span><br><span class="line">Event 流:</span><br><span class="line">kubelet → EventRecorder → API Server → etcd</span><br><span class="line">                                    ↓</span><br><span class="line">                               TTL 过期清理</span><br><span class="line">                                    ↓</span><br><span class="line">                            kubectl describe / 监控系统</span><br></pre></td></tr></table></figure>
+
+<p><strong>Event 的设计考量</strong>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Event 有 TTL，默认 1 小时</span></span><br><span class="line"><span class="comment">// staging/src/k8s.io/client-go/tools/record/event.go</span></span><br><span class="line"><span class="keyword">const</span> (</span><br><span class="line">    maxLruCacheEntries = <span class="number">4096</span></span><br><span class="line">    <span class="comment">// 事件聚合，相同事件不会无限创建</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 事件去重和聚合</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(e *eventBroadcasterImpl)</span></span> recordToSink(event *v1.Event) &#123;</span><br><span class="line">    <span class="comment">// 相同事件会更新 count 和 lastTimestamp</span></span><br><span class="line">    <span class="comment">// 而不是创建新事件</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<pre><code>
+</code></pre>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2026/03/22/cloud/k8s/kubelet/kubelet%E7%8A%B6%E6%80%81%E4%B8%8E%E4%BA%8B%E4%BB%B6%E5%8F%8D%E9%A6%88%E6%B5%81%E7%A8%8B/">https://piwriw.github.io/2026/03/22/cloud/k8s/kubelet/kubelet状态与事件反馈流程/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a><a class="post-meta__tags" href="/tags/cloud/">cloud</a><a class="post-meta__tags" href="/tags/K8s%E6%BA%90%E7%A0%81/">K8s源码</a><a class="post-meta__tags" href="/tags/kubelet/">kubelet</a><a class="post-meta__tags" href="/tags/status/">status</a><a class="post-meta__tags" href="/tags/event/">event</a></div><div class="post-share"><div class="social-share" data-image="/img/k8sLogo.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2026/03/22/cloud/k8s/kubelet/kubelet%E8%AE%A4%E8%AF%81%E6%8E%88%E6%9D%83%E6%B5%81%E7%A8%8B/" title="K8s-kubelet认证授权流程"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">K8s-kubelet认证授权流程</div></div><div class="info-2"><div class="info-item-1">Kubelet 认证授权通信流程目标这篇文档只回答一个核心问题：kubelet 如何验证和授权对 kubelet API 的访问请求？ 重点放在 kubelet 的认证模块、授权模块以及与 API Server 的交互流程。 一句话摘要kubelet 通过 webhook 认证和授权，将客户端请求转发给 API Server 进行验证，支持匿名访问、证书认证和 bootstrap token 认证等多种方式。  1. 流程总览从通信视角看，这条链路包含三个层次：  **认证层 (Authentication)**：验证客户端身份。 **授权层 (Authorization)**：验证客户端是否有权限执行操作。 **准入层 (Admission)**：对请求进行额外检查和修改（仅部分操作）。  架构总览图flowchart TB     subgraph 客户端[&quot;请求来源&quot;]         direction LR         API[kube-apiserver&lt;br/&gt;proxy/attach/exec]         KUBECTL[...</div></div></div></a><a class="pagination-related" href="/2026/03/22/cloud/k8s/kubelet/kubelet%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="K8s-kubelet深度剖析"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">K8s-kubelet深度剖析</div></div><div class="info-2"><div class="info-item-1">Kubelet 深度分析本文档深入分析 Kubernetes Kubelet 组件的架构设计、启动流程、核心功能和关键子系统。 目录 架构概览 关键数据结构 启动流程分析 核心功能原理 关键子系统详解 5.1 PodManager 5.2 StatusManager 5.3 ProbeManager 5.4 VolumeManager 5.5 EvictionManager 5.6 PLEG   边界情况与错误处理 性能优化 最佳实践   1. 架构概览1.1 Kubelet 在 Kubernetes 架构中的位置Kubelet 是 Kubernetes 集群中运行在每个节点上的核心代理（Node Agent），是 Kubernetes 控制平面与节点级容器运行时之间的桥梁。它负责维护节点上容器的生命周期，并将节点状态上报给 API Server。 在 Kubernetes 整体架构中，Kubelet 处于如下位置： 12345678910111213141516171819202122+-------------------------+         +----------...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2026/03/22/cloud/k8s/Pod%E5%9C%A8%E8%8A%82%E7%82%B9%E4%B8%8A%E5%AE%9E%E7%8E%B0%E6%B5%81%E7%A8%8B/" title="K8s-Pod在节点落地流程"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-22</div><div class="info-item-2">K8s-Pod在节点落地流程</div></div><div class="info-2"><div class="info-item-1">Pod 在节点落地通信流程目标这篇文档只回答一个核心问题：kubelet 如何把“期望运行”的 Pod 变成“真实运行”的容器？ 重点放在 kubelet 内部各组件之间的协作与 CRI 通信边界，而不是每一个 gRPC 字段的含义。 一句话摘要kubelet 收到 Pod 更新后，把期望态交给 podWorkers；podWorkers 驱动单 Pod 生命周期状态机，再由 kubeGenericRuntimeManager 通过 CRI 调用容器运行时完成 sandbox、镜像与容器操作。  1. 流程总览从通信视角看，这条链路可以拆成 3 个阶段：  更新接入阶段：kubelet 从 Pod source 收到属于本节点的 Pod 更新，并交给内部子系统。 状态机驱动阶段：podWorkers 根据当前状态决定执行同步、终止还是清理。 运行时执行阶段：runtime manager 通过 CRI 把操作翻译给容器运行时，完成 sandbox 和容器的创建&#x2F;销毁。  Mermaid：总览图flowchart LR     A[Pod update from sour...</div></div></div></a><a class="pagination-related" href="/2026/03/22/cloud/k8s/%E8%8A%82%E7%82%B9%E5%BF%83%E8%B7%B3%E4%B8%8E%E5%81%A5%E5%BA%B7%E6%B5%81%E7%A8%8B/" title="K8s-节点心跳与健康流程"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-22</div><div class="info-item-2">K8s-节点心跳与健康流程</div></div><div class="info-2"><div class="info-item-1">节点心跳与健康状态通信流程目标这篇文档只回答一个核心问题：kubelet 如何把节点健康信号汇报给控制面，控制面又如何据此做出判断和后续动作？ 重点放在两类心跳信号的协作关系，以及控制面如何综合判断节点健康。 一句话摘要kubelet 周期性更新 NodeStatus 并续约 Lease；node lifecycle controller 通过 informer&#x2F;lister 观察 Node 与 Lease，综合判断节点健康，再触发 taint、Pod not-ready 传播与后续驱逐流程。  1. 流程总览从通信视角看，这条链路包含两类并行的心跳信号：  NodeStatus 心跳：携带节点条件（Ready、MemoryPressure 等）和容量信息。 Lease 心跳：轻量级的存活信号，用于快速检测节点失联。  控制面会综合这两类信号来判断节点健康状态。 Mermaid：总览图flowchart LR     A[Kubelet] --&gt; B[syncNodeStatus]     A --&gt; C[nodeLeaseController]     B...</div></div></div></a><a class="pagination-related" href="/2026/03/22/cloud/k8s/kubelet/kubelet%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="K8s-kubelet深度剖析"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-22</div><div class="info-item-2">K8s-kubelet深度剖析</div></div><div class="info-2"><div class="info-item-1">Kubelet 深度分析本文档深入分析 Kubernetes Kubelet 组件的架构设计、启动流程、核心功能和关键子系统。 目录 架构概览 关键数据结构 启动流程分析 核心功能原理 关键子系统详解 5.1 PodManager 5.2 StatusManager 5.3 ProbeManager 5.4 VolumeManager 5.5 EvictionManager 5.6 PLEG   边界情况与错误处理 性能优化 最佳实践   1. 架构概览1.1 Kubelet 在 Kubernetes 架构中的位置Kubelet 是 Kubernetes 集群中运行在每个节点上的核心代理（Node Agent），是 Kubernetes 控制平面与节点级容器运行时之间的桥梁。它负责维护节点上容器的生命周期，并将节点状态上报给 API Server。 在 Kubernetes 整体架构中，Kubelet 处于如下位置： 12345678910111213141516171819202122+-------------------------+         +----------...</div></div></div></a><a class="pagination-related" href="/2026/03/22/cloud/k8s/kubelet/kubelet%E8%AE%A4%E8%AF%81%E6%8E%88%E6%9D%83%E6%B5%81%E7%A8%8B/" title="K8s-kubelet认证授权流程"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-22</div><div class="info-item-2">K8s-kubelet认证授权流程</div></div><div class="info-2"><div class="info-item-1">Kubelet 认证授权通信流程目标这篇文档只回答一个核心问题：kubelet 如何验证和授权对 kubelet API 的访问请求？ 重点放在 kubelet 的认证模块、授权模块以及与 API Server 的交互流程。 一句话摘要kubelet 通过 webhook 认证和授权，将客户端请求转发给 API Server 进行验证，支持匿名访问、证书认证和 bootstrap token 认证等多种方式。  1. 流程总览从通信视角看，这条链路包含三个层次：  **认证层 (Authentication)**：验证客户端身份。 **授权层 (Authorization)**：验证客户端是否有权限执行操作。 **准入层 (Admission)**：对请求进行额外检查和修改（仅部分操作）。  架构总览图flowchart TB     subgraph 客户端[&quot;请求来源&quot;]         direction LR         API[kube-apiserver&lt;br/&gt;proxy/attach/exec]         KUBECTL[...</div></div></div></a><a class="pagination-related" href="/2026/03/22/cloud/k8s/kubelet/kubelet%E9%A9%B1%E9%80%90%E6%B5%81%E7%A8%8B/" title="Kubelet 资源驱逐 (Eviction) 通信流程"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-22</div><div class="info-item-2">Kubelet 资源驱逐 (Eviction) 通信流程</div></div><div class="info-2"><div class="info-item-1">Kubelet 资源驱逐 (Eviction) 通信流程目标这篇文档只回答一个核心问题：kubelet 如何在节点资源不足时决定并执行 Pod 驱逐？ 重点放在 EvictionManager 的监控机制、驱逐决策逻辑以及驱逐执行流程。 一句话摘要kubelet 的 EvictionManager 定期监控节点资源使用，当资源超过阈值时，根据 QoS 和优先级选择 Pod 进行驱逐，以保护节点稳定性。  1. 流程总览从通信视角看，这条链路可以拆成 3 个阶段：  资源监控阶段：EvictionManager 定期采集节点资源使用情况。 决策判断阶段：根据阈值和策略决定是否需要驱逐以及驱逐哪些 Pod。 执行驱逐阶段：通过 API Server 删除选中的 Pod。  架构总览图flowchart TB     subgraph 资源采集[&quot;资源采集层&quot;]         direction TB         CAD[cAdvisor&lt;br/&gt;容器资源监控]         SYS[系统信息&lt;br/&gt;节点资源]         SI...</div></div></div></a><a class="pagination-related" href="/2024/12/16/cloud/k8s/kubelet/K8s-kubelet(HTTP%E6%9C%8D%E5%8A%A1%E6%8E%A5%E5%8F%A3)/" title="K8s-kubelet(HTTP服务接口)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-16</div><div class="info-item-2">K8s-kubelet(HTTP服务接口)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(HTTP服务接口) 基于1.25  kubelet通过HTTP Server对外暴露API，为了确保接口安全，kubelet按照安全等级从低到高顺序支持3种HTTP Server，分别是healthz server、readonly server和kubelet core server    一级类目 二级类目 Path路径 描述    Default Handlerers healthz &#x2F;healthz 检查kubelet是否健康，重点检查syncLoop是否持续在规定时间内完成。检查syncLoop四因为其他组件故障会间接导致syncLoop不能执行成功   Default Handlerers pods &#x2F;pods 读取当前节点运行的Pod列表（通过PodManager获取）   Default Handlerers stats &#x2F;stats&#x2F;summary 读取资源使用状态   Default Handlerers metrics &#x2F;metrics 读取kubelet监控指标数据   Defaul...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">303</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">96</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Kubelet-%E7%8A%B6%E6%80%81%E4%B8%8E%E4%BA%8B%E4%BB%B6%E5%9B%9E%E4%BC%A0%E6%B5%81%E7%A8%8B"><span class="toc-number">1.</span> <span class="toc-text">Kubelet 状态与事件回传流程</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%9B%AE%E6%A0%87"><span class="toc-number">1.1.</span> <span class="toc-text">目标</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E5%8F%A5%E8%AF%9D%E6%91%98%E8%A6%81"><span class="toc-number">1.2.</span> <span class="toc-text">一句话摘要</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-%E6%B5%81%E7%A8%8B%E6%80%BB%E8%A7%88"><span class="toc-number">1.3.</span> <span class="toc-text">1. 流程总览</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Mermaid%EF%BC%9A%E6%80%BB%E8%A7%88%E5%9B%BE"><span class="toc-number">1.3.1.</span> <span class="toc-text">Mermaid：总览图</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%8A%B6%E6%80%81%E4%B8%8E%E4%BA%8B%E4%BB%B6%E5%8F%8C%E9%93%BE%E8%B7%AF%E6%9E%B6%E6%9E%84%E5%9B%BE"><span class="toc-number">1.3.2.</span> <span class="toc-text">状态与事件双链路架构图</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#StatusManager-%E5%86%85%E9%83%A8%E5%B7%A5%E4%BD%9C%E6%9C%BA%E5%88%B6%E5%9B%BE"><span class="toc-number">1.3.3.</span> <span class="toc-text">StatusManager 内部工作机制图</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%BF%99%E5%BC%A0%E5%9B%BE%E6%83%B3%E8%A1%A8%E8%BE%BE%E4%BB%80%E4%B9%88"><span class="toc-number">1.3.4.</span> <span class="toc-text">这张图想表达什么</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-%E5%88%86%E9%98%B6%E6%AE%B5%E9%80%9A%E4%BF%A1%E6%B5%81%E7%A8%8B"><span class="toc-number">1.4.</span> <span class="toc-text">2. 分阶段通信流程</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%98%B6%E6%AE%B5%E4%B8%80%EF%BC%9Akubelet-%E5%86%85%E9%83%A8%E4%BA%A7%E7%94%9F%E7%8A%B6%E6%80%81%E5%8F%98%E6%9B%B4"><span class="toc-number">1.4.1.</span> <span class="toc-text">阶段一：kubelet 内部产生状态变更</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-1-1%EF%BC%9ApodWorkers-%E5%AE%8C%E6%88%90%E4%B8%80%E6%AC%A1-SyncPod"><span class="toc-number">1.4.1.1.</span> <span class="toc-text">步骤 1.1：podWorkers 完成一次 SyncPod</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-1-2%EF%BC%9Aprobe-manager-%E6%89%A7%E8%A1%8C%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5"><span class="toc-number">1.4.1.2.</span> <span class="toc-text">步骤 1.2：probe manager 执行健康检查</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-1-3%EF%BC%9Aprobe-result-%E8%A7%A6%E5%8F%91%E7%8A%B6%E6%80%81%E6%9B%B4%E6%96%B0"><span class="toc-number">1.4.1.3.</span> <span class="toc-text">步骤 1.3：probe result 触发状态更新</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-1-4%EF%BC%9APLEG-%E6%A3%80%E6%B5%8B%E5%88%B0%E5%AE%B9%E5%99%A8%E5%8F%98%E5%8C%96"><span class="toc-number">1.4.1.4.</span> <span class="toc-text">步骤 1.4：PLEG 检测到容器变化</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-1-5%EF%BC%9AstatusManager-%E7%BC%93%E5%AD%98%E6%96%B0%E7%8A%B6%E6%80%81"><span class="toc-number">1.4.1.5.</span> <span class="toc-text">步骤 1.5：statusManager 缓存新状态</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%98%B6%E6%AE%B5%E4%BA%8C%EF%BC%9AstatusManager-%E5%BC%82%E6%AD%A5%E5%90%8C%E6%AD%A5%E5%88%B0-API-Server"><span class="toc-number">1.4.2.</span> <span class="toc-text">阶段二：statusManager 异步同步到 API Server</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-2-1%EF%BC%9AstatusManager-%E5%90%AF%E5%8A%A8%E5%90%8C%E6%AD%A5%E5%BE%AA%E7%8E%AF"><span class="toc-number">1.4.2.1.</span> <span class="toc-text">步骤 2.1：statusManager 启动同步循环</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-2-2%EF%BC%9A%E5%88%A4%E6%96%AD%E6%98%AF%E5%90%A6%E9%9C%80%E8%A6%81%E5%90%8C%E6%AD%A5"><span class="toc-number">1.4.2.2.</span> <span class="toc-text">步骤 2.2：判断是否需要同步</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-2-3%EF%BC%9A%E6%9E%84%E9%80%A0-Patch-Update-%E8%AF%B7%E6%B1%82"><span class="toc-number">1.4.2.3.</span> <span class="toc-text">步骤 2.3：构造 Patch&#x2F;Update 请求</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-2-4%EF%BC%9A%E5%8F%91%E9%80%81%E5%88%B0-API-Server"><span class="toc-number">1.4.2.4.</span> <span class="toc-text">步骤 2.4：发送到 API Server</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-2-5%EF%BC%9A%E5%A4%84%E7%90%86%E5%90%8C%E6%AD%A5%E5%A4%B1%E8%B4%A5"><span class="toc-number">1.4.2.5.</span> <span class="toc-text">步骤 2.5：处理同步失败</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-2-6%EF%BC%9A%E6%9B%B4%E6%96%B0%E5%90%8C%E6%AD%A5%E7%89%88%E6%9C%AC"><span class="toc-number">1.4.2.6.</span> <span class="toc-text">步骤 2.6：更新同步版本</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%98%B6%E6%AE%B5%E4%B8%89%EF%BC%9A%E4%BA%8B%E4%BB%B6%E4%B8%8A%E6%8A%A5%E5%B9%B6%E8%A1%8C%E5%8F%91%E7%94%9F"><span class="toc-number">1.4.3.</span> <span class="toc-text">阶段三：事件上报并行发生</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-3-1%EF%BC%9A%E5%AD%90%E7%B3%BB%E7%BB%9F%E6%A3%80%E6%B5%8B%E5%88%B0%E9%9C%80%E8%A6%81%E8%AE%B0%E5%BD%95%E7%9A%84%E4%BA%8B%E4%BB%B6"><span class="toc-number">1.4.3.1.</span> <span class="toc-text">步骤 3.1：子系统检测到需要记录的事件</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-3-2%EF%BC%9AEventRecorder-%E6%9E%84%E9%80%A0-Event-%E5%AF%B9%E8%B1%A1"><span class="toc-number">1.4.3.2.</span> <span class="toc-text">步骤 3.2：EventRecorder 构造 Event 对象</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-3-3%EF%BC%9AEventBroadcaster-%E6%89%B9%E9%87%8F%E4%B8%8A%E6%8A%A5"><span class="toc-number">1.4.3.3.</span> <span class="toc-text">步骤 3.3：EventBroadcaster 批量上报</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-3-4%EF%BC%9A%E4%BA%8B%E4%BB%B6%E5%AD%98%E5%82%A8%E5%9C%A8-API-Server"><span class="toc-number">1.4.3.4.</span> <span class="toc-text">步骤 3.4：事件存储在 API Server</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-3-5%EF%BC%9A%E4%BA%8B%E4%BB%B6%E5%AF%B9%E6%8E%A7%E5%88%B6%E5%99%A8%E7%9A%84%E5%BD%B1%E5%93%8D"><span class="toc-number">1.4.3.5.</span> <span class="toc-text">步骤 3.5：事件对控制器的影响</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%B0%8F%E7%BB%93%EF%BC%9A%E8%BF%99%E6%9D%A1%E9%93%BE%E8%B7%AF%E7%9A%84-2-%E6%9D%A1%E9%80%9A%E4%BF%A1%E9%93%BE%E8%B7%AF"><span class="toc-number">1.4.4.</span> <span class="toc-text">小结：这条链路的 2 条通信链路</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-5-%E5%AE%8C%E6%95%B4%E6%B5%81%E7%A8%8B%E5%9B%BE"><span class="toc-number">1.5.</span> <span class="toc-text">2.5 完整流程图</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-6-%E4%B8%8E%E5%85%B6%E4%BB%96%E7%BB%84%E4%BB%B6%E7%9A%84%E4%BA%A4%E4%BA%92"><span class="toc-number">1.6.</span> <span class="toc-text">2.6 与其他组件的交互</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%8E%E5%90%84%E7%B1%BB-Controller-%E7%9A%84%E4%BA%A4%E4%BA%92"><span class="toc-number">1.6.1.</span> <span class="toc-text">与各类 Controller 的交互</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%8E%E7%9B%91%E6%8E%A7%E7%B3%BB%E7%BB%9F%E7%9A%84%E4%BA%A4%E4%BA%92"><span class="toc-number">1.6.2.</span> <span class="toc-text">与监控系统的交互</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%8E-kubectl-describe-%E7%9A%84%E4%BA%A4%E4%BA%92"><span class="toc-number">1.6.3.</span> <span class="toc-text">与 kubectl describe 的交互</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%8E-PLEG%EF%BC%88Pod-Lifecycle-Event-Generator%EF%BC%89%E7%9A%84%E4%BA%A4%E4%BA%92"><span class="toc-number">1.6.4.</span> <span class="toc-text">与 PLEG（Pod Lifecycle Event Generator）的交互</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%8E%E6%8E%A2%E9%92%88%E7%B3%BB%E7%BB%9F%E7%9A%84%E4%BA%A4%E4%BA%92"><span class="toc-number">1.6.5.</span> <span class="toc-text">与探针系统的交互</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BA%A4%E4%BA%92%E6%80%BB%E7%BB%93%E8%A1%A8"><span class="toc-number">1.6.6.</span> <span class="toc-text">交互总结表</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-%E5%85%B3%E9%94%AE%E6%97%B6%E5%BA%8F%E5%9B%BE"><span class="toc-number">1.7.</span> <span class="toc-text">3. 关键时序图</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Mermaid%EF%BC%9A%E4%B8%BB%E6%97%B6%E5%BA%8F%E5%9B%BE"><span class="toc-number">1.7.1.</span> <span class="toc-text">Mermaid：主时序图</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%97%B6%E5%BA%8F%E5%9B%BE%E9%87%8C%E7%9A%84-3-%E4%B8%AA%E5%85%B3%E9%94%AE%E7%82%B9"><span class="toc-number">1.7.2.</span> <span class="toc-text">时序图里的 3 个关键点</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-%E5%BC%82%E5%B8%B8%E4%B8%8E%E5%88%86%E6%94%AF%E8%B7%AF%E5%BE%84"><span class="toc-number">1.8.</span> <span class="toc-text">4. 异常与分支路径</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Mermaid%EF%BC%9A%E5%BC%82%E5%B8%B8-%E5%88%86%E6%94%AF%E8%B7%AF%E5%BE%84%E5%9B%BE"><span class="toc-number">1.8.1.</span> <span class="toc-text">Mermaid：异常&#x2F;分支路径图</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%AF%BB%E8%BF%99%E5%BC%A0%E5%9B%BE%E6%97%B6%E8%A6%81%E5%85%B3%E6%B3%A8%E4%BB%80%E4%B9%88"><span class="toc-number">1.8.2.</span> <span class="toc-text">读这张图时要关注什么</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-%E8%BF%99%E4%B8%AA%E6%B5%81%E7%A8%8B%E9%87%8C%E8%B0%81%E8%B4%9F%E8%B4%A3%E4%BB%80%E4%B9%88"><span class="toc-number">1.9.</span> <span class="toc-text">5. 这个流程里谁负责什么</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-%E5%B8%B8%E8%A7%81%E8%AF%AF%E8%A7%A3"><span class="toc-number">1.10.</span> <span class="toc-text">6. 常见误解</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%AF%AF%E8%A7%A3-1%EF%BC%9A%E6%8E%A7%E5%88%B6%E5%99%A8%E4%B8%BB%E8%A6%81%E9%9D%A0-Event-%E9%A9%B1%E5%8A%A8%E6%8E%A7%E5%88%B6%E9%80%BB%E8%BE%91"><span class="toc-number">1.10.1.</span> <span class="toc-text">误解 1：控制器主要靠 Event 驱动控制逻辑</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%AF%AF%E8%A7%A3-2%EF%BC%9A%E6%AF%8F%E6%AC%A1%E7%8A%B6%E6%80%81%E5%8F%98%E5%8C%96%E9%83%BD%E5%90%8C%E6%AD%A5%E9%98%BB%E5%A1%9E%E5%86%99-API-Server"><span class="toc-number">1.10.2.</span> <span class="toc-text">误解 2：每次状态变化都同步阻塞写 API Server</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%AF%AF%E8%A7%A3-3%EF%BC%9Akubelet-%E5%86%85%E9%83%A8%E4%BA%8B%E4%BB%B6%E6%B5%81-%E6%8E%A7%E5%88%B6%E9%9D%A2%E5%AF%B9%E8%B1%A1%E7%8A%B6%E6%80%81"><span class="toc-number">1.10.3.</span> <span class="toc-text">误解 3：kubelet 内部事件流 &#x3D; 控制面对象状态</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#7-%E7%89%88%E6%9C%AC%E5%B7%AE%E5%BC%82%E8%AF%B4%E6%98%8E"><span class="toc-number">1.11.</span> <span class="toc-text">7. 版本差异说明</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-27-%E2%86%92-1-28-%E5%8F%98%E5%8C%96"><span class="toc-number">1.11.1.</span> <span class="toc-text">1.27 → 1.28 变化</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-28-%E2%86%92-1-29-%E5%8F%98%E5%8C%96"><span class="toc-number">1.11.2.</span> <span class="toc-text">1.28 → 1.29 变化</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%90%91%E5%90%8E%E5%85%BC%E5%AE%B9%E6%80%A7"><span class="toc-number">1.11.3.</span> <span class="toc-text">向后兼容性</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%9C%80%E8%A6%81%E5%85%B3%E6%B3%A8%E7%9A%84%E5%BA%9F%E5%BC%83"><span class="toc-number">1.11.4.</span> <span class="toc-text">需要关注的废弃</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#7-%E4%B8%8E%E5%90%8E%E7%BB%AD%E6%96%87%E6%A1%A3%E7%9A%84%E5%85%B3%E7%B3%BB"><span class="toc-number">1.12.</span> <span class="toc-text">7. 与后续文档的关系</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#8-%E4%BB%A3%E7%A0%81%E5%85%A5%E5%8F%A3%EF%BC%88%E7%B2%BE%E7%AE%80%E7%89%88%EF%BC%89"><span class="toc-number">1.13.</span> <span class="toc-text">8. 代码入口（精简版）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#9-%E8%AF%A6%E7%BB%86%E6%97%B6%E5%BA%8F%E5%9B%BE"><span class="toc-number">1.14.</span> <span class="toc-text">9. 详细时序图</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#9-1-%E7%8A%B6%E6%80%81%E5%90%8C%E6%AD%A5%E5%AE%8C%E6%95%B4%E6%97%B6%E5%BA%8F%E5%9B%BE"><span class="toc-number">1.14.1.</span> <span class="toc-text">9.1 状态同步完整时序图</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#9-2-%E4%BA%8B%E4%BB%B6%E4%B8%8A%E6%8A%A5%E6%97%B6%E5%BA%8F%E5%9B%BE"><span class="toc-number">1.14.2.</span> <span class="toc-text">9.2 事件上报时序图</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#9-3-%E6%8E%A2%E9%92%88%E7%8A%B6%E6%80%81%E4%BC%A0%E6%92%AD%E6%97%B6%E5%BA%8F%E5%9B%BE"><span class="toc-number">1.14.3.</span> <span class="toc-text">9.3 探针状态传播时序图</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#10-%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5%E6%8C%87%E5%8D%97"><span class="toc-number">1.15.</span> <span class="toc-text">10. 故障排查指南</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#10-1-%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98%E4%B8%8E%E8%AF%8A%E6%96%AD%E6%96%B9%E6%B3%95"><span class="toc-number">1.15.1.</span> <span class="toc-text">10.1 常见问题与诊断方法</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%97%AE%E9%A2%98-1%EF%BC%9APod-%E7%8A%B6%E6%80%81%E4%B8%8E%E5%AE%9E%E9%99%85%E5%AE%B9%E5%99%A8%E7%8A%B6%E6%80%81%E4%B8%8D%E4%B8%80%E8%87%B4"><span class="toc-number">1.15.1.1.</span> <span class="toc-text">问题 1：Pod 状态与实际容器状态不一致</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%97%AE%E9%A2%98-2%EF%BC%9A%E4%BA%8B%E4%BB%B6%E4%B8%A2%E5%A4%B1%E6%88%96%E5%BB%B6%E8%BF%9F"><span class="toc-number">1.15.1.2.</span> <span class="toc-text">问题 2：事件丢失或延迟</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%97%AE%E9%A2%98-3%EF%BC%9A%E6%8E%A2%E9%92%88%E7%8A%B6%E6%80%81%E6%9C%AA%E6%AD%A3%E7%A1%AE%E4%BC%A0%E6%92%AD"><span class="toc-number">1.15.1.3.</span> <span class="toc-text">问题 3：探针状态未正确传播</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#10-2-%E5%85%B3%E9%94%AE%E6%97%A5%E5%BF%97%E5%85%B3%E9%94%AE%E8%AF%8D"><span class="toc-number">1.15.2.</span> <span class="toc-text">10.2 关键日志关键词</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#10-3-%E9%85%8D%E7%BD%AE%E5%8F%82%E6%95%B0%E5%8F%82%E8%80%83"><span class="toc-number">1.15.3.</span> <span class="toc-text">10.3 配置参数参考</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#10-4-%E4%B8%80%E9%94%AE%E8%AF%8A%E6%96%AD%E5%91%BD%E4%BB%A4"><span class="toc-number">1.15.4.</span> <span class="toc-text">10.4 一键诊断命令</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#11-%E9%9D%A2%E8%AF%95%E9%A2%98%E4%B8%8E%E8%AF%A6%E7%BB%86%E8%A7%A3%E7%AD%94"><span class="toc-number">1.16.</span> <span class="toc-text">11. 面试题与详细解答</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#11-1-%E5%9F%BA%E7%A1%80%E6%A6%82%E5%BF%B5%E9%A2%98"><span class="toc-number">1.16.1.</span> <span class="toc-text">11.1 基础概念题</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Q1-StatusManager-%E6%98%AF%E5%A6%82%E4%BD%95%E5%B7%A5%E4%BD%9C%E7%9A%84%EF%BC%9F"><span class="toc-number">1.16.1.1.</span> <span class="toc-text">Q1: StatusManager 是如何工作的？</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Q2-Event-%E5%92%8C-Status-%E6%9C%89%E4%BB%80%E4%B9%88%E5%8C%BA%E5%88%AB%EF%BC%9F"><span class="toc-number">1.16.1.2.</span> <span class="toc-text">Q2: Event 和 Status 有什么区别？</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#11-2-%E8%BF%9B%E9%98%B6%E5%8E%9F%E7%90%86%E9%A2%98"><span class="toc-number">1.16.2.</span> <span class="toc-text">11.2 进阶原理题</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Q3-%E6%8E%A2%E9%92%88%EF%BC%88Liveness-Readiness-Startup%EF%BC%89%E5%A6%82%E4%BD%95%E5%BD%B1%E5%93%8D-Pod-%E7%8A%B6%E6%80%81%EF%BC%9F"><span class="toc-number">1.16.2.1.</span> <span class="toc-text">Q3: 探针（Liveness&#x2F;Readiness&#x2F;Startup）如何影响 Pod 状态？</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Q4-%E4%B8%BA%E4%BB%80%E4%B9%88-statusManager-%E9%87%87%E7%94%A8%E5%BC%82%E6%AD%A5%E6%89%B9%E9%87%8F%E5%90%8C%E6%AD%A5%E8%80%8C%E4%B8%8D%E6%98%AF%E5%AE%9E%E6%97%B6%E5%90%8C%E6%AD%A5%EF%BC%9F"><span class="toc-number">1.16.2.2.</span> <span class="toc-text">Q4: 为什么 statusManager 采用异步批量同步而不是实时同步？</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#11-3-%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5%E9%A2%98"><span class="toc-number">1.16.3.</span> <span class="toc-text">11.3 故障排查题</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Q5-Pod-%E7%8A%B6%E6%80%81%E4%B8%8E%E5%AE%9E%E9%99%85%E5%AE%B9%E5%99%A8%E7%8A%B6%E6%80%81%E4%B8%8D%E4%B8%80%E8%87%B4%EF%BC%8C%E5%A6%82%E4%BD%95%E6%8E%92%E6%9F%A5%EF%BC%9F"><span class="toc-number">1.16.3.1.</span> <span class="toc-text">Q5: Pod 状态与实际容器状态不一致，如何排查？</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#11-4-%E8%AE%BE%E8%AE%A1%E6%80%9D%E6%83%B3%E9%A2%98"><span class="toc-number">1.16.4.</span> <span class="toc-text">11.4 设计思想题</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Q6-%E4%B8%BA%E4%BB%80%E4%B9%88-Kubernetes-%E5%B0%86%E7%8A%B6%E6%80%81%E5%92%8C%E4%BA%8B%E4%BB%B6%E5%88%86%E5%BC%80%E5%AD%98%E5%82%A8%EF%BC%9F"><span class="toc-number">1.16.4.1.</span> <span class="toc-text">Q6: 为什么 Kubernetes 将状态和事件分开存储？</span></a></li></ol></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/03/26/cloud/arch/Kubernetes%E9%80%9A%E4%BF%A1%E9%93%BE%E8%B7%AF%E8%AF%A6%E7%BB%86%E5%88%86%E6%9E%90/" title="Kubernetes 通信链路详细分析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="Kubernetes 通信链路详细分析"/></a><div class="content"><a class="title" href="/2026/03/26/cloud/arch/Kubernetes%E9%80%9A%E4%BF%A1%E9%93%BE%E8%B7%AF%E8%AF%A6%E7%BB%86%E5%88%86%E6%9E%90/" title="Kubernetes 通信链路详细分析">Kubernetes 通信链路详细分析</a><time datetime="2026-03-26T13:15:00.000Z" title="发表于 2026-03-26 21:15:00">2026-03-26</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-API%20Server%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="kube-apiserver 深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="kube-apiserver 深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-API%20Server%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="kube-apiserver 深度剖析">kube-apiserver 深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-etcd%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="etcd 深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="etcd 深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-etcd%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="etcd 深度剖析">etcd 深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-%E5%AD%98%E5%82%A8%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="存储架构深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="存储架构深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-%E5%AD%98%E5%82%A8%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="存储架构深度剖析">存储架构深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-kubelet%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="Kubelet 深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="Kubelet 深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-kubelet%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="Kubelet 深度剖析">Kubelet 深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script src="/js/reading-progress.js"></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

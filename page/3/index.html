@@ -1,0 +1,336 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="该知道的都知道，不知道的慢慢了解">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Joohwan">
+<meta property="og:url" content="https://piwriw.github.io/page/3/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="该知道的都知道，不知道的慢慢了解">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/avatar.jpg">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="Joohwan">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/avatar.jpg"><script type="application/ld+json"></script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/page/3/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          const hour = new Date().getHours()
+          const isNight = hour <= 6 || hour >= 18
+          if (theme === undefined) isNight ? activateDarkMode() : activateLightMode()
+          else theme === 'light' ? activateLightMode() : activateDarkMode()
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '天',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Joohwan',
+  isHighlightShrink: false,
+  isToc: false,
+  pageType: 'home'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">303</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">96</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="page" id="body-wrap"><header class="full_page" id="page-header" style="background-image: url(/img/background.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="site-info"><h1 id="site-title">Joohwan</h1><div id="site-subtitle"><span id="subtitle"></span></div><div id="site_social_icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div id="scroll-down"><i class="fas fa-angle-down scroll-down-effects"></i></div></header><main class="layout" id="content-inner"><div class="recent-posts nc" id="recent-posts"><div class="recent-post-items"><div class="recent-post-item"><div class="post_cover left"><a href="/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-Pod%E5%9C%A8%E8%8A%82%E7%82%B9%E4%B8%8A%E5%AE%9E%E7%8E%B0%E6%B5%81%E7%A8%8B/" title="Pod 在节点落地通信流程"><img class="post-bg" src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="Pod 在节点落地通信流程"></a></div><div class="recent-post-info"><a class="article-title" href="/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-Pod%E5%9C%A8%E8%8A%82%E7%82%B9%E4%B8%8A%E5%AE%9E%E7%8E%B0%E6%B5%81%E7%A8%8B/" title="Pod 在节点落地通信流程">Pod 在节点落地通信流程</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2026-03-25T13:10:00.000Z" title="发表于 2026-03-25 21:10:00">2026-03-25</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/k8s/">k8s</a></span></div><div class="content">Pod 在节点落地通信流程目标这篇文档只回答一个核心问题：kubelet 如何把“期望运行”的 Pod 变成“真实运行”的容器？ 重点放在 kubelet 内部各组件之间的协作与 CRI 通信边界，而不是每一个 gRPC 字段的含义。 一句话摘要kubelet 收到 Pod 更新后，把期望态交给 podWorkers；podWorkers 驱动单 Pod 生命周期状态机，再由 kubeGenericRuntimeManager 通过 CRI 调用容器运行时完成 sandbox、镜像与容器操作。  1. 流程总览从通信视角看，这条链路可以拆成 3 个阶段：  更新接入阶段：kubelet 从 Pod source 收到属于本节点的 Pod 更新，并交给内部子系统。 状态机驱动阶段：podWorkers 根据当前状态决定执行同步、终止还是清理。 运行时执行阶段：runtime manager 通过 CRI 把操作翻译给容器运行时，完成 sandbox 和容器的创建&#x2F;销毁。  Mermaid：总览图flowchart LR     A[Pod update from sour...</div></div></div><div class="recent-post-item"><div class="post_cover right"><a href="/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-Pod%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F%E4%B8%8E%E7%BB%88%E6%AD%A2%E6%B5%81%E7%A8%8B/" title="Pod 生命周期与终止流程"><img class="post-bg" src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="Pod 生命周期与终止流程"></a></div><div class="recent-post-info"><a class="article-title" href="/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-Pod%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F%E4%B8%8E%E7%BB%88%E6%AD%A2%E6%B5%81%E7%A8%8B/" title="Pod 生命周期与终止流程">Pod 生命周期与终止流程</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2026-03-25T13:10:00.000Z" title="发表于 2026-03-25 21:10:00">2026-03-25</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/k8s/">k8s</a></span></div><div class="content">Pod 生命周期与终止流程概述Pod 的生命周期从 Pending 开始，经过 Running，最终到达 Succeeded 或 Failed。理解 Pod 生命周期对于正确管理应用至关重要。 Pod 生命周期阶段1234567891011121314151617181920// staging/src/k8s.io/api/core/v1/types.gotype PodPhase stringconst (    // PodPending: Pod 已被接受，但容器尚未启动    PodPending PodPhase = &quot;Pending&quot;    // PodRunning: Pod 已绑定到节点，所有容器已创建，至少一个容器正在运行    PodRunning PodPhase = &quot;Running&quot;    // PodSucceeded: Pod 中所有容器已成功终止，不会重启    PodSucceeded PodPhase = &quot;Succeeded&quot;    // PodFailed: Pod 中所有容器已...</div></div></div><div class="recent-post-item"><div class="post_cover left"><a href="/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-Pod%E8%B0%83%E5%BA%A6%E4%B8%8E%E7%BB%91%E5%AE%9A%E6%B5%81%E7%A8%8B/" title="Pod 调度与绑定通信流程"><img class="post-bg" src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="Pod 调度与绑定通信流程"></a></div><div class="recent-post-info"><a class="article-title" href="/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-Pod%E8%B0%83%E5%BA%A6%E4%B8%8E%E7%BB%91%E5%AE%9A%E6%B5%81%E7%A8%8B/" title="Pod 调度与绑定通信流程">Pod 调度与绑定通信流程</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2026-03-25T13:10:00.000Z" title="发表于 2026-03-25 21:10:00">2026-03-25</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/k8s/">k8s</a></span></div><div class="content">Pod 调度与绑定通信流程目标这篇文档只回答一个核心问题：一个 Pod 是怎么从“等待调度”变成“被某个节点上的 kubelet 感知到”的？ 重点放在组件之间的通信与职责边界，而不是调度器内部打分算法细节。 一句话摘要kube-scheduler 负责为 Pod 选节点，kube-apiserver 负责持久化绑定结果，kubelet 通过监听 API Server 中属于本节点的 Pod 更新来感知这次分配。  1. 流程总览从通信视角看，这条链路可以拆成 3 个阶段：  调度决策阶段：scheduler 为 Pod 选择目标节点。 绑定落盘阶段：scheduler 通过 API Server 把绑定结果写回集群状态。 节点感知阶段：目标节点上的 kubelet 观察到这个 Pod 已经分配给自己，开始进入节点侧处理。  Mermaid：总览图flowchart LR     A[Pending Pod] --&gt; B[kube-scheduler]     B --&gt; C[select target node]     C --&gt; D[kube-apiser...</div></div></div><div class="recent-post-item"><div class="post_cover right"><a href="/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-RBAC%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6%E6%B5%81%E7%A8%8B/" title="RBAC 权限控制流程"><img class="post-bg" src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="RBAC 权限控制流程"></a></div><div class="recent-post-info"><a class="article-title" href="/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-RBAC%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6%E6%B5%81%E7%A8%8B/" title="RBAC 权限控制流程">RBAC 权限控制流程</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2026-03-25T13:10:00.000Z" title="发表于 2026-03-25 21:10:00">2026-03-25</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/k8s/">k8s</a></span></div><div class="content">RBAC 权限控制流程概述RBAC (Role-Based Access Control) 是 Kubernetes 默认的授权模式，通过 Role 和 RoleBinding 来控制用户对资源的访问权限。 核心概念1234567891011121314151617181920212223242526┌─────────────────────────────────────────────────────────────────────────────┐│                            Role (角色)                                   ││  定义一组权限规则 (PolicyRules)，包含 verbs、resources、apiGroups           ││  pkg/apis/rbac/types.go                                                 │└───────────────────────────────────────────────────...</div></div></div><div class="recent-post-item"><div class="post_cover left"><a href="/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-StatefulSet%E6%8E%A7%E5%88%B6%E5%99%A8%E6%B5%81%E7%A8%8B/" title="StatefulSet 控制器流程"><img class="post-bg" src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="StatefulSet 控制器流程"></a></div><div class="recent-post-info"><a class="article-title" href="/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-StatefulSet%E6%8E%A7%E5%88%B6%E5%99%A8%E6%B5%81%E7%A8%8B/" title="StatefulSet 控制器流程">StatefulSet 控制器流程</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2026-03-25T13:10:00.000Z" title="发表于 2026-03-25 21:10:00">2026-03-25</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/k8s/">k8s</a></span></div><div class="content">StatefulSet 控制器流程概述StatefulSet 用于管理有状态应用，提供有序部署、稳定网络标识和持久化存储。与 Deployment 不同，StatefulSet 保证 Pod 的顺序性和唯一性。 核心架构1234567891011121314151617181920212223242526272829┌──────────────────────────────────────────────────────────────────────────────┐│                       StatefulSetController                                 ││              pkg/controller/statefulset/stateful_set.go                     ││                                                                             ││  ┌─────────────┐  ┌...</div></div></div><div class="recent-post-item"><div class="post_cover right"><a href="/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-kube-apiserver%E8%AF%B7%E6%B1%82%E5%A4%84%E7%90%86%E6%B5%81%E7%A8%8B/" title="kube-apiserver 请求处理流程"><img class="post-bg" src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="kube-apiserver 请求处理流程"></a></div><div class="recent-post-info"><a class="article-title" href="/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-kube-apiserver%E8%AF%B7%E6%B1%82%E5%A4%84%E7%90%86%E6%B5%81%E7%A8%8B/" title="kube-apiserver 请求处理流程">kube-apiserver 请求处理流程</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2026-03-25T13:10:00.000Z" title="发表于 2026-03-25 21:10:00">2026-03-25</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/k8s/">k8s</a></span></div><div class="content">kube-apiserver 请求处理流程概述kube-apiserver 是 Kubernetes 控制平面的核心组件，负责处理所有 API 请求。每个请求都需要经过认证(Authentication)、授权(Authorization)、准入控制(Admission Control) 才能被持久化到 etcd。 核心处理流程1234567891011121314151617181920212223242526272829303132┌──────────────────────────────────────────────────────────────────────────────┐│                          API 请求入口                                    ││                    http.Handler -&gt; DefaultBuildHandler                         │└───────────────────────────────────────...</div></div></div><div class="recent-post-item"><div class="post_cover left"><a href="/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-kube-proxy%E6%9C%8D%E5%8A%A1%E4%BB%A3%E7%90%86%E6%B5%81%E7%A8%8B/" title="kube-proxy 服务代理通信流程"><img class="post-bg" src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="kube-proxy 服务代理通信流程"></a></div><div class="recent-post-info"><a class="article-title" href="/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-kube-proxy%E6%9C%8D%E5%8A%A1%E4%BB%A3%E7%90%86%E6%B5%81%E7%A8%8B/" title="kube-proxy 服务代理通信流程">kube-proxy 服务代理通信流程</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2026-03-25T13:10:00.000Z" title="发表于 2026-03-25 21:10:00">2026-03-25</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/k8s/">k8s</a></span></div><div class="content">kube-proxy 服务代理通信流程目标这篇文档只回答一个核心问题：kube-proxy 如何实现 Service 的负载均衡和网络代理？ 重点放在 kube-proxy 与 API Server 的交互、规则同步机制以及 iptables&#x2F;IPVS 模式的差异。 一句话摘要kube-proxy 通过 watch API Server 中的 Service 和 EndpointSlice 对象，在本地维护 iptables&#x2F;IPVS 规则，将到达 Service ClusterIP 的流量转发到后端 Pod。  1. 流程总览从通信视角看，这条链路可以拆成 3 个阶段：  配置获取阶段：kube-proxy watch Service 和 EndpointSlice 对象。 规则计算阶段：根据 Service 类型计算需要生成的代理规则。 规则同步阶段：将规则写入 iptables&#x2F;IPVS，实现流量转发。  架构总览图flowchart TB     subgraph 控制面[&quot;控制面&quot;]         API[kube-a...</div></div></div><div class="recent-post-item"><div class="post_cover right"><a href="/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-kubelet%E7%8A%B6%E6%80%81%E4%B8%8E%E4%BA%8B%E4%BB%B6%E5%8F%8D%E9%A6%88%E6%B5%81%E7%A8%8B/" title="Kubelet 状态与事件回传流程"><img class="post-bg" src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="Kubelet 状态与事件回传流程"></a></div><div class="recent-post-info"><a class="article-title" href="/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-kubelet%E7%8A%B6%E6%80%81%E4%B8%8E%E4%BA%8B%E4%BB%B6%E5%8F%8D%E9%A6%88%E6%B5%81%E7%A8%8B/" title="Kubelet 状态与事件回传流程">Kubelet 状态与事件回传流程</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2026-03-25T13:10:00.000Z" title="发表于 2026-03-25 21:10:00">2026-03-25</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/k8s/">k8s</a></span></div><div class="content">Kubelet 状态与事件回传流程目标这篇文档只回答一个核心问题：kubelet 如何把节点侧观察到的 Pod 运行结果回传给控制面？ 重点放在状态回传与事件上报两条通信链路的区别，以及控制器真正依赖的观察面是什么。 一句话摘要kubelet 通过 statusManager 异步批量把 PodStatus 同步到 API Server，并通过事件记录器上报诊断性 Event；控制器主要观察的是 API Server 中资源对象的状态变化，而不是 kubelet 内部事件流本身。  1. 流程总览从通信视角看，这条链路包含两条并行但职责不同的子链路：  状态回传链路：kubelet 把 Pod 运行状态写回 API Server，成为控制面的共享事实。 事件上报链路：kubelet 把诊断性 Event 写入 API Server，用于排障与审计。  这两条链路共享 API Server 作为存储，但消费方和语义完全不同。 Mermaid：总览图flowchart LR     A[Kubelet subsystems] --&gt; B[statusManager]     A...</div></div></div><div class="recent-post-item"><div class="post_cover left"><a href="/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-kubelet%E8%AE%A4%E8%AF%81%E6%8E%88%E6%9D%83%E6%B5%81%E7%A8%8B/" title="Kubelet 认证授权通信流程"><img class="post-bg" src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="Kubelet 认证授权通信流程"></a></div><div class="recent-post-info"><a class="article-title" href="/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-kubelet%E8%AE%A4%E8%AF%81%E6%8E%88%E6%9D%83%E6%B5%81%E7%A8%8B/" title="Kubelet 认证授权通信流程">Kubelet 认证授权通信流程</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2026-03-25T13:10:00.000Z" title="发表于 2026-03-25 21:10:00">2026-03-25</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/k8s/">k8s</a></span></div><div class="content">Kubelet 认证授权通信流程目标这篇文档只回答一个核心问题：kubelet 如何验证和授权对 kubelet API 的访问请求？ 重点放在 kubelet 的认证模块、授权模块以及与 API Server 的交互流程。 一句话摘要kubelet 通过 webhook 认证和授权，将客户端请求转发给 API Server 进行验证，支持匿名访问、证书认证和 bootstrap token 认证等多种方式。  1. 流程总览从通信视角看，这条链路包含三个层次：  **认证层 (Authentication)**：验证客户端身份。 **授权层 (Authorization)**：验证客户端是否有权限执行操作。 **准入层 (Admission)**：对请求进行额外检查和修改（仅部分操作）。  架构总览图flowchart TB     subgraph 客户端[&quot;请求来源&quot;]         direction LR         API[kube-apiserver&lt;br/&gt;proxy/attach/exec]         KUBECTL[...</div></div></div><div class="recent-post-item"><div class="post_cover right"><a href="/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-kubelet%E9%A9%B1%E9%80%90%E6%B5%81%E7%A8%8B/" title="Kubelet 资源驱逐 (Eviction) 通信流程"><img class="post-bg" src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="Kubelet 资源驱逐 (Eviction) 通信流程"></a></div><div class="recent-post-info"><a class="article-title" href="/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-kubelet%E9%A9%B1%E9%80%90%E6%B5%81%E7%A8%8B/" title="Kubelet 资源驱逐 (Eviction) 通信流程">Kubelet 资源驱逐 (Eviction) 通信流程</a><div class="article-meta-wrap"><span class="post-meta-date"><i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span><time datetime="2026-03-25T13:10:00.000Z" title="发表于 2026-03-25 21:10:00">2026-03-25</time></span><span class="article-meta"><span class="article-meta-separator">|</span><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right article-meta-link"></i><i class="fas fa-inbox"></i><a class="article-meta__categories" href="/categories/cloud/k8s/">k8s</a></span></div><div class="content">Kubelet 资源驱逐 (Eviction) 通信流程目标这篇文档只回答一个核心问题：kubelet 如何在节点资源不足时决定并执行 Pod 驱逐？ 重点放在 EvictionManager 的监控机制、驱逐决策逻辑以及驱逐执行流程。 一句话摘要kubelet 的 EvictionManager 定期监控节点资源使用，当资源超过阈值时，根据 QoS 和优先级选择 Pod 进行驱逐，以保护节点稳定性。  1. 流程总览从通信视角看，这条链路可以拆成 3 个阶段：  资源监控阶段：EvictionManager 定期采集节点资源使用情况。 决策判断阶段：根据阈值和策略决定是否需要驱逐以及驱逐哪些 Pod。 执行驱逐阶段：通过 API Server 删除选中的 Pod。  架构总览图flowchart TB     subgraph 资源采集[&quot;资源采集层&quot;]         direction TB         CAD[cAdvisor&lt;br/&gt;容器资源监控]         SYS[系统信息&lt;br/&gt;节点资源]         SI...</div></div></div></div><nav id="pagination"><div class="pagination"><a class="extend prev" rel="prev" href="/page/2/#content-inner"><i class="fas fa-chevron-left fa-fw"></i></a><a class="page-number" href="/">1</a><a class="page-number" href="/page/2/#content-inner">2</a><span class="page-number current">3</span><a class="page-number" href="/page/4/#content-inner">4</a><span class="space">&hellip;</span><a class="page-number" href="/page/31/#content-inner">31</a><a class="extend next" rel="next" href="/page/4/#content-inner"><i class="fas fa-chevron-right fa-fw"></i></a></div></nav></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">303</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">96</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/03/26/cloud/arch/Kubernetes%E9%80%9A%E4%BF%A1%E9%93%BE%E8%B7%AF%E8%AF%A6%E7%BB%86%E5%88%86%E6%9E%90/" title="Kubernetes 通信链路详细分析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="Kubernetes 通信链路详细分析"/></a><div class="content"><a class="title" href="/2026/03/26/cloud/arch/Kubernetes%E9%80%9A%E4%BF%A1%E9%93%BE%E8%B7%AF%E8%AF%A6%E7%BB%86%E5%88%86%E6%9E%90/" title="Kubernetes 通信链路详细分析">Kubernetes 通信链路详细分析</a><time datetime="2026-03-26T13:15:00.000Z" title="发表于 2026-03-26 21:15:00">2026-03-26</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-API%20Server%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="kube-apiserver 深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="kube-apiserver 深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-API%20Server%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="kube-apiserver 深度剖析">kube-apiserver 深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-etcd%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="etcd 深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="etcd 深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-etcd%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="etcd 深度剖析">etcd 深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-%E5%AD%98%E5%82%A8%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="存储架构深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="存储架构深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-%E5%AD%98%E5%82%A8%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="存储架构深度剖析">存储架构深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-kubelet%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="Kubelet 深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="Kubelet 深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-kubelet%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="Kubelet 深度剖析">Kubelet 深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div></div></div><div class="card-widget card-categories"><div class="item-headline">
+            <i class="fas fa-folder-open"></i>
+            <span>分类</span>
+            <a class="card-more-btn" href="/categories/" title="查看更多">
+      <i class="fas fa-angle-right"></i></a>
+          </div>
+          <ul class="card-category-list" id="aside-cat-list">
+            <li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/"><span class="card-category-list-name">basic</span><span class="card-category-list-count">36</span></a><ul class="card-category-list child"><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/go/"><span class="card-category-list-name">go</span><span class="card-category-list-count">14</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/"><span class="card-category-list-name">设计模式</span><span class="card-category-list-count">13</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/%E9%9D%A2%E8%AF%95/"><span class="card-category-list-name">面试</span><span class="card-category-list-count">9</span></a></li></ul></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/braveheart/"><span class="card-category-list-name">braveheart</span><span class="card-category-list-count">1</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/cloud/"><span class="card-category-list-name">cloud</span><span class="card-category-list-count">210</span></a><ul class="card-category-list child"><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/cloud/Harbor/"><span class="card-category-list-name">Harbor</span><span class="card-category-list-count">1</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/cloud/Istio/"><span class="card-category-list-name">Istio</span><span class="card-category-list-count">1</span></a></li></ul></li>
+          </ul></div><div class="card-widget card-tags"><div class="item-headline"><i class="fas fa-tags"></i><span>标签</span></div><div class="card-tag-cloud"><a href="/tags/grafana/" style="font-size: 1.14em; color: #999a9c">grafana</a> <a href="/tags/CoreDNS/" style="font-size: 1.1em; color: #999">CoreDNS</a> <a href="/tags/%E9%9D%A2%E8%AF%95/" style="font-size: 1.35em; color: #99a3b1">面试</a> <a href="/tags/job/" style="font-size: 1.21em; color: #999da3">job</a> <a href="/tags/kubemark/" style="font-size: 1.1em; color: #999">kubemark</a> <a href="/tags/swagger/" style="font-size: 1.1em; color: #999">swagger</a> <a href="/tags/zap/" style="font-size: 1.14em; color: #999a9c">zap</a> <a href="/tags/%E9%99%90%E6%B5%81%E7%AD%96%E7%95%A5/" style="font-size: 1.1em; color: #999">限流策略</a> <a href="/tags/CKAD/" style="font-size: 1.14em; color: #999a9c">CKAD</a> <a href="/tags/cookies/" style="font-size: 1.1em; color: #999">cookies</a> <a href="/tags/alertmanager%E6%BA%90%E7%A0%81/" style="font-size: 1.25em; color: #999fa7">alertmanager源码</a> <a href="/tags/prometheus/" style="font-size: 1.39em; color: #99a5b5">prometheus</a> <a href="/tags/argo/" style="font-size: 1.1em; color: #999">argo</a> <a href="/tags/kustomize/" style="font-size: 1.1em; color: #999">kustomize</a> <a href="/tags/PVC/" style="font-size: 1.1em; color: #999">PVC</a> <a href="/tags/event/" style="font-size: 1.1em; color: #999">event</a> <a href="/tags/Gin/" style="font-size: 1.17em; color: #999ca0">Gin</a> <a href="/tags/deployment/" style="font-size: 1.14em; color: #999a9c">deployment</a> <a href="/tags/cronjob/" style="font-size: 1.1em; color: #999">cronjob</a> <a href="/tags/scheduler/" style="font-size: 1.1em; color: #999">scheduler</a> <a href="/tags/kube-proxy/" style="font-size: 1.28em; color: #99a0aa">kube-proxy</a> <a href="/tags/kubelet/" style="font-size: 1.1em; color: #999">kubelet'</a> <a href="/tags/go/" style="font-size: 1.43em; color: #99a6b8">go</a> <a href="/tags/keadm/" style="font-size: 1.1em; color: #999">keadm</a> <a href="/tags/network/" style="font-size: 1.21em; color: #999da3">network</a> <a href="/tags/cloud/" style="font-size: 1.46em; color: #99a8bc">cloud</a> <a href="/tags/iptables/" style="font-size: 1.14em; color: #999a9c">iptables</a> <a href="/tags/k8s/" style="font-size: 1.5em; color: #99a9bf">k8s</a> <a href="/tags/session/" style="font-size: 1.1em; color: #999">session</a> <a href="/tags/ReplicaSet/" style="font-size: 1.1em; color: #999">ReplicaSet</a> <a href="/tags/viper/" style="font-size: 1.1em; color: #999">viper</a> <a href="/tags/introduce/" style="font-size: 1.28em; color: #99a0aa">introduce</a> <a href="/tags/DNS/" style="font-size: 1.1em; color: #999">DNS</a> <a href="/tags/mysql/" style="font-size: 1.14em; color: #999a9c">mysql</a> <a href="/tags/Deployment/" style="font-size: 1.1em; color: #999">Deployment</a> <a href="/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/" style="font-size: 1.28em; color: #99a0aa">计算机网络</a> <a href="/tags/etcd/" style="font-size: 1.1em; color: #999">etcd</a> <a href="/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" style="font-size: 1.17em; color: #999ca0">数据结构</a> <a href="/tags/tools/" style="font-size: 1.32em; color: #99a2ae">tools</a> <a href="/tags/pod/" style="font-size: 1.35em; color: #99a3b1">pod</a></div></div><div class="card-widget card-archives">
+    <div class="item-headline">
+      <i class="fas fa-archive"></i>
+      <span>归档</span>
+      <a class="card-more-btn" href="/archives/"
+            title="查看更多">
+            <i class="fas fa-angle-right"></i>
+          </a>
+    </div>
+  
+    <ul class="card-archive-list">
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2026/03/">
+            <span class="card-archive-list-date">
+              三月 2026
+            </span>
+            <span class="card-archive-list-count">44</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2026/01/">
+            <span class="card-archive-list-date">
+              一月 2026
+            </span>
+            <span class="card-archive-list-count">10</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/09/">
+            <span class="card-archive-list-date">
+              九月 2025
+            </span>
+            <span class="card-archive-list-count">1</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/08/">
+            <span class="card-archive-list-date">
+              八月 2025
+            </span>
+            <span class="card-archive-list-count">6</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/07/">
+            <span class="card-archive-list-date">
+              七月 2025
+            </span>
+            <span class="card-archive-list-count">11</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/06/">
+            <span class="card-archive-list-date">
+              六月 2025
+            </span>
+            <span class="card-archive-list-count">1</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/05/">
+            <span class="card-archive-list-date">
+              五月 2025
+            </span>
+            <span class="card-archive-list-count">1</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/03/">
+            <span class="card-archive-list-date">
+              三月 2025
+            </span>
+            <span class="card-archive-list-count">11</span>
+          </a>
+        </li>
+      
+    </ul>
+  </div><div class="card-widget card-webinfo"><div class="item-headline"><i class="fas fa-chart-line"></i><span>网站信息</span></div><div class="webinfo"><div class="webinfo-item"><div class="item-name">文章数目 :</div><div class="item-count">303</div></div><div class="webinfo-item"><div class="item-name">运行时间 :</div><div class="item-count" id="runtimeshow" data-publishDate="2023-07-01T00:00:00.000Z"><i class="fa-solid fa-spinner fa-spin"></i></div></div><div class="webinfo-item"><div class="item-name">本站总字数 :</div><div class="item-count">777.3k</div></div><div class="webinfo-item"><div class="item-name">本站访客数 :</div><div class="item-count" id="busuanzi_value_site_uv"><i class="fa-solid fa-spinner fa-spin"></i></div></div><div class="webinfo-item"><div class="item-name">本站总浏览量 :</div><div class="item-count" id="busuanzi_value_site_pv"><i class="fa-solid fa-spinner fa-spin"></i></div></div><div class="webinfo-item"><div class="item-name">最后更新时间 :</div><div class="item-count" id="last-push-date" data-lastPushDate="2026-03-26T15:28:52.799Z"><i class="fa-solid fa-spinner fa-spin"></i></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>window.typedJSFn = {
+  init: str => {
+    window.typed = new Typed('#subtitle', Object.assign({
+      strings: str,
+      startDelay: 300,
+      typeSpeed: 150,
+      loop: true,
+      backSpeed: 50,
+    }, null))
+  },
+  run: subtitleType => {
+    if (true) {
+      if (typeof Typed === 'function') {
+        subtitleType()
+      } else {
+        btf.getScript('https://cdn.jsdelivr.net/npm/typed.js/dist/typed.umd.min.js').then(subtitleType)
+      }
+    } else {
+      subtitleType()
+    }
+  },
+  processSubtitle: (content, extraContents = []) => {
+    if (true) {
+      const sub = ["我们登上并非我们所选择的舞台，演出并非我们所选择的剧本","该知道的都知道，不知道的慢慢了解","偶尔怀念一下就好了，脚下的路更重要"].slice()
+
+      if (extraContents.length > 0) {
+        sub.unshift(...extraContents)
+      }
+
+      if (typeof content === 'string') {
+        sub.unshift(content)
+      } else if (Array.isArray(content)) {
+        sub.unshift(...content)
+      }
+
+      sub.length > 0 && typedJSFn.init(sub)
+    } else {
+      document.getElementById('subtitle').textContent = typeof content === 'string' ? content :
+        (Array.isArray(content) && content.length > 0 ? content[0] : '')
+    }
+  }
+}
+btf.addGlobalFn('pjaxSendOnce', () => { typed.destroy() }, 'typedDestroy')
+</script><script>function subtitleType () {
+  typedJSFn.processSubtitle(["我们登上并非我们所选择的舞台，演出并非我们所选择的剧本","该知道的都知道，不知道的慢慢了解","偶尔怀念一下就好了，脚下的路更重要"])
+}
+typedJSFn.run(subtitleType)</script><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script></div><script src="/js/categories.js" defer></script><script src="/js/reading-progress.js"></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

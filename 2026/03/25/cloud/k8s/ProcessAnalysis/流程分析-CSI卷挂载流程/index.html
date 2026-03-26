@@ -1,0 +1,1250 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>CSI 存储卷挂载通信流程 | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="CSI 存储卷挂载通信流程目标这篇文档只回答一个核心问题：kubelet 如何通过 CSI (Container Storage Interface) 完成 Pod 存储卷的挂载？ 重点放在 VolumeManager 与 CSI driver 的交互，以及 attach&#x2F;mount 的完整流程。 一句话摘要kubelet 的 VolumeManager 通过 CSINode 和 CSI">
+<meta property="og:type" content="article">
+<meta property="og:title" content="CSI 存储卷挂载通信流程">
+<meta property="og:url" content="https://piwriw.github.io/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-CSI%E5%8D%B7%E6%8C%82%E8%BD%BD%E6%B5%81%E7%A8%8B/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="CSI 存储卷挂载通信流程目标这篇文档只回答一个核心问题：kubelet 如何通过 CSI (Container Storage Interface) 完成 Pod 存储卷的挂载？ 重点放在 VolumeManager 与 CSI driver 的交互，以及 attach&#x2F;mount 的完整流程。 一句话摘要kubelet 的 VolumeManager 通过 CSINode 和 CSI">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/k8s-go.jpg">
+<meta property="article:published_time" content="2026-03-25T13:10:00.000Z">
+<meta property="article:modified_time" content="2026-03-26T15:28:20.114Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="k8s">
+<meta property="article:tag" content="cloud">
+<meta property="article:tag" content="流程分析">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/k8s-go.jpg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "CSI 存储卷挂载通信流程",
+  "url": "https://piwriw.github.io/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-CSI%E5%8D%B7%E6%8C%82%E8%BD%BD%E6%B5%81%E7%A8%8B/",
+  "image": "https://piwriw.github.io/img/k8s-go.jpg",
+  "datePublished": "2026-03-25T13:10:00.000Z",
+  "dateModified": "2026-03-26T15:28:20.114Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-CSI%E5%8D%B7%E6%8C%82%E8%BD%BD%E6%B5%81%E7%A8%8B/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          const hour = new Date().getHours()
+          const isNight = hour <= 6 || hour >= 18
+          if (theme === undefined) isNight ? activateDarkMode() : activateLightMode()
+          else theme === 'light' ? activateLightMode() : activateDarkMode()
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '天',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'CSI 存储卷挂载通信流程',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">303</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">96</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/k8s-go.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">CSI 存储卷挂载通信流程</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">CSI 存储卷挂载通信流程</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-03-25T13:10:00.000Z" title="发表于 2026-03-25 21:10:00">2026-03-25</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-03-26T15:28:20.114Z" title="更新于 2026-03-26 23:28:20">2026-03-26</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/">k8s</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">6.5k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>29分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-03-26 23:28:20&quot;}" hidden></div><h1 id="CSI-存储卷挂载通信流程"><a href="#CSI-存储卷挂载通信流程" class="headerlink" title="CSI 存储卷挂载通信流程"></a>CSI 存储卷挂载通信流程</h1><h2 id="目标"><a href="#目标" class="headerlink" title="目标"></a>目标</h2><p>这篇文档只回答一个核心问题：<strong>kubelet 如何通过 CSI (Container Storage Interface) 完成 Pod 存储卷的挂载？</strong></p>
+<p>重点放在 VolumeManager 与 CSI driver 的交互，以及 attach&#x2F;mount 的完整流程。</p>
+<h2 id="一句话摘要"><a href="#一句话摘要" class="headerlink" title="一句话摘要"></a>一句话摘要</h2><p>kubelet 的 VolumeManager 通过 CSINode 和 CSIDriver 对象发现 CSI driver，然后通过 gRPC 调用 CSI driver 的 NodeStageVolume&#x2F;NodePublishVolume 完成卷的挂载。</p>
+<hr>
+<h2 id="1-流程总览"><a href="#1-流程总览" class="headerlink" title="1. 流程总览"></a>1. 流程总览</h2><p>从通信视角看，这条链路可以拆成 3 个阶段：</p>
+<ol>
+<li><strong>卷准备阶段</strong>：CSI controller 完成 attach (对于块存储)。</li>
+<li><strong>节点挂载阶段</strong>：kubelet 通过 CSI driver 完成 stage 和 publish。</li>
+<li><strong>容器挂载阶段</strong>：kubelet 将卷 bind mount 到容器内。</li>
+</ol>
+<h3 id="架构总览图"><a href="#架构总览图" class="headerlink" title="架构总览图"></a>架构总览图</h3><pre><code class="highlight mermaid">flowchart TB
+    subgraph 控制面[&quot;控制面&quot;]
+        direction TB
+        PV[PersistentVolume]
+        PVC[PersistentVolumeClaim]
+        ATTACH[CSI Attacher&lt;br/&gt;外部控制器]
+    end
+
+    subgraph Kubelet[&quot;Kubelet VolumeManager&quot;]
+        direction TB
+        VM[VolumeManager]
+        DESIRED[DesiredStateOfWorld]
+        ACTUAL[ActualStateOfWorld]
+        EXEC[OperationExecutor]
+        CSI[CSIPlugin]
+    end
+
+    subgraph CSI[&quot;CSI Driver&quot;]
+        direction TB
+        NODE_REG[CSINode&lt;br/&gt;节点注册信息]
+        DRIVER[CSIDriver&lt;br/&gt;驱动配置]
+        PLUGIN[CSI Plugin&lt;br/&gt;gRPC 服务]
+    end
+
+    subgraph 存储[&quot;存储后端&quot;]
+        direction TB
+        CLOUD[云存储&lt;br/&gt;EBS/CBS/etc]
+        LOCAL[本地存储]
+        NAS[网络存储&lt;br/&gt;NFS/Ceph/etc]
+    end
+
+    PVC --&gt; PV
+    PV --&gt; VM
+    VM --&gt; DESIRED
+    VM --&gt; ACTUAL
+    DESIRED --&gt; EXEC
+    EXEC --&gt; CSI
+    CSI --&gt; NODE_REG
+    CSI --&gt; DRIVER
+    CSI --&gt; PLUGIN
+
+    ATTACH --&gt; CLOUD
+    PLUGIN --&gt; CLOUD
+    PLUGIN --&gt; LOCAL
+    PLUGIN --&gt; NAS</code></pre>
+
+<h3 id="CSI-接口层次图"><a href="#CSI-接口层次图" class="headerlink" title="CSI 接口层次图"></a>CSI 接口层次图</h3><pre><code class="highlight mermaid">flowchart TB
+    subgraph CSI接口[&quot;CSI gRPC 接口&quot;]
+        direction TB
+        subgraph Controller[&quot;Controller Service&quot;]
+            C1[CreateVolume]
+            C2[DeleteVolume]
+            C3[ControllerPublishVolume&lt;br/&gt;Attach]
+            C4[ControllerUnpublishVolume&lt;br/&gt;Detach]
+            C5[ControllerExpandVolume]
+        end
+
+        subgraph Node[&quot;Node Service&quot;]
+            N1[NodeStageVolume&lt;br/&gt;临时挂载]
+            N2[NodeUnstageVolume]
+            N3[NodePublishVolume&lt;br/&gt;最终挂载]
+            N4[NodeUnpublishVolume]
+            N5[NodeExpandVolume]
+            N6[NodeGetCapabilities]
+        end
+
+        subgraph Identity[&quot;Identity Service&quot;]
+            I1[GetPluginInfo]
+            I2[GetPluginCapabilities]
+            I3[Probe]
+        end
+    end
+
+    subgraph Kubelet调用[&quot;Kubelet 调用流程&quot;]
+        K1[检查 CSIDriver]
+        K2[发现 CSI Plugin]
+        K3[调用 NodeStage]
+        K4[调用 NodePublish]
+    end
+
+    K1 --&gt; I1
+    K2 --&gt; N6
+    K3 --&gt; N1
+    K4 --&gt; N3</code></pre>
+
+<h3 id="这张图想表达什么"><a href="#这张图想表达什么" class="headerlink" title="这张图想表达什么"></a>这张图想表达什么</h3><ul>
+<li>CSI 将存储操作标准化为 gRPC 接口。</li>
+<li>kubelet 只负责节点侧操作 (Stage&#x2F;Publish)。</li>
+<li>attach 操作由外部控制器完成 (对于需要 attach 的存储)。</li>
+</ul>
+<hr>
+<h2 id="2-分阶段通信流程"><a href="#2-分阶段通信流程" class="headerlink" title="2. 分阶段通信流程"></a>2. 分阶段通信流程</h2><hr>
+<h3 id="阶段一：卷准备-Attach"><a href="#阶段一：卷准备-Attach" class="headerlink" title="阶段一：卷准备 (Attach)"></a>阶段一：卷准备 (Attach)</h3><p>这个阶段的本质是：<strong>对于需要 attach 的存储类型，将存储卷附加到节点。</strong></p>
+<h4 id="步骤-1-1：PV-绑定到-PVC"><a href="#步骤-1-1：PV-绑定到-PVC" class="headerlink" title="步骤 1.1：PV 绑定到 PVC"></a>步骤 1.1：PV 绑定到 PVC</h4><p>用户创建 PVC 后，PV Controller 会找到或创建匹配的 PV 并绑定。</p>
+<p><strong>通信方向</strong>：PV Controller → API Server</p>
+<h4 id="步骤-1-2：AD-Controller-调用-Attach"><a href="#步骤-1-2：AD-Controller-调用-Attach" class="headerlink" title="步骤 1.2：AD Controller 调用 Attach"></a>步骤 1.2：AD Controller 调用 Attach</h4><p>AttachDetach Controller 检测到 Pod 使用了 PV，会调用 CSI Attacher 进行 attach。</p>
+<p><strong>通信方向</strong>：AD Controller → CSI Attacher</p>
+<h4 id="步骤-1-3：CSI-Attacher-调用-ControllerPublishVolume"><a href="#步骤-1-3：CSI-Attacher-调用-ControllerPublishVolume" class="headerlink" title="步骤 1.3：CSI Attacher 调用 ControllerPublishVolume"></a>步骤 1.3：CSI Attacher 调用 ControllerPublishVolume</h4><p>CSI Attacher 通过 gRPC 调用 CSI driver 的 <code>ControllerPublishVolume</code> 方法。</p>
+<p><strong>通信方向</strong>：CSI Attacher → CSI Controller Plugin (gRPC)</p>
+<h4 id="步骤-1-4：存储卷附加到节点"><a href="#步骤-1-4：存储卷附加到节点" class="headerlink" title="步骤 1.4：存储卷附加到节点"></a>步骤 1.4：存储卷附加到节点</h4><p>CSI driver 与存储后端通信，将卷附加到目标节点。</p>
+<p><strong>通信方向</strong>：CSI Driver → 存储后端 (云 API&#x2F;存储协议)</p>
+<h4 id="步骤-1-5：更新-Node-Status-VolumesAttached"><a href="#步骤-1-5：更新-Node-Status-VolumesAttached" class="headerlink" title="步骤 1.5：更新 Node.Status.VolumesAttached"></a>步骤 1.5：更新 Node.Status.VolumesAttached</h4><p>Attach 完成后，AD Controller 更新 Node 对象的 <code>status.volumesAttached</code> 字段。</p>
+<p><strong>通信方向</strong>：AD Controller → API Server</p>
+<hr>
+<h3 id="阶段二：节点挂载-Stage-Publish"><a href="#阶段二：节点挂载-Stage-Publish" class="headerlink" title="阶段二：节点挂载 (Stage &amp; Publish)"></a>阶段二：节点挂载 (Stage &amp; Publish)</h3><p>这个阶段的本质是：<strong>kubelet 通过 CSI driver 将卷挂载到节点目录。</strong></p>
+<h4 id="步骤-2-1：VolumeManager-获取-Pod-的卷信息"><a href="#步骤-2-1：VolumeManager-获取-Pod-的卷信息" class="headerlink" title="步骤 2.1：VolumeManager 获取 Pod 的卷信息"></a>步骤 2.1：VolumeManager 获取 Pod 的卷信息</h4><p>kubelet 收到 Pod 后，VolumeManager 解析 Pod 的 volume 配置，包括 PVC。</p>
+<p><strong>通信方向</strong>：kubelet → Pod spec 解析</p>
+<h4 id="步骤-2-2：检查-CSIDriver-和-CSINode"><a href="#步骤-2-2：检查-CSIDriver-和-CSINode" class="headerlink" title="步骤 2.2：检查 CSIDriver 和 CSINode"></a>步骤 2.2：检查 CSIDriver 和 CSINode</h4><p>CSIPlugin 检查 CSIDriver 和 CSINode 对象，确定：</p>
+<ul>
+<li>CSI driver 是否支持 NodeStage</li>
+<li>CSI driver 的挂载目录</li>
+<li>CSI driver 的 gRPC 端点</li>
+</ul>
+<p><strong>通信方向</strong>：kubelet → API Server (读取 CSIDriver&#x2F;CSINode)</p>
+<h4 id="步骤-2-3：调用-NodeStageVolume-如果支持"><a href="#步骤-2-3：调用-NodeStageVolume-如果支持" class="headerlink" title="步骤 2.3：调用 NodeStageVolume (如果支持)"></a>步骤 2.3：调用 NodeStageVolume (如果支持)</h4><p>如果 CSI driver 支持 <code>STAGE_UNSTAGE_VOLUME</code> 能力，kubelet 会先调用 <code>NodeStageVolume</code>，将卷挂载到一个临时目录（staging path）。</p>
+<p><strong>通信方向</strong>：kubelet → CSI Node Plugin (gRPC)</p>
+<h4 id="步骤-2-4：调用-NodePublishVolume"><a href="#步骤-2-4：调用-NodePublishVolume" class="headerlink" title="步骤 2.4：调用 NodePublishVolume"></a>步骤 2.4：调用 NodePublishVolume</h4><p>然后 kubelet 调用 <code>NodePublishVolume</code>，将卷从 staging path bind mount 到最终的 target path。</p>
+<p><strong>通信方向</strong>：kubelet → CSI Node Plugin (gRPC)</p>
+<h4 id="步骤-2-5：更新-ActualStateOfWorld"><a href="#步骤-2-5：更新-ActualStateOfWorld" class="headerlink" title="步骤 2.5：更新 ActualStateOfWorld"></a>步骤 2.5：更新 ActualStateOfWorld</h4><p>挂载成功后，VolumeManager 更新 ActualStateOfWorld，记录卷已挂载。</p>
+<p><strong>通信方向</strong>：VolumeManager 内部状态更新</p>
+<hr>
+<h3 id="阶段三：容器挂载"><a href="#阶段三：容器挂载" class="headerlink" title="阶段三：容器挂载"></a>阶段三：容器挂载</h3><p>这个阶段的本质是：<strong>将节点上的挂载点 bind mount 到容器内。</strong></p>
+<h4 id="步骤-3-1：容器创建时传入挂载配置"><a href="#步骤-3-1：容器创建时传入挂载配置" class="headerlink" title="步骤 3.1：容器创建时传入挂载配置"></a>步骤 3.1：容器创建时传入挂载配置</h4><p>kubelet 调用 CRI 创建容器时，会将卷的挂载配置传给容器运行时。</p>
+<p><strong>通信方向</strong>：kubelet → CRI Runtime</p>
+<h4 id="步骤-3-2：容器运行时执行-bind-mount"><a href="#步骤-3-2：容器运行时执行-bind-mount" class="headerlink" title="步骤 3.2：容器运行时执行 bind mount"></a>步骤 3.2：容器运行时执行 bind mount</h4><p>容器运行时将节点上的 target path bind mount 到容器内的 mount path。</p>
+<p><strong>通信方向</strong>：CRI Runtime → Linux 内核 (mount)</p>
+<h4 id="步骤-3-3：容器启动"><a href="#步骤-3-3：容器启动" class="headerlink" title="步骤 3.3：容器启动"></a>步骤 3.3：容器启动</h4><p>容器启动后，可以通过容器内的路径访问存储卷内容。</p>
+<p><strong>通信方向</strong>：容器进程 → 文件系统</p>
+<hr>
+<h2 id="3-详细流程图"><a href="#3-详细流程图" class="headerlink" title="3. 详细流程图"></a>3. 详细流程图</h2><h3 id="3-1-卷挂载完整流程图"><a href="#3-1-卷挂载完整流程图" class="headerlink" title="3.1 卷挂载完整流程图"></a>3.1 卷挂载完整流程图</h3><pre><code class="highlight mermaid">flowchart TD
+    subgraph 初始化[&quot;初始化阶段&quot;]
+        A1[Pod 创建] --&gt; A2[VolumeManager 解析卷]
+        A2 --&gt; A3[添加到 DesiredStateOfWorld]
+    end
+
+    subgraph 调度[&quot;调度阶段&quot;]
+        A3 --&gt; B1[等待 Pod 绑定到节点]
+        B1 --&gt; B2[等待 PV 绑定到 PVC]
+    end
+
+    subgraph Attach[&quot;Attach 阶段 (可选)&quot;]
+        B2 --&gt; C1&#123;需要 Attach?&#125;
+        C1 --&gt;|是| C2[AD Controller 调用 Attach]
+        C2 --&gt; C3[CSI ControllerPublishVolume]
+        C3 --&gt; C4[存储后端 Attach]
+        C4 --&gt; C5[更新 Node.VolumesAttached]
+        C1 --&gt;|否| D1
+        C5 --&gt; D1
+    end
+
+    subgraph Mount[&quot;Mount 阶段&quot;]
+        D1[D1: 检查 CSIDriver] --&gt; D2[获取 CSI Plugin 地址]
+        D2 --&gt; D3&#123;支持 Stage?&#125;
+
+        D3 --&gt;|是| E1[NodeStageVolume]
+        E1 --&gt; E2[挂载到 staging path]
+        E2 --&gt; E3[NodePublishVolume]
+        E3 --&gt; E4[bind mount 到 target path]
+
+        D3 --&gt;|否| E3
+
+        E4 --&gt; F1[更新 ActualStateOfWorld]
+    end
+
+    subgraph 容器[&quot;容器阶段&quot;]
+        F1 --&gt; G1[创建容器]
+        G1 --&gt; G2[bind mount 到容器内]
+        G2 --&gt; G3[启动容器]
+    end</code></pre>
+
+<h3 id="3-2-卷卸载流程图"><a href="#3-2-卷卸载流程图" class="headerlink" title="3.2 卷卸载流程图"></a>3.2 卷卸载流程图</h3><pre><code class="highlight mermaid">flowchart TD
+    subgraph 触发[&quot;卸载触发&quot;]
+        A1[Pod 删除] --&gt; A2[VolumeManager 检测]
+        A2 --&gt; A3[从 DesiredStateOfWorld 移除]
+    end
+
+    subgraph Unmount[&quot;Unmount 阶段&quot;]
+        A3 --&gt; B1[NodeUnpublishVolume]
+        B1 --&gt; B2[umount target path]
+
+        B2 --&gt; C1&#123;支持 Stage?&#125;
+        C1 --&gt;|是| C2[NodeUnstageVolume]
+        C2 --&gt; C3[umount staging path]
+        C1 --&gt;|否| D1
+
+        C3 --&gt; D1
+    end
+
+    subgraph Detach[&quot;Detach 阶段 (可选)&quot;]
+        D1 --&gt; D2&#123;需要 Detach?&#125;
+        D2 --&gt;|是| D3[AD Controller 调用 Detach]
+        D3 --&gt; D4[CSI ControllerUnpublishVolume]
+        D4 --&gt; D5[存储后端 Detach]
+        D5 --&gt; D6[更新 Node.VolumesAttached]
+        D2 --&gt;|否| E1
+        D6 --&gt; E1
+    end
+
+    subgraph 清理[&quot;清理阶段&quot;]
+        E1[E1: 清理目录]
+        E1 --&gt; E2[删除 target path]
+        E2 --&gt; E3[删除 staging path]
+        E3 --&gt; E4[从 ActualStateOfWorld 移除]
+    end</code></pre>
+
+<h3 id="3-3-CSI-Plugin-与-kubelet-交互图"><a href="#3-3-CSI-Plugin-与-kubelet-交互图" class="headerlink" title="3.3 CSI Plugin 与 kubelet 交互图"></a>3.3 CSI Plugin 与 kubelet 交互图</h3><pre><code class="highlight mermaid">sequenceDiagram
+    autonumber
+    participant KL as Kubelet
+    participant VM as VolumeManager
+    participant OE as OperationExecutor
+    participant CP as CSIPlugin
+    participant API as kube-apiserver
+    participant CSI as CSI Node Plugin
+    participant FS as 文件系统
+
+    KL-&gt;&gt;VM: Pod 更新
+    VM-&gt;&gt;VM: 添加到 DesiredStateOfWorld
+
+    loop reconciler 循环
+        VM-&gt;&gt;VM: 对比 Desired vs Actual
+        VM-&gt;&gt;OE: MountVolume(volume, pod)
+
+        OE-&gt;&gt;CP: Mount(device, target)
+        CP-&gt;&gt;API: Get CSIDriver
+        API--&gt;&gt;CP: CSIDriver 对象
+
+        CP-&gt;&gt;API: Get CSINode
+        API--&gt;&gt;CP: CSINode 对象
+
+        CP-&gt;&gt;CP: 获取 CSI Plugin socket
+
+        Note over CP,CSI: NodeStageVolume (可选)
+
+        alt 支持 STAGE_UNSTAGE_VOLUME
+            CP-&gt;&gt;CSI: NodeStageVolume(staging_path, volume_context)
+            CSI-&gt;&gt;FS: mount /dev/xxx /var/lib/kubelet/plugins/kubernetes.io/csi/pv/&lt;pv&gt;/globalmount
+            FS--&gt;&gt;CSI: 成功
+            CSI--&gt;&gt;CP: 成功
+        end
+
+        Note over CP,CSI: NodePublishVolume
+
+        CP-&gt;&gt;CSI: NodePublishVolume(target_path, staging_path, volume_context)
+        CSI-&gt;&gt;FS: mount --bind staging_path target_path
+        FS--&gt;&gt;CSI: 成功
+        CSI--&gt;&gt;CP: 成功
+
+        CP--&gt;&gt;OE: 成功
+        OE--&gt;&gt;VM: 成功
+        VM-&gt;&gt;VM: 更新 ActualStateOfWorld
+    end</code></pre>
+
+<hr>
+<h2 id="4-关键数据结构"><a href="#4-关键数据结构" class="headerlink" title="4. 关键数据结构"></a>4. 关键数据结构</h2><h3 id="4-1-CSIDriver-对象"><a href="#4-1-CSIDriver-对象" class="headerlink" title="4.1 CSIDriver 对象"></a>4.1 CSIDriver 对象</h3><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">storage.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">CSIDriver</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">ebs.csi.aws.com</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">attachRequired:</span> <span class="literal">true</span>              <span class="comment"># 是否需要 attach</span></span><br><span class="line">  <span class="attr">podInfoOnMount:</span> <span class="literal">false</span>             <span class="comment"># 是否在 NodePublishVolume 传递 Pod 信息</span></span><br><span class="line">  <span class="attr">volumeLifecycleModes:</span>             <span class="comment"># 支持的生命周期模式</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">Persistent</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">Ephemeral</span></span><br><span class="line">  <span class="attr">storageCapacity:</span> <span class="literal">true</span>             <span class="comment"># 是否支持存储容量追踪</span></span><br><span class="line">  <span class="attr">fsGroupPolicy:</span> <span class="string">File</span>               <span class="comment"># fsGroup 处理策略</span></span><br><span class="line">  <span class="attr">requiresRepublish:</span> <span class="literal">false</span>          <span class="comment"># 是否需要定期重新发布</span></span><br><span class="line">  <span class="attr">seLinuxMount:</span> <span class="literal">true</span>                <span class="comment"># SELinux 挂载支持</span></span><br><span class="line">  <span class="attr">supportsSELinuxContext:</span> <span class="literal">true</span>      <span class="comment"># SELinux 上下文支持</span></span><br><span class="line">  <span class="attr">tokenRequests:</span>                    <span class="comment"># Token 请求配置</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">audience:</span> <span class="string">&quot;sts.amazonaws.com&quot;</span></span><br><span class="line">  <span class="attr">ephemeral:</span> <span class="literal">false</span>                  <span class="comment"># 是否支持内联 ephemeral 卷</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="4-2-CSINode-对象"><a href="#4-2-CSINode-对象" class="headerlink" title="4.2 CSINode 对象"></a>4.2 CSINode 对象</h3><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">storage.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">CSINode</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">node-1</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">drivers:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">ebs.csi.aws.com</span></span><br><span class="line">      <span class="attr">nodeID:</span> <span class="string">i-1234567890abcdef0</span>   <span class="comment"># CSI driver 的节点 ID</span></span><br><span class="line">      <span class="attr">topologyKeys:</span>                 <span class="comment"># 节点拓扑键</span></span><br><span class="line">        <span class="bullet">-</span> <span class="string">topology.ebs.csi.aws.com/zone</span></span><br><span class="line">      <span class="attr">allocatable:</span>                  <span class="comment"># 可分配容量</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">storage</span></span><br><span class="line">          <span class="attr">capacity:</span> <span class="string">100Gi</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="4-3-挂载路径结构"><a href="#4-3-挂载路径结构" class="headerlink" title="4.3 挂载路径结构"></a>4.3 挂载路径结构</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">/var/lib/kubelet/</span><br><span class="line">├── pods/&lt;pod-uid&gt;/</span><br><span class="line">│   └── volumes/kubernetes.io~csi/</span><br><span class="line">│       └── &lt;pv-name&gt;/             # target_path</span><br><span class="line">│           ├── mount              # 实际挂载点</span><br><span class="line">│           └── data               # 卷数据</span><br><span class="line">└── plugins/kubernetes.io/csi/</span><br><span class="line">    └── &lt;pv-name&gt;/</span><br><span class="line">        └── globalmount/           # staging_path</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="5-详细时序图"><a href="#5-详细时序图" class="headerlink" title="5. 详细时序图"></a>5. 详细时序图</h2><h3 id="5-1-动态供应-PV-完整时序图"><a href="#5-1-动态供应-PV-完整时序图" class="headerlink" title="5.1 动态供应 PV 完整时序图"></a>5.1 动态供应 PV 完整时序图</h3><pre><code class="highlight mermaid">sequenceDiagram
+    autonumber
+    participant User as 用户
+    participant API as kube-apiserver
+    participant PVC as PVC Controller
+    participant PROV as CSI Provisioner
+    participant CSI as CSI Controller
+    participant AD as AD Controller
+    participant KL as Kubelet
+    participant NODE as CSI Node Plugin
+    participant STORAGE as 存储后端
+
+    User-&gt;&gt;API: 创建 PVC
+    API--&gt;&gt;PVC: watch PVC ADDED
+    PVC-&gt;&gt;PVC: 检查 StorageClass
+    PVC-&gt;&gt;API: 绑定等待
+
+    Note over PROV: External Provisioner watch PVC
+
+    API--&gt;&gt;PROV: watch PVC (Pending)
+    PROV-&gt;&gt;CSI: CreateVolume
+    CSI-&gt;&gt;STORAGE: 创建存储卷
+    STORAGE--&gt;&gt;CSI: Volume ID
+    CSI--&gt;&gt;PROV: Volume ID
+    PROV-&gt;&gt;API: 创建 PV
+    PVC-&gt;&gt;API: 绑定 PV 到 PVC
+
+    Note over AD: AD Controller watch Pod
+
+    User-&gt;&gt;API: 创建 Pod (使用 PVC)
+    AD-&gt;&gt;AD: 检测到 Pod 使用 PV
+
+    alt attachRequired: true
+        AD-&gt;&gt;CSI: ControllerPublishVolume
+        CSI-&gt;&gt;STORAGE: Attach 卷到节点
+        STORAGE--&gt;&gt;CSI: 成功
+        CSI--&gt;&gt;AD: 成功
+        AD-&gt;&gt;API: 更新 Node.VolumesAttached
+    end
+
+    API--&gt;&gt;KL: watch Pod (已调度)
+    KL-&gt;&gt;KL: VolumeManager 处理
+
+    alt 支持 STAGE_UNSTAGE_VOLUME
+        KL-&gt;&gt;NODE: NodeStageVolume
+        NODE-&gt;&gt;STORAGE: 挂载到 staging path
+        STORAGE--&gt;&gt;NODE: 成功
+        NODE--&gt;&gt;KL: 成功
+    end
+
+    KL-&gt;&gt;NODE: NodePublishVolume
+    NODE-&gt;&gt;STORAGE: bind mount 到 target path
+    STORAGE--&gt;&gt;NODE: 成功
+    NODE--&gt;&gt;KL: 成功
+
+    KL-&gt;&gt;KL: 创建容器
+    KL-&gt;&gt;KL: 启动 Pod</code></pre>
+
+<h3 id="5-2-卷扩容时序图"><a href="#5-2-卷扩容时序图" class="headerlink" title="5.2 卷扩容时序图"></a>5.2 卷扩容时序图</h3><pre><code class="highlight mermaid">sequenceDiagram
+    autonumber
+    participant User as 用户
+    participant API as kube-apiserver
+    participant RESIZE as Resize Controller
+    participant CSI as CSI Controller
+    participant KL as Kubelet
+    participant NODE as CSI Node Plugin
+    participant STORAGE as 存储后端
+
+    User-&gt;&gt;API: 更新 PVC.spec.resources.requests.storage
+    API--&gt;&gt;RESIZE: watch PVC UPDATE
+
+    RESIZE-&gt;&gt;RESIZE: 检测扩容请求
+    RESIZE-&gt;&gt;CSI: ControllerExpandVolume
+    CSI-&gt;&gt;STORAGE: 扩容存储卷
+    STORAGE--&gt;&gt;CSI: 成功
+    CSI--&gt;&gt;RESIZE: 成功
+
+    RESIZE-&gt;&gt;API: 更新 PV.spec.capacity.storage
+
+    Note over KL: 等待 Pod 重启或在线扩容
+
+    API--&gt;&gt;KL: watch PV UPDATE
+    KL-&gt;&gt;KL: 检测到卷容量变化
+
+    alt 节点扩容
+        KL-&gt;&gt;NODE: NodeExpandVolume
+        NODE-&gt;&gt;STORAGE: resize2fs / xfs_growfs
+        STORAGE--&gt;&gt;NODE: 成功
+        NODE--&gt;&gt;KL: 成功
+    end
+
+    KL-&gt;&gt;API: 更新 PVC.status.capacity.storage</code></pre>
+
+<hr>
+<h2 id="6-故障排查指南"><a href="#6-故障排查指南" class="headerlink" title="6. 故障排查指南"></a>6. 故障排查指南</h2><h3 id="6-1-常见问题与诊断方法"><a href="#6-1-常见问题与诊断方法" class="headerlink" title="6.1 常见问题与诊断方法"></a>6.1 常见问题与诊断方法</h3><h4 id="问题-1：Pod-卡在-ContainerCreating-卷挂载失败"><a href="#问题-1：Pod-卡在-ContainerCreating-卷挂载失败" class="headerlink" title="问题 1：Pod 卡在 ContainerCreating (卷挂载失败)"></a>问题 1：Pod 卡在 ContainerCreating (卷挂载失败)</h4><p><strong>症状</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">kubectl get pods</span><br><span class="line">NAME    READY   STATUS              RESTARTS   AGE</span><br><span class="line">pod-1   0/1     ContainerCreating   0          5m</span><br><span class="line"></span><br><span class="line">Events:</span><br><span class="line">  Warning  FailedMount  Unable to attach or mount volumes</span><br></pre></td></tr></table></figure>
+
+<p><strong>排查流程图</strong>：</p>
+<pre><code class="highlight mermaid">flowchart TD
+    A[卷挂载失败] --&gt; B&#123;检查 PV/PVC 状态&#125;
+
+    B --&gt; B1[PVC Pending]
+    B1 --&gt; B1a[检查 StorageClass]
+    B1a --&gt; B1b[检查 Provisioner]
+
+    B --&gt; B2[PV Available]
+    B2 --&gt; B2a[检查 PV 绑定]
+
+    B --&gt; B3[PV Bound]
+    B3 --&gt; C&#123;检查 Attach 状态&#125;
+
+    C --&gt; C1[检查 Node.VolumesAttached]
+    C1 --&gt; C1a&#123;有 Attach 记录?&#125;
+
+    C1a --&gt;|否| D&#123;检查 AD Controller&#125;
+    D --&gt; D1[检查 AD Controller 日志]
+    D --&gt; D2[检查 CSI Controller 日志]
+
+    C1a --&gt;|是| E&#123;检查 Mount 状态&#125;
+    E --&gt; E1[检查 kubelet 日志]
+    E --&gt; E2[检查 CSI Node Plugin 日志]
+
+    A --&gt; F&#123;检查 CSI Driver&#125;
+    F --&gt; F1[检查 CSIDriver 对象]
+    F --&gt; F2[检查 CSINode 对象]
+    F --&gt; F3[检查 CSI Pod 状态]</code></pre>
+
+<p><strong>诊断命令</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 检查 PVC 状态</span></span><br><span class="line">kubectl get pvc -n &lt;namespace&gt;</span><br><span class="line">kubectl describe pvc &lt;pvc-name&gt; -n &lt;namespace&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 PV 状态</span></span><br><span class="line">kubectl get pv</span><br><span class="line">kubectl describe pv &lt;pv-name&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 Attach 状态</span></span><br><span class="line">kubectl get node &lt;node-name&gt; -o jsonpath=<span class="string">&#x27;&#123;.status.volumesAttached&#125;&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 CSIDriver</span></span><br><span class="line">kubectl get csidriver</span><br><span class="line">kubectl describe csidriver &lt;driver-name&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 CSINode</span></span><br><span class="line">kubectl get csinode &lt;node-name&gt; -o yaml</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 kubelet 日志</span></span><br><span class="line">journalctl -u kubelet | grep -i <span class="string">&quot;volume\|mount\|csi&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查节点上的挂载点</span></span><br><span class="line"><span class="built_in">ls</span> -la /var/lib/kubelet/pods/&lt;pod-uid&gt;/volumes/</span><br><span class="line">mount | grep &lt;pv-name&gt;</span><br></pre></td></tr></table></figure>
+
+<h4 id="问题-2：卷卸载失败导致-Pod-无法删除"><a href="#问题-2：卷卸载失败导致-Pod-无法删除" class="headerlink" title="问题 2：卷卸载失败导致 Pod 无法删除"></a>问题 2：卷卸载失败导致 Pod 无法删除</h4><p><strong>症状</strong>：Pod 一直处于 Terminating 状态</p>
+<p><strong>排查流程图</strong>：</p>
+<pre><code class="highlight mermaid">flowchart TD
+    A[Pod Terminating] --&gt; B&#123;检查 kubelet 日志&#125;
+
+    B --&gt; B1[Unmount 失败]
+    B1 --&gt; B1a[检查挂载点是否存在]
+    B1a --&gt; B1b[检查是否有进程占用]
+
+    B --&gt; B2[NodeUnpublishVolume 失败]
+    B2 --&gt; B2a[检查 CSI Node Plugin 日志]
+    B2a --&gt; B2b[检查 CSI Plugin 状态]
+
+    B --&gt; B3[Detach 失败]
+    B3 --&gt; B3a[检查 AD Controller 日志]
+    B3a --&gt; B3b[检查存储后端状态]
+
+    A --&gt; C&#123;手动清理&#125;
+    C --&gt; C1[umount 挂载点]
+    C --&gt; C2[删除挂载目录]
+    C --&gt; C3[强制删除 Pod]</code></pre>
+
+<p><strong>诊断命令</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 检查 Pod 状态</span></span><br><span class="line">kubectl describe pod &lt;pod-name&gt; -n &lt;namespace&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查挂载点</span></span><br><span class="line">mount | grep &lt;pod-uid&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查是否有进程占用</span></span><br><span class="line">lsof /var/lib/kubelet/pods/&lt;pod-uid&gt;/volumes/kubernetes.io~csi/</span><br><span class="line"></span><br><span class="line"><span class="comment"># 手动卸载</span></span><br><span class="line">sudo umount /var/lib/kubelet/pods/&lt;pod-uid&gt;/volumes/kubernetes.io~csi/&lt;pv-name&gt;/mount</span><br><span class="line"></span><br><span class="line"><span class="comment"># 强制删除 Pod</span></span><br><span class="line">kubectl delete pod &lt;pod-name&gt; -n &lt;namespace&gt; --force --grace-period=0</span><br></pre></td></tr></table></figure>
+
+<h4 id="问题-3：CSI-Driver-注册失败"><a href="#问题-3：CSI-Driver-注册失败" class="headerlink" title="问题 3：CSI Driver 注册失败"></a>问题 3：CSI Driver 注册失败</h4><p><strong>症状</strong>：CSINode 对象不存在或 driver 未注册</p>
+<p><strong>排查流程图</strong>：</p>
+<pre><code class="highlight mermaid">flowchart TD
+    A[CSI Driver 未注册] --&gt; B&#123;检查 CSI Driver Pod&#125;
+
+    B --&gt; B1[Pod 未运行]
+    B1 --&gt; B1a[检查 Pod 事件]
+    B1a --&gt; B1b[检查镜像拉取]
+    B1a --&gt; B1c[检查资源限制]
+
+    B --&gt; B2[Pod 运行中]
+    B2 --&gt; C&#123;检查 Driver 日志&#125;
+
+    C --&gt; C1[注册失败]
+    C1 --&gt; C1a[检查 KUBELET_DIR 权限]
+    C1a --&gt; C1b[检查 socket 文件]
+
+    C --&gt; C2[gRPC 启动失败]
+    C2 --&gt; C2a[检查端口占用]
+    C2 --&gt; C2b[检查 SELinux/AppArmor]
+
+    A --&gt; D&#123;检查 CSIDriver 对象&#125;
+    D --&gt; D1[对象不存在]
+    D1 --&gt; D1a[创建 CSIDriver CRD]</code></pre>
+
+<p><strong>诊断命令</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 检查 CSI Driver Pod</span></span><br><span class="line">kubectl get pods -n &lt;csi-namespace&gt; -l app=&lt;csi-driver&gt;</span><br><span class="line">kubectl describe pod &lt;csi-pod&gt; -n &lt;csi-namespace&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 CSINode</span></span><br><span class="line">kubectl get csinode</span><br><span class="line">kubectl describe csinode &lt;node-name&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 CSI socket</span></span><br><span class="line"><span class="built_in">ls</span> -la /var/lib/kubelet/plugins/&lt;driver-name&gt;/</span><br><span class="line"><span class="built_in">ls</span> -la /var/lib/kubelet/plugins_registry/</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 CSI driver 日志</span></span><br><span class="line">kubectl logs -n &lt;csi-namespace&gt; &lt;csi-node-pod&gt; -c node-driver-registrar</span><br><span class="line">kubectl logs -n &lt;csi-namespace&gt; &lt;csi-node-pod&gt; -c &lt;csi-driver&gt;</span><br></pre></td></tr></table></figure>
+
+<h3 id="6-2-关键日志关键词"><a href="#6-2-关键日志关键词" class="headerlink" title="6.2 关键日志关键词"></a>6.2 关键日志关键词</h3><table>
+<thead>
+<tr>
+<th>组件</th>
+<th>日志关键词</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>kubelet</td>
+<td><code>WaitForAttachAndMount</code></td>
+<td>等待卷挂载</td>
+</tr>
+<tr>
+<td>kubelet</td>
+<td><code>NodeStageVolume</code></td>
+<td>调用 CSI Stage</td>
+</tr>
+<tr>
+<td>kubelet</td>
+<td><code>NodePublishVolume</code></td>
+<td>调用 CSI Publish</td>
+</tr>
+<tr>
+<td>kubelet</td>
+<td><code>UnmountVolume</code></td>
+<td>卸载卷</td>
+</tr>
+<tr>
+<td>CSI Plugin</td>
+<td><code>GRPC</code></td>
+<td>gRPC 调用</td>
+</tr>
+<tr>
+<td>AD Controller</td>
+<td><code>AttachVolume</code></td>
+<td>卷附加</td>
+</tr>
+<tr>
+<td>AD Controller</td>
+<td><code>DetachVolume</code></td>
+<td>卷分离</td>
+</tr>
+</tbody></table>
+<h3 id="6-3-配置参数参考"><a href="#6-3-配置参数参考" class="headerlink" title="6.3 配置参数参考"></a>6.3 配置参数参考</h3><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>默认值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>--enable-controller-attach-detach</code></td>
+<td>true</td>
+<td>启用 AD Controller</td>
+</tr>
+<tr>
+<td><code>--volume-plugin-dir</code></td>
+<td>&#x2F;usr&#x2F;libexec&#x2F;kubernetes&#x2F;kubelet-plugins&#x2F;volume</td>
+<td>卷插件目录</td>
+</tr>
+<tr>
+<td><code>--volume-stats-egress-interval</code></td>
+<td>10s</td>
+<td>卷统计间隔</td>
+</tr>
+</tbody></table>
+<h3 id="6-4-一键诊断命令"><a href="#6-4-一键诊断命令" class="headerlink" title="6.4 一键诊断命令"></a>6.4 一键诊断命令</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># CSI 卷问题诊断脚本</span></span><br><span class="line">PVC_NAME=<span class="variable">$&#123;1:-&quot;&lt;pvc-name&gt;&quot;&#125;</span></span><br><span class="line">NAMESPACE=<span class="variable">$&#123;2:-&quot;default&quot;&#125;</span></span><br><span class="line">POD_NAME=$(kubectl get pvc <span class="variable">$PVC_NAME</span> -n <span class="variable">$NAMESPACE</span> -o jsonpath=<span class="string">&#x27;&#123;.spec.volumeName&#125;&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;=== PVC Status ===&quot;</span> &amp;&amp; \</span><br><span class="line">kubectl get pvc <span class="variable">$PVC_NAME</span> -n <span class="variable">$NAMESPACE</span> -o wide &amp;&amp; \</span><br><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;\n=== PV Status ===&quot;</span> &amp;&amp; \</span><br><span class="line">kubectl get pv <span class="variable">$POD_NAME</span> -o wide &amp;&amp; \</span><br><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;\n=== CSIDriver ===&quot;</span> &amp;&amp; \</span><br><span class="line">kubectl get csidriver &amp;&amp; \</span><br><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;\n=== CSINode ===&quot;</span> &amp;&amp; \</span><br><span class="line">kubectl get csinode &amp;&amp; \</span><br><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;\n=== CSI Pods ===&quot;</span> &amp;&amp; \</span><br><span class="line">kubectl get pods -A -l app.kubernetes.io/name | grep csi &amp;&amp; \</span><br><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;\n=== Volume Attachments ===&quot;</span> &amp;&amp; \</span><br><span class="line">kubectl get volumeattachments | grep <span class="variable">$POD_NAME</span></span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="7-版本差异说明"><a href="#7-版本差异说明" class="headerlink" title="7. 版本差异说明"></a>7. 版本差异说明</h2><h3 id="1-27-→-1-28-变化"><a href="#1-27-→-1-28-变化" class="headerlink" title="1.27 → 1.28 变化"></a>1.27 → 1.28 变化</h3><table>
+<thead>
+<tr>
+<th>变化点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>SELinux 挂载支持</td>
+<td>CSI driver 可以支持 SELinux 上下文</td>
+</tr>
+<tr>
+<td>存储容量追踪 GA</td>
+<td>存储容量追踪功能正式发布</td>
+</tr>
+</tbody></table>
+<h3 id="1-28-→-1-29-变化"><a href="#1-28-→-1-29-变化" class="headerlink" title="1.28 → 1.29 变化"></a>1.28 → 1.29 变化</h3><table>
+<thead>
+<tr>
+<th>变化点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>fsGroupPolicy 增强</td>
+<td>更灵活的 fsGroup 处理策略</td>
+</tr>
+<tr>
+<td>在线卷扩容改进</td>
+<td>更多存储类型支持在线扩容</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="8-代码入口（精简版）"><a href="#8-代码入口（精简版）" class="headerlink" title="8. 代码入口（精简版）"></a>8. 代码入口（精简版）</h2><p>如果读者想从流程跳回实现，可从下面几个入口开始：</p>
+<ul>
+<li>VolumeManager 主结构：<a href="../pkg/kubelet/volumemanager/volume_manager.go"><code>pkg/kubelet/volumemanager/volume_manager.go</code></a></li>
+<li>CSI Plugin 实现：<a href="../pkg/volume/csi/csi_plugin.go"><code>pkg/volume/csi/csi_plugin.go</code></a></li>
+<li>CSI Attacher：<a href="../pkg/volume/csi/csi_attacher.go"><code>pkg/volume/csi/csi_attacher.go</code></a></li>
+<li>OperationExecutor：<a href="../pkg/kubelet/volumemanager/operationexecutor/operation_executor.go"><code>pkg/kubelet/volumemanager/operationexecutor/operation_executor.go</code></a></li>
+<li>DesiredStateOfWorld：<a href="../pkg/kubelet/volumemanager/cache/desired_state_of_world.go"><code>pkg/kubelet/volumemanager/cache/desired_state_of_world.go</code></a></li>
+</ul>
+<hr>
+<h2 id="9-面试题与详细解答"><a href="#9-面试题与详细解答" class="headerlink" title="9. 面试题与详细解答"></a>9. 面试题与详细解答</h2><h3 id="问题-1：CSI（Container-Storage-Interface）的设计目的是什么？与-in-tree-存储插件相比有什么优势？"><a href="#问题-1：CSI（Container-Storage-Interface）的设计目的是什么？与-in-tree-存储插件相比有什么优势？" class="headerlink" title="问题 1：CSI（Container Storage Interface）的设计目的是什么？与 in-tree 存储插件相比有什么优势？"></a>问题 1：CSI（Container Storage Interface）的设计目的是什么？与 in-tree 存储插件相比有什么优势？</h3><p><strong>回答要点</strong>：</p>
+<p><strong>CSI 设计目的</strong>：</p>
+<ol>
+<li><strong>解耦存储驱动</strong>：将存储驱动从 Kubernetes 核心代码中分离</li>
+<li><strong>标准化接口</strong>：定义统一的 gRPC 接口规范</li>
+<li><strong>支持多种存储</strong>：同一 CSI 驱动可用于不同容器编排系统</li>
+<li><strong>独立发布</strong>：存储厂商可独立发布和更新驱动</li>
+</ol>
+<p><strong>与 in-tree 插件对比</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>in-tree 插件</th>
+<th>CSI 驱动</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>代码位置</td>
+<td>Kubernetes 核心代码</td>
+<td>独立仓库</td>
+</tr>
+<tr>
+<td>发布周期</td>
+<td>跟随 K8s 版本</td>
+<td>独立发布</td>
+</tr>
+<tr>
+<td>维护责任</td>
+<td>K8s 社区</td>
+<td>存储厂商</td>
+</tr>
+<tr>
+<td>功能扩展</td>
+<td>需要 K8s 代码变更</td>
+<td>只需修改驱动</td>
+</tr>
+<tr>
+<td>兼容性</td>
+<td>强绑定 K8s 版本</td>
+<td>向前兼容</td>
+</tr>
+</tbody></table>
+<p><strong>CSI 三类服务</strong>：</p>
+<ol>
+<li><p><strong>Identity Service</strong>：插件身份和能力</p>
+<ul>
+<li><code>GetPluginInfo</code>：获取插件信息</li>
+<li><code>GetPluginCapabilities</code>：获取插件能力</li>
+<li><code>Probe</code>：健康检查</li>
+</ul>
+</li>
+<li><p><strong>Controller Service</strong>：卷生命周期管理</p>
+<ul>
+<li><code>CreateVolume</code>&#x2F;<code>DeleteVolume</code></li>
+<li><code>ControllerPublishVolume</code>&#x2F;<code>ControllerUnpublishVolume</code>（Attach&#x2F;Detach）</li>
+<li><code>ControllerExpandVolume</code>（扩容）</li>
+</ul>
+</li>
+<li><p><strong>Node Service</strong>：节点侧卷操作</p>
+<ul>
+<li><code>NodeStageVolume</code>&#x2F;<code>NodeUnstageVolume</code>（临时挂载）</li>
+<li><code>NodePublishVolume</code>&#x2F;<code>NodeUnpublishVolume</code>（最终挂载）</li>
+<li><code>NodeExpandVolume</code>（文件系统扩容）</li>
+</ul>
+</li>
+</ol>
+<p><strong>CSI 迁移</strong>：</p>
+<ul>
+<li>Kubernetes 正逐步将 in-tree 插件迁移到 CSI</li>
+<li>使用 <code>CSIMigration</code> feature gate 启用</li>
+<li>透明转换：用户无需修改 PV 配置</li>
+</ul>
+<hr>
+<h3 id="问题-2：CSI-的-NodeStageVolume-和-NodePublishVolume-有什么区别？为什么需要两个阶段？"><a href="#问题-2：CSI-的-NodeStageVolume-和-NodePublishVolume-有什么区别？为什么需要两个阶段？" class="headerlink" title="问题 2：CSI 的 NodeStageVolume 和 NodePublishVolume 有什么区别？为什么需要两个阶段？"></a>问题 2：CSI 的 NodeStageVolume 和 NodePublishVolume 有什么区别？为什么需要两个阶段？</h3><p><strong>回答要点</strong>：</p>
+<p><strong>两阶段设计目的</strong>：</p>
+<ol>
+<li><p><strong>NodeStageVolume</strong>：将卷挂载到临时目录（staging path）</p>
+<ul>
+<li>路径：<code>/var/lib/kubelet/plugins/kubernetes.io/csi/&lt;pv&gt;/globalmount</code></li>
+<li>只执行一次（即使多个 Pod 使用同一 PV）</li>
+<li>用于需要特殊初始化的存储（如块设备格式化）</li>
+</ul>
+</li>
+<li><p><strong>NodePublishVolume</strong>：bind mount 到 Pod 目录（target path）</p>
+<ul>
+<li>路径：<code>/var/lib/kubelet/pods/&lt;pod-uid&gt;/volumes/kubernetes.io~csi/&lt;pv&gt;/mount</code></li>
+<li>每个 Pod 执行一次</li>
+<li>轻量级操作（bind mount）</li>
+</ul>
+</li>
+</ol>
+<p><strong>为什么需要两阶段</strong>：</p>
+<ol>
+<li><p><strong>性能优化</strong>：</p>
+<ul>
+<li>块设备挂载、格式化等耗时操作只在 Stage 阶段执行一次</li>
+<li>多 Pod 共享同一 PV 时避免重复操作</li>
+</ul>
+</li>
+<li><p><strong>语义清晰</strong>：</p>
+<ul>
+<li>Stage：卷级别的操作</li>
+<li>Publish：Pod 级别的操作</li>
+</ul>
+</li>
+<li><p><strong>支持共享卷</strong>：</p>
+<ul>
+<li>NAS 等存储支持多个 Pod 同时访问</li>
+<li>Stage 一次，Publish 多次</li>
+</ul>
+</li>
+</ol>
+<p><strong>流程图</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">NodeStageVolume          NodePublishVolume</span><br><span class="line">       ↓                       ↓</span><br><span class="line">  块设备挂载              bind mount</span><br><span class="line">  文件系统格式化          mount --bind</span><br><span class="line">       ↓                       ↓</span><br><span class="line">  /globalmount    →    /pods/&lt;uid&gt;/volumes/.../mount</span><br></pre></td></tr></table></figure>
+
+<p><strong>CSI Driver 能力声明</strong>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 如果驱动支持 STAGE_UNSTAGE_VOLUME 能力</span></span><br><span class="line"><span class="comment">// kubelet 会先调用 NodeStageVolume</span></span><br><span class="line"><span class="comment">// 否则直接调用 NodePublishVolume</span></span><br><span class="line">NodeGetCapabilities() []*NodeServiceCapability</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h3 id="问题-3：PV-的动态供应（Dynamic-Provisioning）完整流程是什么？涉及哪些组件？"><a href="#问题-3：PV-的动态供应（Dynamic-Provisioning）完整流程是什么？涉及哪些组件？" class="headerlink" title="问题 3：PV 的动态供应（Dynamic Provisioning）完整流程是什么？涉及哪些组件？"></a>问题 3：PV 的动态供应（Dynamic Provisioning）完整流程是什么？涉及哪些组件？</h3><p><strong>回答要点</strong>：</p>
+<p><strong>动态供应流程</strong>：</p>
+<pre><code class="highlight mermaid">sequenceDiagram
+    participant User
+    participant API as kube-apiserver
+    participant PVC as PVC Controller
+    participant PROV as External Provisioner
+    participant CSI as CSI Controller
+    participant Storage as 存储后端
+
+    User-&gt;&gt;API: 创建 PVC (StorageClass)
+    API--&gt;&gt;PVC: watch PVC ADDED
+    PVC-&gt;&gt;PVC: 检查 StorageClass
+    PVC-&gt;&gt;API: 绑定等待 (Pending)
+
+    API--&gt;&gt;PROV: watch PVC (provisioner=xxx)
+    PROV-&gt;&gt;PROV: 检查是否需要供应
+    PROV-&gt;&gt;CSI: CreateVolume
+    CSI-&gt;&gt;Storage: 创建存储卷
+    Storage--&gt;&gt;CSI: Volume ID
+    CSI--&gt;&gt;PROV: Volume ID
+    PROV-&gt;&gt;API: 创建 PV
+    PVC-&gt;&gt;API: 绑定 PV 到 PVC (Bound)
+
+    Note over User,Storage: 动态供应完成</code></pre>
+
+<p><strong>涉及组件</strong>：</p>
+<ol>
+<li><p><strong>PVC Controller</strong>（kube-controller-manager）：</p>
+<ul>
+<li>检查 PVC 的 StorageClass</li>
+<li>处理 PV 绑定逻辑</li>
+</ul>
+</li>
+<li><p><strong>External Provisioner</strong>（Sidecar 容器）：</p>
+<ul>
+<li>监听 PVC 变化</li>
+<li>调用 CSI CreateVolume</li>
+<li>创建 PV 对象</li>
+</ul>
+</li>
+<li><p><strong>CSI Controller</strong>（CSI 驱动）：</p>
+<ul>
+<li>实现 CreateVolume gRPC</li>
+<li>与存储后端通信</li>
+</ul>
+</li>
+</ol>
+<p><strong>关键配置</strong>：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># StorageClass</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">storage.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">StorageClass</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">fast-storage</span></span><br><span class="line"><span class="attr">provisioner:</span> <span class="string">ebs.csi.aws.com</span>  <span class="comment"># CSI 驱动名称</span></span><br><span class="line"><span class="attr">parameters:</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">gp3</span></span><br><span class="line"><span class="attr">reclaimPolicy:</span> <span class="string">Delete</span></span><br><span class="line"><span class="attr">volumeBindingMode:</span> <span class="string">WaitForFirstConsumer</span>  <span class="comment"># 延迟绑定</span></span><br><span class="line"><span class="attr">allowedTopologies:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">matchLabelExpressions:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">key:</span> <span class="string">topology.ebs.csi.aws.com/zone</span></span><br><span class="line">        <span class="attr">values:</span> [<span class="string">&quot;us-west-2a&quot;</span>, <span class="string">&quot;us-west-2b&quot;</span>]</span><br></pre></td></tr></table></figure>
+
+<p><strong>VolumeBindingMode 说明</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>行为</th>
+<th>使用场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Immediate</td>
+<td>立即创建 PV</td>
+<td>不关心拓扑</td>
+</tr>
+<tr>
+<td>WaitForFirstConsumer</td>
+<td>Pod 调度后创建</td>
+<td>需要拓扑感知</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="问题-4：如何排查-Pod-因为卷挂载失败而卡在-ContainerCreating-的问题？"><a href="#问题-4：如何排查-Pod-因为卷挂载失败而卡在-ContainerCreating-的问题？" class="headerlink" title="问题 4：如何排查 Pod 因为卷挂载失败而卡在 ContainerCreating 的问题？"></a>问题 4：如何排查 Pod 因为卷挂载失败而卡在 ContainerCreating 的问题？</h3><p><strong>回答要点</strong>：</p>
+<p><strong>排查流程图</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">Pod ContainerCreating</span><br><span class="line">    ↓</span><br><span class="line">检查 Pod Events</span><br><span class="line">    ↓</span><br><span class="line">检查 PVC 状态</span><br><span class="line">    ↓</span><br><span class="line">检查 PV 状态</span><br><span class="line">    ↓</span><br><span class="line">检查 CSI Driver 状态</span><br><span class="line">    ↓</span><br><span class="line">检查 kubelet 日志</span><br><span class="line">    ↓</span><br><span class="line">检查节点挂载状态</span><br></pre></td></tr></table></figure>
+
+<p><strong>详细排查步骤</strong>：</p>
+<p><strong>步骤 1：检查 Pod 事件</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">kubectl describe pod &lt;pod-name&gt; -n &lt;namespace&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 常见错误信息：</span></span><br><span class="line"><span class="comment"># - Unable to attach or mount volumes</span></span><br><span class="line"><span class="comment"># - Volume is already exclusively attached to another node</span></span><br><span class="line"><span class="comment"># - timed out waiting for the condition</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>步骤 2：检查 PVC&#x2F;PV 状态</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 检查 PVC</span></span><br><span class="line">kubectl get pvc -n &lt;namespace&gt;</span><br><span class="line">kubectl describe pvc &lt;pvc-name&gt; -n &lt;namespace&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 PV</span></span><br><span class="line">kubectl get pv</span><br><span class="line">kubectl describe pv &lt;pv-name&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查绑定状态</span></span><br><span class="line">kubectl get pvc &lt;pvc-name&gt; -o jsonpath=<span class="string">&#x27;&#123;.status.phase&#125;&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>步骤 3：检查 CSI Driver</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 检查 CSIDriver 对象</span></span><br><span class="line">kubectl get csidriver</span><br><span class="line">kubectl describe csidriver &lt;driver-name&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 CSINode 对象</span></span><br><span class="line">kubectl get csinode &lt;node-name&gt; -o yaml</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 CSI Pod 状态</span></span><br><span class="line">kubectl get pods -n &lt;csi-namespace&gt; -l app=&lt;csi-driver&gt;</span><br><span class="line">kubectl logs -n &lt;csi-namespace&gt; &lt;csi-controller-pod&gt; -c csi-provisioner</span><br><span class="line">kubectl logs -n &lt;csi-namespace&gt; &lt;csi-node-pod&gt; -c csi-node-driver</span><br></pre></td></tr></table></figure>
+
+<p><strong>步骤 4：检查 Attach 状态</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 检查 VolumeAttachment</span></span><br><span class="line">kubectl get volumeattachments</span><br><span class="line">kubectl describe volumeattachment &lt;va-name&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 Node 的 VolumesAttached</span></span><br><span class="line">kubectl get node &lt;node-name&gt; -o jsonpath=<span class="string">&#x27;&#123;.status.volumesAttached&#125;&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>步骤 5：在节点上检查</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 检查 kubelet 日志</span></span><br><span class="line">journalctl -u kubelet | grep -i <span class="string">&quot;volume\|mount\|csi&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查挂载点</span></span><br><span class="line"><span class="built_in">ls</span> -la /var/lib/kubelet/pods/&lt;pod-uid&gt;/volumes/</span><br><span class="line">mount | grep &lt;pv-name&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 CSI socket</span></span><br><span class="line"><span class="built_in">ls</span> -la /var/lib/kubelet/plugins/&lt;driver-name&gt;/</span><br><span class="line"><span class="built_in">ls</span> -la /var/lib/kubelet/plugins_registry/</span><br><span class="line"></span><br><span class="line"><span class="comment"># 手动测试 CSI gRPC</span></span><br><span class="line">grpcurl -plaintext unix:///var/lib/kubelet/plugins/&lt;driver-name&gt;/csi.sock csi.v1.Identity/GetPluginInfo</span><br></pre></td></tr></table></figure>
+
+<p><strong>常见问题及解决</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>问题</th>
+<th>原因</th>
+<th>解决方法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PVC Pending</td>
+<td>StorageClass 不存在</td>
+<td>检查 StorageClass</td>
+</tr>
+<tr>
+<td>PV 绑定失败</td>
+<td>容量不匹配</td>
+<td>检查 storage 字段</td>
+</tr>
+<tr>
+<td>Attach 失败</td>
+<td>卷已被其他节点使用</td>
+<td>等待 Detach 完成</td>
+</tr>
+<tr>
+<td>Mount 失败</td>
+<td>CSI 驱动未就绪</td>
+<td>重启 CSI Pod</td>
+</tr>
+<tr>
+<td>格式化失败</td>
+<td>块设备已格式化</td>
+<td>检查卷内容</td>
+</tr>
+</tbody></table>
+<p><strong>一键诊断脚本</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line">PVC_NAME=<span class="variable">$&#123;1&#125;</span></span><br><span class="line">NAMESPACE=<span class="variable">$&#123;2:-default&#125;</span></span><br><span class="line"></span><br><span class="line">PV_NAME=$(kubectl get pvc <span class="variable">$PVC_NAME</span> -n <span class="variable">$NAMESPACE</span> -o jsonpath=<span class="string">&#x27;&#123;.spec.volumeName&#125;&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;=== PVC Status ===&quot;</span> &amp;&amp; \</span><br><span class="line">kubectl get pvc <span class="variable">$PVC_NAME</span> -n <span class="variable">$NAMESPACE</span> -o wide &amp;&amp; \</span><br><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;\n=== PV Status ===&quot;</span> &amp;&amp; \</span><br><span class="line">kubectl get pv <span class="variable">$PV_NAME</span> -o wide &amp;&amp; \</span><br><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;\n=== VolumeAttachment ===&quot;</span> &amp;&amp; \</span><br><span class="line">kubectl get volumeattachments | grep -E <span class="string">&quot;NAME|<span class="variable">$PV_NAME</span>&quot;</span> &amp;&amp; \</span><br><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;\n=== CSI Driver ===&quot;</span> &amp;&amp; \</span><br><span class="line">kubectl get csidriver &amp;&amp; \</span><br><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;\n=== CSINode ===&quot;</span> &amp;&amp; \</span><br><span class="line">kubectl get csinode &amp;&amp; \</span><br><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;\n=== StorageClass ===&quot;</span> &amp;&amp; \</span><br><span class="line">kubectl get storageclass $(kubectl get pvc <span class="variable">$PVC_NAME</span> -n <span class="variable">$NAMESPACE</span> -o jsonpath=<span class="string">&#x27;&#123;.spec.storageClassName&#125;&#x27;</span>) -o yaml</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h3 id="问题-5：CSI-卷扩容（Volume-Expansion）是如何实现的？在线扩容和离线扩容有什么区别？"><a href="#问题-5：CSI-卷扩容（Volume-Expansion）是如何实现的？在线扩容和离线扩容有什么区别？" class="headerlink" title="问题 5：CSI 卷扩容（Volume Expansion）是如何实现的？在线扩容和离线扩容有什么区别？"></a>问题 5：CSI 卷扩容（Volume Expansion）是如何实现的？在线扩容和离线扩容有什么区别？</h3><p><strong>回答要点</strong>：</p>
+<p><strong>卷扩容流程</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">1. 用户更新 PVC.spec.resources.requests.storage</span><br><span class="line">2. Resize Controller 检测扩容请求</span><br><span class="line">3. 调用 CSI ControllerExpandVolume（存储后端扩容）</span><br><span class="line">4. 更新 PV.spec.capacity.storage</span><br><span class="line">5. kubelet 检测到容量变化</span><br><span class="line">6. 调用 CSI NodeExpandVolume（文件系统扩容）</span><br><span class="line">7. 更新 PVC.status.capacity.storage</span><br></pre></td></tr></table></figure>
+
+<p><strong>在线扩容 vs 离线扩容</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>在线扩容</th>
+<th>离线扩容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Pod 状态</td>
+<td>必须运行</td>
+<td>必须停止</td>
+</tr>
+<tr>
+<td>文件系统</td>
+<td>可以在线扩展</td>
+<td>需要先卸载</td>
+</tr>
+<tr>
+<td>支持的 FS</td>
+<td>xfs, ext4（部分）</td>
+<td>所有类型</td>
+</tr>
+<tr>
+<td>风险</td>
+<td>较低</td>
+<td>无</td>
+</tr>
+<tr>
+<td>业务影响</td>
+<td>无</td>
+<td>有停机时间</td>
+</tr>
+</tbody></table>
+<p><strong>扩容条件</strong>：</p>
+<ol>
+<li><p><strong>StorageClass 必须允许扩容</strong>：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">storage.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">StorageClass</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">expandable</span></span><br><span class="line"><span class="attr">provisioner:</span> <span class="string">ebs.csi.aws.com</span></span><br><span class="line"><span class="attr">allowVolumeExpansion:</span> <span class="literal">true</span>  <span class="comment"># 必须设置为 true</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p><strong>CSI 驱动必须支持扩容</strong>：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># CSIDriver 对象</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">storage.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">CSIDriver</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">ebs.csi.aws.com</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="comment"># 支持节点扩容</span></span><br><span class="line">  <span class="attr">fsGroupPolicy:</span> <span class="string">File</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p><strong>文件系统限制</strong>：</p>
+<ul>
+<li>xfs：只支持在线扩容，不支持缩小</li>
+<li>ext4：支持在线扩容，缩小需要离线</li>
+</ul>
+</li>
+</ol>
+<p><strong>扩容操作示例</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 1. 修改 PVC 请求大小</span></span><br><span class="line">kubectl patch pvc my-pvc -p <span class="string">&#x27;&#123;&quot;spec&quot;:&#123;&quot;resources&quot;:&#123;&quot;requests&quot;:&#123;&quot;storage&quot;:&quot;20Gi&quot;&#125;&#125;&#125;&#125;&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 2. 检查扩容状态</span></span><br><span class="line">kubectl describe pvc my-pvc | grep -A 5 Conditions</span><br><span class="line"></span><br><span class="line"><span class="comment"># 3. 检查文件系统扩容日志</span></span><br><span class="line">journalctl -u kubelet | grep -i <span class="string">&quot;resize\|expand&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>扩容失败处理</strong>：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 扩容失败时 PVC 状态</span></span><br><span class="line"><span class="attr">status:</span></span><br><span class="line">  <span class="attr">conditions:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">type:</span> <span class="string">Resizing</span></span><br><span class="line">    <span class="attr">status:</span> <span class="string">&quot;False&quot;</span></span><br><span class="line">    <span class="attr">reason:</span> <span class="string">ControllerResizeFailed</span></span><br><span class="line">    <span class="attr">message:</span> <span class="string">&quot;volume expansion failed&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>恢复方法</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 1. 查看失败原因</span></span><br><span class="line">kubectl describe pvc &lt;pvc-name&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 2. 如果是永久失败，可能需要回滚大小</span></span><br><span class="line">kubectl patch pvc &lt;pvc-name&gt; -p <span class="string">&#x27;&#123;&quot;spec&quot;:&#123;&quot;resources&quot;:&#123;&quot;requests&quot;:&#123;&quot;storage&quot;:&quot;10Gi&quot;&#125;&#125;&#125;&#125;&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 3. 删除并重建 PVC（数据会丢失）</span></span><br></pre></td></tr></table></figure>
+
+<hr>
+<h3 id="问题-6：什么是-CSI-拓扑（Topology）？如何实现跨可用区的存储调度？"><a href="#问题-6：什么是-CSI-拓扑（Topology）？如何实现跨可用区的存储调度？" class="headerlink" title="问题 6：什么是 CSI 拓扑（Topology）？如何实现跨可用区的存储调度？"></a>问题 6：什么是 CSI 拓扑（Topology）？如何实现跨可用区的存储调度？</h3><p><strong>回答要点</strong>：</p>
+<p><strong>CSI 拓扑概念</strong>：</p>
+<p>拓扑（Topology）用于表达存储资源的可用位置，帮助调度器将 Pod 调度到存储可用的节点。</p>
+<p><strong>拓扑键示例</strong>：</p>
+<ul>
+<li><code>topology.ebs.csi.aws.com/zone</code>：AWS 可用区</li>
+<li><code>topology.gke.io/zone</code>：GKE 可用区</li>
+<li><code>topology.kubernetes.io/zone</code>：标准 zone 标签</li>
+</ul>
+<p><strong>实现方式</strong>：</p>
+<ol>
+<li><p><strong>CSINode 注册拓扑信息</strong>：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">storage.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">CSINode</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">node-1</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">drivers:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">ebs.csi.aws.com</span></span><br><span class="line">    <span class="attr">nodeID:</span> <span class="string">i-1234567890abcdef0</span></span><br><span class="line">    <span class="attr">topologyKeys:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">topology.ebs.csi.aws.com/zone</span></span><br><span class="line">    <span class="attr">allocatable:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">storage</span></span><br><span class="line">      <span class="attr">capacity:</span> <span class="string">100Gi</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p><strong>Node 标签</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl label node node-1 topology.ebs.csi.aws.com/zone=us-west-2a</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><strong>StorageClass 配置</strong>：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">storage.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">StorageClass</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">zone-aware</span></span><br><span class="line"><span class="attr">provisioner:</span> <span class="string">ebs.csi.aws.com</span></span><br><span class="line"><span class="attr">volumeBindingMode:</span> <span class="string">WaitForFirstConsumer</span>  <span class="comment"># 关键：等待调度决策</span></span><br><span class="line"><span class="attr">allowedTopologies:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">matchLabelExpressions:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">key:</span> <span class="string">topology.ebs.csi.aws.com/zone</span></span><br><span class="line">    <span class="attr">values:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">us-west-2a</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">us-west-2b</span></span><br></pre></td></tr></table></figure></li>
+</ol>
+<p><strong>调度流程</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">1. Pod 创建，带有 PVC</span><br><span class="line">2. 调度器评估节点</span><br><span class="line">3. 选择最优节点（考虑资源、拓扑等）</span><br><span class="line">4. 触发 PV 动态供应</span><br><span class="line">5. CSI Provisioner 从节点获取拓扑信息</span><br><span class="line">6. 在正确的可用区创建存储卷</span><br><span class="line">7. PV 绑定到 PVC</span><br><span class="line">8. Pod 继续启动</span><br></pre></td></tr></table></figure>
+
+<p><strong>WaitForFirstConsumer vs Immediate</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>PV 创建时机</th>
+<th>拓扑感知</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Immediate</td>
+<td>PVC 创建时立即创建</td>
+<td>无</td>
+</tr>
+<tr>
+<td>WaitForFirstConsumer</td>
+<td>Pod 调度后创建</td>
+<td>有</td>
+</tr>
+</tbody></table>
+<p><strong>跨可用区最佳实践</strong>：</p>
+<ol>
+<li><strong>使用 WaitForFirstConsumer</strong>：确保 PV 在正确的可用区创建</li>
+<li><strong>配置 allowedTopologies</strong>：限制存储创建区域</li>
+<li><strong>Pod 反亲和性</strong>：分散 Pod 到不同可用区</li>
+<li><strong>存储复制</strong>：使用支持跨区复制的存储（如 Ceph）</li>
+</ol>
+<hr>
+<h3 id="问题-7：如何实现-CSI-卷的只读挂载？多-Pod-共享同一个-PV-时有什么注意事项？"><a href="#问题-7：如何实现-CSI-卷的只读挂载？多-Pod-共享同一个-PV-时有什么注意事项？" class="headerlink" title="问题 7：如何实现 CSI 卷的只读挂载？多 Pod 共享同一个 PV 时有什么注意事项？"></a>问题 7：如何实现 CSI 卷的只读挂载？多 Pod 共享同一个 PV 时有什么注意事项？</h3><p><strong>回答要点</strong>：</p>
+<p><strong>只读挂载实现</strong>：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Pod</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">my-pod</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">containers:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">app</span></span><br><span class="line">    <span class="attr">image:</span> <span class="string">nginx</span></span><br><span class="line">    <span class="attr">volumeMounts:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">data</span></span><br><span class="line">      <span class="attr">mountPath:</span> <span class="string">/data</span></span><br><span class="line">      <span class="attr">readOnly:</span> <span class="literal">true</span>  <span class="comment"># 只读挂载</span></span><br><span class="line">  <span class="attr">volumes:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">data</span></span><br><span class="line">    <span class="attr">persistentVolumeClaim:</span></span><br><span class="line">      <span class="attr">claimName:</span> <span class="string">my-pvc</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>只读挂载实现原理</strong>：</p>
+<ol>
+<li><strong>CSI 层面</strong>：<code>NodePublishVolume</code> 请求中设置 <code>readonly: true</code></li>
+<li><strong>挂载选项</strong>：<code>mount -o ro,bind /source /target</code></li>
+<li><strong>容器层面</strong>：容器运行时传入 <code>readonly</code> 配置</li>
+</ol>
+<p><strong>多 Pod 共享 PV 注意事项</strong>：</p>
+<ol>
+<li><p><strong>访问模式</strong>：</p>
+<ul>
+<li><code>ReadWriteOnce (RWO)</code>：单节点读写</li>
+<li><code>ReadOnlyMany (ROX)</code>：多节点只读</li>
+<li><code>ReadWriteMany (RWX)</code>：多节点读写</li>
+</ul>
+</li>
+<li><p><strong>文件系统限制</strong>：</p>
+<ul>
+<li>ext4&#x2F;xfs：不支持多节点并发写</li>
+<li>NFS：支持 RWX</li>
+<li>块存储：只支持 RWO</li>
+</ul>
+</li>
+<li><p><strong>数据一致性</strong>：</p>
+<ul>
+<li>多写需要应用层协调（如分布式锁）</li>
+<li>建议使用单一写入者模式</li>
+</ul>
+</li>
+</ol>
+<p><strong>共享 PV 配置示例</strong>：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># PV 配置</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">PersistentVolume</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">shared-nfs</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">capacity:</span></span><br><span class="line">    <span class="attr">storage:</span> <span class="string">10Gi</span></span><br><span class="line">  <span class="attr">accessModes:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">ReadWriteMany</span>  <span class="comment"># 支持多节点读写</span></span><br><span class="line">  <span class="attr">nfs:</span></span><br><span class="line">    <span class="attr">server:</span> <span class="string">nfs-server.example.com</span></span><br><span class="line">    <span class="attr">path:</span> <span class="string">/export/data</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 多 Pod 使用同一 PVC</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">apps/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">reader-deployment</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">replicas:</span> <span class="number">3</span>  <span class="comment"># 多副本共享</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">reader</span></span><br><span class="line">        <span class="attr">volumeMounts:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">shared-data</span></span><br><span class="line">          <span class="attr">mountPath:</span> <span class="string">/data</span></span><br><span class="line">          <span class="attr">readOnly:</span> <span class="literal">true</span></span><br><span class="line">      <span class="attr">volumes:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">shared-data</span></span><br><span class="line">        <span class="attr">persistentVolumeClaim:</span></span><br><span class="line">          <span class="attr">claimName:</span> <span class="string">shared-pvc</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>共享存储最佳实践</strong>：</p>
+<ol>
+<li><strong>明确读写角色</strong>：一个 Pod 写，多个 Pod 读</li>
+<li><strong>使用文件锁</strong>：应用层实现并发控制</li>
+<li><strong>选择合适的存储</strong>：NFS、CephFS 支持 RWX</li>
+<li><strong>监控 IO 竞争</strong>：关注存储性能指标</li>
+</ol>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-CSI%E5%8D%B7%E6%8C%82%E8%BD%BD%E6%B5%81%E7%A8%8B/">https://piwriw.github.io/2026/03/25/cloud/k8s/ProcessAnalysis/流程分析-CSI卷挂载流程/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a><a class="post-meta__tags" href="/tags/cloud/">cloud</a><a class="post-meta__tags" href="/tags/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90/">流程分析</a></div><div class="post-share"><div class="social-share" data-image="/img/k8s-go.jpg" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-DNS%E8%A7%A3%E6%9E%90%E6%B5%81%E7%A8%8B/" title="DNS 解析流程"><img class="cover" src="/img/k8s-go.jpg" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">DNS 解析流程</div></div><div class="info-2"><div class="info-item-1">DNS 解析流程本文档描述 Kubernetes 集群中 CoreDNS 如何解析 Service 到 Pod IP 的完整流程。 概述Kubernetes DNS 解析涉及以下核心组件：  CoreDNS：集群 DNS 服务器 kube-dns Service：指向 CoreDNS Pod 的 Service EndpointSlice：记录 CoreDNS Pod 的 IP 地址 Pod &#x2F;etc&#x2F;resolv.conf：Pod 内的 DNS 配置  flowchart TD     subgraph Pod[&quot;Pod (应用容器)&quot;]         A[&quot;应用发起 DNS 查询&quot;]         B[&quot;读取 /etc/resolv.conf&quot;]     end      subgraph CoreDNS[&quot;CoreDNS Pod&quot;]         C[&quot;CoreDNS 服务&quot;]         D[&quot;Watch API Server&quo...</div></div></div></a><a class="pagination-related" href="/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-CNI%E7%BD%91%E7%BB%9C%E6%8F%92%E4%BB%B6%E6%B5%81%E7%A8%8B/" title="CNI 网络插件流程"><img class="cover" src="/img/k8s-go.jpg" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">CNI 网络插件流程</div></div><div class="info-2"><div class="info-item-1">CNI 网络插件流程概述CNI (Container Network Interface) 是 Kubernetes 的网络插件标准，负责为 Pod 配置网络接口、IP 地址分配和网络连通性。 核心架构1234567891011121314151617181920212223242526272829303132333435363738394041424344454647┌──────────────────────────────────────────────────────────────────────────────┐│                              kubelet                                         ││                        pkg/kubelet/kubelet.go                                ││                                                                      ...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2026/03/25/cloud/k8s/ProcessAnalysis/kubelet%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="Kubelet 深度分析"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-25</div><div class="info-item-2">Kubelet 深度分析</div></div><div class="info-2"><div class="info-item-1">Kubelet 深度分析本文档深入分析 Kubernetes Kubelet 组件的架构设计、启动流程、核心功能和关键子系统。 目录 架构概览 关键数据结构 启动流程分析 核心功能原理 关键子系统详解 5.1 PodManager 5.2 StatusManager 5.3 ProbeManager 5.4 VolumeManager 5.5 EvictionManager 5.6 PLEG   边界情况与错误处理 性能优化 最佳实践   1. 架构概览1.1 Kubelet 在 Kubernetes 架构中的位置Kubelet 是 Kubernetes 集群中运行在每个节点上的核心代理（Node Agent），是 Kubernetes 控制平面与节点级容器运行时之间的桥梁。它负责维护节点上容器的生命周期，并将节点状态上报给 API Server。 在 Kubernetes 整体架构中，Kubelet 处于如下位置： 12345678910111213141516171819202122+-------------------------+         +----------...</div></div></div></a><a class="pagination-related" href="/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-CNI%E7%BD%91%E7%BB%9C%E6%8F%92%E4%BB%B6%E6%B5%81%E7%A8%8B/" title="CNI 网络插件流程"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-25</div><div class="info-item-2">CNI 网络插件流程</div></div><div class="info-2"><div class="info-item-1">CNI 网络插件流程概述CNI (Container Network Interface) 是 Kubernetes 的网络插件标准，负责为 Pod 配置网络接口、IP 地址分配和网络连通性。 核心架构1234567891011121314151617181920212223242526272829303132333435363738394041424344454647┌──────────────────────────────────────────────────────────────────────────────┐│                              kubelet                                         ││                        pkg/kubelet/kubelet.go                                ││                                                                      ...</div></div></div></a><a class="pagination-related" href="/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-DNS%E8%A7%A3%E6%9E%90%E6%B5%81%E7%A8%8B/" title="DNS 解析流程"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-25</div><div class="info-item-2">DNS 解析流程</div></div><div class="info-2"><div class="info-item-1">DNS 解析流程本文档描述 Kubernetes 集群中 CoreDNS 如何解析 Service 到 Pod IP 的完整流程。 概述Kubernetes DNS 解析涉及以下核心组件：  CoreDNS：集群 DNS 服务器 kube-dns Service：指向 CoreDNS Pod 的 Service EndpointSlice：记录 CoreDNS Pod 的 IP 地址 Pod &#x2F;etc&#x2F;resolv.conf：Pod 内的 DNS 配置  flowchart TD     subgraph Pod[&quot;Pod (应用容器)&quot;]         A[&quot;应用发起 DNS 查询&quot;]         B[&quot;读取 /etc/resolv.conf&quot;]     end      subgraph CoreDNS[&quot;CoreDNS Pod&quot;]         C[&quot;CoreDNS 服务&quot;]         D[&quot;Watch API Server&quo...</div></div></div></a><a class="pagination-related" href="/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-Deployment%E6%BB%9A%E5%8A%A8%E6%9B%B4%E6%96%B0%E6%B5%81%E7%A8%8B/" title="Deployment 滚动更新流程"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-25</div><div class="info-item-2">Deployment 滚动更新流程</div></div><div class="info-2"><div class="info-item-1">Deployment 滚动更新流程本文档描述 Kubernetes Deployment 如何通过 ReplicaSet Controller 管理滚动更新的完整流程。 概述Deployment 滚动更新涉及以下核心组件：  Deployment Controller：管理 Deployment 生命周期  ReplicaSet Controller：管理 Pod 副本数 API Server：存储和分发资源状态  flowchart TD     subgraph User[&quot;用户操作&quot;]         A[&quot;kubectl apply -f deployment.yaml&quot;]     end      subgraph APIServer[&quot;API Server&quot;]         B[&quot;Deployment 资源&quot;]         C[&quot;ReplicaSet 资源&quot;]         D[&quot;Pod 资源&quot;]     end      subgraph ...</div></div></div></a><a class="pagination-related" href="/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-HPA%E6%B0%B4%E5%B9%B3%E8%87%AA%E5%8A%A8%E6%89%A9%E7%BC%A9%E6%B5%81%E7%A8%8B/" title="HPA 水平自动扩缩流程"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-25</div><div class="info-item-2">HPA 水平自动扩缩流程</div></div><div class="info-2"><div class="info-item-1">HPA 水平自动扩缩流程概述HPA (Horizontal Pod Autoscaler) 根据 Pod 的资源使用率（如 CPU、内存）或自定义指标自动调整 Deployment、ReplicaSet 或 StatefulSet 的副本数。 核心架构1234567891011121314151617181920212223242526272829303132333435363738┌──────────────────────────────────────────────────────────────────────────────┐│                        HorizontalController                                 ││              pkg/controller/podautoscaler/horizontal.go                    ││                                                                  ...</div></div></div></a><a class="pagination-related" href="/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-EndpointSlice%E6%8E%A7%E5%88%B6%E5%99%A8%E6%B5%81%E7%A8%8B/" title="EndpointSlice 控制器流程"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-25</div><div class="info-item-2">EndpointSlice 控制器流程</div></div><div class="info-2"><div class="info-item-1">EndpointSlice 控制器流程本文档描述 Kubernetes EndpointSlice 控制器如何让 Service 感知后端 Pod 变化的完整流程。 概述EndpointSlice 控制器负责：  监听 Service 和 Pod 变化 生成和管理 EndpointSlice 资源 记录 Service 后端 Pod 的 IP 地址和端口  flowchart TD     subgraph APIServer[&quot;API Server&quot;]         A[&quot;Service 资源&quot;]         B[&quot;Pod 资源&quot;]         C[&quot;EndpointSlice 资源&quot;]         D[&quot;Node 资源&quot;]     end      subgraph EndpointSliceController[&quot;EndpointSlice Controller&quot;]         E[&quot;Watch Service&quot;]  ...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">303</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">96</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#CSI-%E5%AD%98%E5%82%A8%E5%8D%B7%E6%8C%82%E8%BD%BD%E9%80%9A%E4%BF%A1%E6%B5%81%E7%A8%8B"><span class="toc-number">1.</span> <span class="toc-text">CSI 存储卷挂载通信流程</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%9B%AE%E6%A0%87"><span class="toc-number">1.1.</span> <span class="toc-text">目标</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E5%8F%A5%E8%AF%9D%E6%91%98%E8%A6%81"><span class="toc-number">1.2.</span> <span class="toc-text">一句话摘要</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-%E6%B5%81%E7%A8%8B%E6%80%BB%E8%A7%88"><span class="toc-number">1.3.</span> <span class="toc-text">1. 流程总览</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9E%B6%E6%9E%84%E6%80%BB%E8%A7%88%E5%9B%BE"><span class="toc-number">1.3.1.</span> <span class="toc-text">架构总览图</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#CSI-%E6%8E%A5%E5%8F%A3%E5%B1%82%E6%AC%A1%E5%9B%BE"><span class="toc-number">1.3.2.</span> <span class="toc-text">CSI 接口层次图</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%BF%99%E5%BC%A0%E5%9B%BE%E6%83%B3%E8%A1%A8%E8%BE%BE%E4%BB%80%E4%B9%88"><span class="toc-number">1.3.3.</span> <span class="toc-text">这张图想表达什么</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-%E5%88%86%E9%98%B6%E6%AE%B5%E9%80%9A%E4%BF%A1%E6%B5%81%E7%A8%8B"><span class="toc-number">1.4.</span> <span class="toc-text">2. 分阶段通信流程</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%98%B6%E6%AE%B5%E4%B8%80%EF%BC%9A%E5%8D%B7%E5%87%86%E5%A4%87-Attach"><span class="toc-number">1.4.1.</span> <span class="toc-text">阶段一：卷准备 (Attach)</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-1-1%EF%BC%9APV-%E7%BB%91%E5%AE%9A%E5%88%B0-PVC"><span class="toc-number">1.4.1.1.</span> <span class="toc-text">步骤 1.1：PV 绑定到 PVC</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-1-2%EF%BC%9AAD-Controller-%E8%B0%83%E7%94%A8-Attach"><span class="toc-number">1.4.1.2.</span> <span class="toc-text">步骤 1.2：AD Controller 调用 Attach</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-1-3%EF%BC%9ACSI-Attacher-%E8%B0%83%E7%94%A8-ControllerPublishVolume"><span class="toc-number">1.4.1.3.</span> <span class="toc-text">步骤 1.3：CSI Attacher 调用 ControllerPublishVolume</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-1-4%EF%BC%9A%E5%AD%98%E5%82%A8%E5%8D%B7%E9%99%84%E5%8A%A0%E5%88%B0%E8%8A%82%E7%82%B9"><span class="toc-number">1.4.1.4.</span> <span class="toc-text">步骤 1.4：存储卷附加到节点</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-1-5%EF%BC%9A%E6%9B%B4%E6%96%B0-Node-Status-VolumesAttached"><span class="toc-number">1.4.1.5.</span> <span class="toc-text">步骤 1.5：更新 Node.Status.VolumesAttached</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%98%B6%E6%AE%B5%E4%BA%8C%EF%BC%9A%E8%8A%82%E7%82%B9%E6%8C%82%E8%BD%BD-Stage-Publish"><span class="toc-number">1.4.2.</span> <span class="toc-text">阶段二：节点挂载 (Stage &amp; Publish)</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-2-1%EF%BC%9AVolumeManager-%E8%8E%B7%E5%8F%96-Pod-%E7%9A%84%E5%8D%B7%E4%BF%A1%E6%81%AF"><span class="toc-number">1.4.2.1.</span> <span class="toc-text">步骤 2.1：VolumeManager 获取 Pod 的卷信息</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-2-2%EF%BC%9A%E6%A3%80%E6%9F%A5-CSIDriver-%E5%92%8C-CSINode"><span class="toc-number">1.4.2.2.</span> <span class="toc-text">步骤 2.2：检查 CSIDriver 和 CSINode</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-2-3%EF%BC%9A%E8%B0%83%E7%94%A8-NodeStageVolume-%E5%A6%82%E6%9E%9C%E6%94%AF%E6%8C%81"><span class="toc-number">1.4.2.3.</span> <span class="toc-text">步骤 2.3：调用 NodeStageVolume (如果支持)</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-2-4%EF%BC%9A%E8%B0%83%E7%94%A8-NodePublishVolume"><span class="toc-number">1.4.2.4.</span> <span class="toc-text">步骤 2.4：调用 NodePublishVolume</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-2-5%EF%BC%9A%E6%9B%B4%E6%96%B0-ActualStateOfWorld"><span class="toc-number">1.4.2.5.</span> <span class="toc-text">步骤 2.5：更新 ActualStateOfWorld</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%98%B6%E6%AE%B5%E4%B8%89%EF%BC%9A%E5%AE%B9%E5%99%A8%E6%8C%82%E8%BD%BD"><span class="toc-number">1.4.3.</span> <span class="toc-text">阶段三：容器挂载</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-3-1%EF%BC%9A%E5%AE%B9%E5%99%A8%E5%88%9B%E5%BB%BA%E6%97%B6%E4%BC%A0%E5%85%A5%E6%8C%82%E8%BD%BD%E9%85%8D%E7%BD%AE"><span class="toc-number">1.4.3.1.</span> <span class="toc-text">步骤 3.1：容器创建时传入挂载配置</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-3-2%EF%BC%9A%E5%AE%B9%E5%99%A8%E8%BF%90%E8%A1%8C%E6%97%B6%E6%89%A7%E8%A1%8C-bind-mount"><span class="toc-number">1.4.3.2.</span> <span class="toc-text">步骤 3.2：容器运行时执行 bind mount</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-3-3%EF%BC%9A%E5%AE%B9%E5%99%A8%E5%90%AF%E5%8A%A8"><span class="toc-number">1.4.3.3.</span> <span class="toc-text">步骤 3.3：容器启动</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-%E8%AF%A6%E7%BB%86%E6%B5%81%E7%A8%8B%E5%9B%BE"><span class="toc-number">1.5.</span> <span class="toc-text">3. 详细流程图</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#3-1-%E5%8D%B7%E6%8C%82%E8%BD%BD%E5%AE%8C%E6%95%B4%E6%B5%81%E7%A8%8B%E5%9B%BE"><span class="toc-number">1.5.1.</span> <span class="toc-text">3.1 卷挂载完整流程图</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-2-%E5%8D%B7%E5%8D%B8%E8%BD%BD%E6%B5%81%E7%A8%8B%E5%9B%BE"><span class="toc-number">1.5.2.</span> <span class="toc-text">3.2 卷卸载流程图</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-3-CSI-Plugin-%E4%B8%8E-kubelet-%E4%BA%A4%E4%BA%92%E5%9B%BE"><span class="toc-number">1.5.3.</span> <span class="toc-text">3.3 CSI Plugin 与 kubelet 交互图</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-%E5%85%B3%E9%94%AE%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84"><span class="toc-number">1.6.</span> <span class="toc-text">4. 关键数据结构</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#4-1-CSIDriver-%E5%AF%B9%E8%B1%A1"><span class="toc-number">1.6.1.</span> <span class="toc-text">4.1 CSIDriver 对象</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-2-CSINode-%E5%AF%B9%E8%B1%A1"><span class="toc-number">1.6.2.</span> <span class="toc-text">4.2 CSINode 对象</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-3-%E6%8C%82%E8%BD%BD%E8%B7%AF%E5%BE%84%E7%BB%93%E6%9E%84"><span class="toc-number">1.6.3.</span> <span class="toc-text">4.3 挂载路径结构</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-%E8%AF%A6%E7%BB%86%E6%97%B6%E5%BA%8F%E5%9B%BE"><span class="toc-number">1.7.</span> <span class="toc-text">5. 详细时序图</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-%E5%8A%A8%E6%80%81%E4%BE%9B%E5%BA%94-PV-%E5%AE%8C%E6%95%B4%E6%97%B6%E5%BA%8F%E5%9B%BE"><span class="toc-number">1.7.1.</span> <span class="toc-text">5.1 动态供应 PV 完整时序图</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-2-%E5%8D%B7%E6%89%A9%E5%AE%B9%E6%97%B6%E5%BA%8F%E5%9B%BE"><span class="toc-number">1.7.2.</span> <span class="toc-text">5.2 卷扩容时序图</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5%E6%8C%87%E5%8D%97"><span class="toc-number">1.8.</span> <span class="toc-text">6. 故障排查指南</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#6-1-%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98%E4%B8%8E%E8%AF%8A%E6%96%AD%E6%96%B9%E6%B3%95"><span class="toc-number">1.8.1.</span> <span class="toc-text">6.1 常见问题与诊断方法</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%97%AE%E9%A2%98-1%EF%BC%9APod-%E5%8D%A1%E5%9C%A8-ContainerCreating-%E5%8D%B7%E6%8C%82%E8%BD%BD%E5%A4%B1%E8%B4%A5"><span class="toc-number">1.8.1.1.</span> <span class="toc-text">问题 1：Pod 卡在 ContainerCreating (卷挂载失败)</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%97%AE%E9%A2%98-2%EF%BC%9A%E5%8D%B7%E5%8D%B8%E8%BD%BD%E5%A4%B1%E8%B4%A5%E5%AF%BC%E8%87%B4-Pod-%E6%97%A0%E6%B3%95%E5%88%A0%E9%99%A4"><span class="toc-number">1.8.1.2.</span> <span class="toc-text">问题 2：卷卸载失败导致 Pod 无法删除</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%97%AE%E9%A2%98-3%EF%BC%9ACSI-Driver-%E6%B3%A8%E5%86%8C%E5%A4%B1%E8%B4%A5"><span class="toc-number">1.8.1.3.</span> <span class="toc-text">问题 3：CSI Driver 注册失败</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-2-%E5%85%B3%E9%94%AE%E6%97%A5%E5%BF%97%E5%85%B3%E9%94%AE%E8%AF%8D"><span class="toc-number">1.8.2.</span> <span class="toc-text">6.2 关键日志关键词</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-3-%E9%85%8D%E7%BD%AE%E5%8F%82%E6%95%B0%E5%8F%82%E8%80%83"><span class="toc-number">1.8.3.</span> <span class="toc-text">6.3 配置参数参考</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-4-%E4%B8%80%E9%94%AE%E8%AF%8A%E6%96%AD%E5%91%BD%E4%BB%A4"><span class="toc-number">1.8.4.</span> <span class="toc-text">6.4 一键诊断命令</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#7-%E7%89%88%E6%9C%AC%E5%B7%AE%E5%BC%82%E8%AF%B4%E6%98%8E"><span class="toc-number">1.9.</span> <span class="toc-text">7. 版本差异说明</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-27-%E2%86%92-1-28-%E5%8F%98%E5%8C%96"><span class="toc-number">1.9.1.</span> <span class="toc-text">1.27 → 1.28 变化</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-28-%E2%86%92-1-29-%E5%8F%98%E5%8C%96"><span class="toc-number">1.9.2.</span> <span class="toc-text">1.28 → 1.29 变化</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#8-%E4%BB%A3%E7%A0%81%E5%85%A5%E5%8F%A3%EF%BC%88%E7%B2%BE%E7%AE%80%E7%89%88%EF%BC%89"><span class="toc-number">1.10.</span> <span class="toc-text">8. 代码入口（精简版）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#9-%E9%9D%A2%E8%AF%95%E9%A2%98%E4%B8%8E%E8%AF%A6%E7%BB%86%E8%A7%A3%E7%AD%94"><span class="toc-number">1.11.</span> <span class="toc-text">9. 面试题与详细解答</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%97%AE%E9%A2%98-1%EF%BC%9ACSI%EF%BC%88Container-Storage-Interface%EF%BC%89%E7%9A%84%E8%AE%BE%E8%AE%A1%E7%9B%AE%E7%9A%84%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F%E4%B8%8E-in-tree-%E5%AD%98%E5%82%A8%E6%8F%92%E4%BB%B6%E7%9B%B8%E6%AF%94%E6%9C%89%E4%BB%80%E4%B9%88%E4%BC%98%E5%8A%BF%EF%BC%9F"><span class="toc-number">1.11.1.</span> <span class="toc-text">问题 1：CSI（Container Storage Interface）的设计目的是什么？与 in-tree 存储插件相比有什么优势？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%97%AE%E9%A2%98-2%EF%BC%9ACSI-%E7%9A%84-NodeStageVolume-%E5%92%8C-NodePublishVolume-%E6%9C%89%E4%BB%80%E4%B9%88%E5%8C%BA%E5%88%AB%EF%BC%9F%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81%E4%B8%A4%E4%B8%AA%E9%98%B6%E6%AE%B5%EF%BC%9F"><span class="toc-number">1.11.2.</span> <span class="toc-text">问题 2：CSI 的 NodeStageVolume 和 NodePublishVolume 有什么区别？为什么需要两个阶段？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%97%AE%E9%A2%98-3%EF%BC%9APV-%E7%9A%84%E5%8A%A8%E6%80%81%E4%BE%9B%E5%BA%94%EF%BC%88Dynamic-Provisioning%EF%BC%89%E5%AE%8C%E6%95%B4%E6%B5%81%E7%A8%8B%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F%E6%B6%89%E5%8F%8A%E5%93%AA%E4%BA%9B%E7%BB%84%E4%BB%B6%EF%BC%9F"><span class="toc-number">1.11.3.</span> <span class="toc-text">问题 3：PV 的动态供应（Dynamic Provisioning）完整流程是什么？涉及哪些组件？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%97%AE%E9%A2%98-4%EF%BC%9A%E5%A6%82%E4%BD%95%E6%8E%92%E6%9F%A5-Pod-%E5%9B%A0%E4%B8%BA%E5%8D%B7%E6%8C%82%E8%BD%BD%E5%A4%B1%E8%B4%A5%E8%80%8C%E5%8D%A1%E5%9C%A8-ContainerCreating-%E7%9A%84%E9%97%AE%E9%A2%98%EF%BC%9F"><span class="toc-number">1.11.4.</span> <span class="toc-text">问题 4：如何排查 Pod 因为卷挂载失败而卡在 ContainerCreating 的问题？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%97%AE%E9%A2%98-5%EF%BC%9ACSI-%E5%8D%B7%E6%89%A9%E5%AE%B9%EF%BC%88Volume-Expansion%EF%BC%89%E6%98%AF%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E7%9A%84%EF%BC%9F%E5%9C%A8%E7%BA%BF%E6%89%A9%E5%AE%B9%E5%92%8C%E7%A6%BB%E7%BA%BF%E6%89%A9%E5%AE%B9%E6%9C%89%E4%BB%80%E4%B9%88%E5%8C%BA%E5%88%AB%EF%BC%9F"><span class="toc-number">1.11.5.</span> <span class="toc-text">问题 5：CSI 卷扩容（Volume Expansion）是如何实现的？在线扩容和离线扩容有什么区别？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%97%AE%E9%A2%98-6%EF%BC%9A%E4%BB%80%E4%B9%88%E6%98%AF-CSI-%E6%8B%93%E6%89%91%EF%BC%88Topology%EF%BC%89%EF%BC%9F%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E8%B7%A8%E5%8F%AF%E7%94%A8%E5%8C%BA%E7%9A%84%E5%AD%98%E5%82%A8%E8%B0%83%E5%BA%A6%EF%BC%9F"><span class="toc-number">1.11.6.</span> <span class="toc-text">问题 6：什么是 CSI 拓扑（Topology）？如何实现跨可用区的存储调度？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%97%AE%E9%A2%98-7%EF%BC%9A%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0-CSI-%E5%8D%B7%E7%9A%84%E5%8F%AA%E8%AF%BB%E6%8C%82%E8%BD%BD%EF%BC%9F%E5%A4%9A-Pod-%E5%85%B1%E4%BA%AB%E5%90%8C%E4%B8%80%E4%B8%AA-PV-%E6%97%B6%E6%9C%89%E4%BB%80%E4%B9%88%E6%B3%A8%E6%84%8F%E4%BA%8B%E9%A1%B9%EF%BC%9F"><span class="toc-number">1.11.7.</span> <span class="toc-text">问题 7：如何实现 CSI 卷的只读挂载？多 Pod 共享同一个 PV 时有什么注意事项？</span></a></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/03/26/cloud/arch/Kubernetes%E9%80%9A%E4%BF%A1%E9%93%BE%E8%B7%AF%E8%AF%A6%E7%BB%86%E5%88%86%E6%9E%90/" title="Kubernetes 通信链路详细分析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="Kubernetes 通信链路详细分析"/></a><div class="content"><a class="title" href="/2026/03/26/cloud/arch/Kubernetes%E9%80%9A%E4%BF%A1%E9%93%BE%E8%B7%AF%E8%AF%A6%E7%BB%86%E5%88%86%E6%9E%90/" title="Kubernetes 通信链路详细分析">Kubernetes 通信链路详细分析</a><time datetime="2026-03-26T13:15:00.000Z" title="发表于 2026-03-26 21:15:00">2026-03-26</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-API%20Server%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="kube-apiserver 深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="kube-apiserver 深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-API%20Server%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="kube-apiserver 深度剖析">kube-apiserver 深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-etcd%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="etcd 深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="etcd 深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-etcd%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="etcd 深度剖析">etcd 深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-%E5%AD%98%E5%82%A8%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="存储架构深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="存储架构深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-%E5%AD%98%E5%82%A8%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="存储架构深度剖析">存储架构深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-kubelet%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="Kubelet 深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="Kubelet 深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-kubelet%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="Kubelet 深度剖析">Kubelet 深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script src="/js/reading-progress.js"></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

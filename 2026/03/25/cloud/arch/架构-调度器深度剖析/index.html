@@ -1,0 +1,631 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>调度器深度剖析 | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="调度器深度剖析概述Kubernetes Scheduler 负责为新创建的 Pod 选择最优的 Node，是控制平面的核心组件之一。本文档深入剖析调度器的工作原理、调度算法和源码实现。 核心架构123456789101112131415161718192021222324252627282930313233343536373839404142┌───────────────────────────">
+<meta property="og:type" content="article">
+<meta property="og:title" content="调度器深度剖析">
+<meta property="og:url" content="https://piwriw.github.io/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-%E8%B0%83%E5%BA%A6%E5%99%A8%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="调度器深度剖析概述Kubernetes Scheduler 负责为新创建的 Pod 选择最优的 Node，是控制平面的核心组件之一。本文档深入剖析调度器的工作原理、调度算法和源码实现。 核心架构123456789101112131415161718192021222324252627282930313233343536373839404142┌───────────────────────────">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/k8s-go.jpg">
+<meta property="article:published_time" content="2026-03-25T13:15:00.000Z">
+<meta property="article:modified_time" content="2026-03-26T15:28:20.109Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="k8s">
+<meta property="article:tag" content="cloud">
+<meta property="article:tag" content="架构分析">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/k8s-go.jpg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "调度器深度剖析",
+  "url": "https://piwriw.github.io/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-%E8%B0%83%E5%BA%A6%E5%99%A8%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/",
+  "image": "https://piwriw.github.io/img/k8s-go.jpg",
+  "datePublished": "2026-03-25T13:15:00.000Z",
+  "dateModified": "2026-03-26T15:28:20.109Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-%E8%B0%83%E5%BA%A6%E5%99%A8%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          const hour = new Date().getHours()
+          const isNight = hour <= 6 || hour >= 18
+          if (theme === undefined) isNight ? activateDarkMode() : activateLightMode()
+          else theme === 'light' ? activateLightMode() : activateDarkMode()
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '天',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '调度器深度剖析',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">303</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">96</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/k8s-go.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">调度器深度剖析</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">调度器深度剖析</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-03-26T15:28:20.109Z" title="更新于 2026-03-26 23:28:20">2026-03-26</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/">k8s</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">2.8k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>11分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-03-26 23:28:20&quot;}" hidden></div><h1 id="调度器深度剖析"><a href="#调度器深度剖析" class="headerlink" title="调度器深度剖析"></a>调度器深度剖析</h1><h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>Kubernetes Scheduler 负责为新创建的 Pod 选择最优的 Node，是控制平面的核心组件之一。本文档深入剖析调度器的工作原理、调度算法和源码实现。</p>
+<h2 id="核心架构"><a href="#核心架构" class="headerlink" title="核心架构"></a>核心架构</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line">┌──────────────────────────────────────────────────────────────────────────────┐</span><br><span class="line">│                          kube-scheduler                                      │</span><br><span class="line">│                          cmd/kube-scheduler/                                  │</span><br><span class="line">└──────────────────────────────────────────────────────────────────────────────┘</span><br><span class="line">                                    │</span><br><span class="line">                                    ▼</span><br><span class="line">┌──────────────────────────────────────────────────────────────────────────────┐</span><br><span class="line">│                      SchedulerCache (调度器缓存)                              │</span><br><span class="line">│              pkg/scheduler/scheduler.go                                     │</span><br><span class="line">│                                                                             │</span><br><span class="line">│  - 本地缓存 API Server 中的 Node/Pod 信息                                    │</span><br><span class="line">│  - 通过 ListWatch 保持同步                                                   │</span><br><span class="line">│  - 支持快照机制，减少对 API Server 的压力                                    │</span><br><span class="line">└──────────────────────────────────────────────────────────────────────────────┘</span><br><span class="line">                                    │</span><br><span class="line">                                    ▼</span><br><span class="line">┌──────────────────────────────────────────────────────────────────────────────┐</span><br><span class="line">│                        SchedulingQueue (调度队列)                            │</span><br><span class="line">│              pkg/scheduler/internal/queue/scheduling_queue.go               │</span><br><span class="line">│                                                                             │</span><br><span class="line">│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐                        │</span><br><span class="line">│  │ ActiveQ    │  │ UnschedulQ │  │ BackoffQ    │                        │</span><br><span class="line">│  │ 可调度队列  │  │ 不可调度队列 │  │ 退避队列    │                        │</span><br><span class="line">│  │ (优先级排序) │  │ (等待资源释放) │  │ (重试退避)  │                        │</span><br><span class="line">│  └─────────────┘  └─────────────┘  └─────────────┘                        │</span><br><span class="line">└──────────────────────────────────────────────────────────────────────────────┘</span><br><span class="line">                                    │</span><br><span class="line">                                    ▼</span><br><span class="line">┌──────────────────────────────────────────────────────────────────────────────┐</span><br><span class="line">│                       Framework (调度框架)                                   │</span><br><span class="line">│              pkg/scheduler/framework/                                       │</span><br><span class="line">│                                                                             │</span><br><span class="line">│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐      │</span><br><span class="line">│  │  Score      │  │  Filter     │  │  Reserve    │  │  Permit     │      │</span><br><span class="line">│  │  评分插件   │  │  过滤插件   │  │  预留插件   │  │  许可插件   │      │</span><br><span class="line">│  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘      │</span><br><span class="line">│                                                                             │</span><br><span class="line">│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐      │</span><br><span class="line">│  │  PreScore   │  │  Bind      │  │  PostBind  │  │  Unreserve │      │</span><br><span class="line">│  │  预评分    │  │  绑定      │  │  后置绑定  │  │  取消预留  │      │</span><br><span class="line">│  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘      │</span><br><span class="line">└──────────────────────────────────────────────────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<h2 id="调度周期"><a href="#调度周期" class="headerlink" title="调度周期"></a>调度周期</h2><h3 id="主循环"><a href="#主循环" class="headerlink" title="主循环"></a>主循环</h3><ul>
+<li><strong>文件</strong>: <code>pkg/scheduler/scheduler.go</code></li>
+<li><strong>函数</strong>: <code>scheduleOne()</code> (约 150 行)</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br></pre></td><td class="code"><pre><span class="line">┌──────────────────────────────────────────────────────────────────────────────┐</span><br><span class="line">│                         从队列获取待调度 Pod                                 │</span><br><span class="line">│                    schedulingQueue.Pop()                                      │</span><br><span class="line">└──────────────────────────────────────────────────────────────────────────────┘</span><br><span class="line">                                    │</span><br><span class="line">                                    ▼</span><br><span class="line">┌──────────────────────────────────────────────────────────────────────────────┐</span><br><span class="line">│                        构建调度上下文                                         │</span><br><span class="line">│                    SchedulingCycle()                                        │</span><br><span class="line">│                                                                             │</span><br><span class="line">│  1. 基础检查                                                                │</span><br><span class="line">│     ├── 检查 Pod 是否已删除                                                  │</span><br><span class="line">│     ├── 检查调度周期是否超时                                                 │</span><br><span class="line">│     └── 检查是否需要跳过他                                                      │</span><br><span class="line">└──────────────────────────────────────────────────────────────────────────────┘</span><br><span class="line">                                    │</span><br><span class="line">                                    ▼</span><br><span class="line">┌──────────────────────────────────────────────────────────────────────────────┐</span><br><span class="line">│                        执行调度框架                                          │</span><br><span class="line">│                    schedule() -&gt; Framework.RunFilterPlugins()                │</span><br><span class="line">│                                                                             │</span><br><span class="line">│  ┌─────────────────────────────────────────────────────────────────────┐ │</span><br><span class="line">│  │ 1. PreScore 阶段                                                      │ │</span><br><span class="line">│  │    - 执行预评分插件                                                   │ │</span><br><span class="line">│  │    - 生成评分所需数据                                                  │ │</span><br><span class="line">│  └─────────────────────────────────────────────────────────────────────┘ │</span><br><span class="line">│  ┌─────────────────────────────────────────────────────────────────────┐ │</span><br><span class="line">│  │ 2. Filter 阶段 (寻找可行节点)                                         │ │</span><br><span class="line">│  │    - NodeResourcesFit: 检查资源是否满足                               │ │</span><br><span class="line">│  │    - HostName: 检查主机名是否匹配                                    │ │</span><br><span class="line">│  │    - PodMatchNodeSelector: 检查节点选择器                            │ │</span><br><span class="line">│  │    - NoVolumeZoneConflict: 检查存储卷可用区                         │ │</span><br><span class="line">│  │    - VolumeBinding: 检查 PVC 是否可绑定                              │ │</span><br><span class="line">│  │    - MaxEBSVolumeCount: 检查 EBS 卷数量限制                         │ │</span><br><span class="line">│  │    - MaxGCEPDVolumeCount: 检查 GCE PD 卷数量                        │ │</span><br><span class="line">│  │    - MaxAzureDiskVolumeCount: 检查 Azure Disk 数量                   │ │</span><br><span class="line">│  │    - VolumeNodeAffinity: 检查存储卷节点亲和性                        │ │</span><br><span class="line">│  └─────────────────────────────────────────────────────────────────────┘ │</span><br><span class="line">│  ┌─────────────────────────────────────────────────────────────────────┐ │</span><br><span class="line">│  │ 3. Score 阶段 (为可行节点打分)                                        │ │</span><br><span class="line">│  │    - NodeResourcesBalancedAllocation: 资源平衡分配                   │ │</span><br><span class="line">│  │    - ImageLocality: 镜像本地性                                       │ │</span><br><span class="line">│  │    - InterPodAffinity: Pod 亲和性/反亲和性                          │ │</span><br><span class="line">│  │    - NodeAffinity: 节点亲和性                                        │ │</span><br><span class="line">│  │    - NodePreferAvoidPods: 节点优先级偏好                             │ │</span><br><span class="line">│  │    - TaintToleration: 污点容忍                                      │ │</span><br><span class="line">│  └─────────────────────────────────────────────────────────────────────┘ │</span><br><span class="line">└──────────────────────────────────────────────────────────────────────────────┘</span><br><span class="line">                                    │</span><br><span class="line">                                    ▼</span><br><span class="line">┌──────────────────────────────────────────────────────────────────────────────┐</span><br><span class="line">│                        选择最优节点                                          │</span><br><span class="line">│                    selectTopScoreNode()                                      │</span><br><span class="line">│                                                                             │</span><br><span class="line">│  1. 汇总所有 Score 结果 (加权平均)                                           │</span><br><span class="line">│  2. 选择分数最高的节点                                                       │</span><br><span class="line">│  3. 随机打破平局 (分数相同时)                                               │</span><br><span class="line">└──────────────────────────────────────────────────────────────────────────────┘</span><br><span class="line">                                    │</span><br><span class="line">                                    ▼</span><br><span class="line">┌──────────────────────────────────────────────────────────────────────────────┐</span><br><span class="line">│                        绑定周期                                              │</span><br><span class="line">│                    bind() -&gt; Framework.RunBindPlugins()                      │</span><br><span class="line">│                                                                             │</span><br><span class="line">│  1. Reserve 插件执行                                                        │</span><br><span class="line">│     - VolumeBinding: 绑定 PVC 到 PV                                          │</span><br><span class="line">│                                                                             │</span><br><span class="line">│  2. Bind 插件执行                                                           │</span><br><span class="line">│     - DefaultBinder: 更新 Pod.Spec.NodeName                                 │</span><br><span class="line">│                                                                             │</span><br><span class="line">│  3. PostBind 插件执行                                                       │</span><br><span class="line">│     - 清理预留资源                                                          │</span><br><span class="line">└──────────────────────────────────────────────────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<h2 id="调度算法详解"><a href="#调度算法详解" class="headerlink" title="调度算法详解"></a>调度算法详解</h2><h3 id="1-Filter-阶段-Predicates"><a href="#1-Filter-阶段-Predicates" class="headerlink" title="1. Filter 阶段 (Predicates)"></a>1. Filter 阶段 (Predicates)</h3><p>Filter 阶段排除不满足条件的节点，使用<strong>短路逻辑</strong>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// pkg/scheduler/framework/plugins/helper.go</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">FindNodesThatPassPlugins</span><span class="params">()</span></span> ([]*v1.Node, <span class="type">error</span>) &#123;</span><br><span class="line">    <span class="keyword">for</span> _, n := <span class="keyword">range</span> nodes &#123;</span><br><span class="line">        passed := <span class="literal">true</span></span><br><span class="line">        <span class="keyword">for</span> _, p := <span class="keyword">range</span> filterPlugins &#123;</span><br><span class="line">            status := p.Filter(ctx, pod, nodeInfo)</span><br><span class="line">            <span class="keyword">if</span> !status.IsSuccess() &#123;</span><br><span class="line">                passed = <span class="literal">false</span></span><br><span class="line">                <span class="keyword">break</span>  <span class="comment">// 短路逻辑</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> passed &#123;</span><br><span class="line">            feasibleNodes = <span class="built_in">append</span>(feasibleNodes, node)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>常用 Filter 规则</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>规则</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PodFitsResources</td>
+<td>节点有足够的 CPU&#x2F;内存</td>
+</tr>
+<tr>
+<td>PodFitsHost</td>
+<td>主机名匹配</td>
+</tr>
+<tr>
+<td>PodFitsHostPorts</td>
+<td>主机端口未被占用</td>
+</tr>
+<tr>
+<td>MatchNodeSelector</td>
+<td>节点选择器匹配</td>
+</tr>
+<tr>
+<td>NoVolumeZoneConflict</td>
+<td>存储卷可用区匹配</td>
+</tr>
+<tr>
+<td>PodToleratesNodeTaints</td>
+<td>Pod 容忍污点</td>
+</tr>
+<tr>
+<td>CheckNodeMemoryPressure</td>
+<td>忽略内存压力节点</td>
+</tr>
+<tr>
+<td>CheckNodeDiskPressure</td>
+<td>忽略磁盘压力节点</td>
+</tr>
+<tr>
+<td>CheckNodePIDPressure</td>
+<td>忽略 PID 压力节点</td>
+</tr>
+<tr>
+<td>CheckVolumeBinding</td>
+<td>PVC 可绑定</td>
+</tr>
+</tbody></table>
+<h3 id="2-Score-阶段-Priorities"><a href="#2-Score-阶段-Priorities" class="headerlink" title="2. Score 阶段 (Priorities)"></a>2. Score 阶段 (Priorities)</h3><p>Score 阶段为每个可行节点打分，分数范围 [0, 100]：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 评分计算</span></span><br><span class="line">score = sum(pluginScore * pluginWeight) / sum(weights)</span><br></pre></td></tr></table></figure>
+
+<p><strong>内置评分插件</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>插件</th>
+<th>权重</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>NodeResourcesBalancedAllocation</td>
+<td>1</td>
+<td>资源分配平衡</td>
+</tr>
+<tr>
+<td>ImageLocality</td>
+<td>1</td>
+<td>镜像本地性（已在节点）</td>
+</tr>
+<tr>
+<td>InterPodAffinity</td>
+<td>1</td>
+<td>Pod 亲和性&#x2F;反亲和性</td>
+</tr>
+<tr>
+<td>NodeAffinity</td>
+<td>1</td>
+<td>节点亲和性</td>
+</tr>
+<tr>
+<td>NodePreferAvoidPods</td>
+<td>10000</td>
+<td>避免特定节点</td>
+</tr>
+<tr>
+<td>TaintToleration</td>
+<td>1</td>
+<td>污点容忍</td>
+</tr>
+<tr>
+<td>MostRequested</td>
+<td>1</td>
+<td>请求最多的节点</td>
+</tr>
+</tbody></table>
+<h3 id="3-资源平衡分配"><a href="#3-资源平衡分配" class="headerlink" title="3. 资源平衡分配"></a>3. 资源平衡分配</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// pkg/scheduler/framework/plugins/noderesources/balanced_allocation.go</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Score</span><span class="params">(_ context.Context, _ *framework.CycleState, pod *v1.Pod, nodeInfo *framework.NodeInfo)</span></span> (<span class="type">int64</span>, *framework.Status) &#123;</span><br><span class="line">    resourceUsage := calculateResourceUsage(nodeInfo)</span><br><span class="line">    fractions := []<span class="type">float64</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> _, resource := <span class="keyword">range</span> []v1.ResourceName&#123;v1.ResourceCPU, v1.ResourceMemory&#125; &#123;</span><br><span class="line">        request := resourceRequest(resource, pod)</span><br><span class="line">        capacity := nodeInfo.Node().Status.Capacity[resource]</span><br><span class="line">        fraction := <span class="type">float64</span>(request) / <span class="type">float64</span>(capacity)</span><br><span class="line">        fractions = <span class="built_in">append</span>(fractions, fraction)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 计算平衡度 (越接近 0 越平衡)</span></span><br><span class="line">    balance := calculateBalanceScore(fractions)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 返回分数 (1-10 分映射)</span></span><br><span class="line">    <span class="keyword">return</span> <span class="type">int64</span>(balance * framework.MaxNodeScore), <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-镜像本地性评分"><a href="#4-镜像本地性评分" class="headerlink" title="4. 镜像本地性评分"></a>4. 镜像本地性评分</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// pkg/scheduler/framework/plugins/imagelocality/image_locality.go</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Score</span><span class="params">(_ context.Context, _ *framework.CycleState, pod *v1.Pod, nodeInfo *framework.NodeInfo)</span></span> (<span class="type">int64</span>, *framework.Status) &#123;</span><br><span class="line">    <span class="comment">// 获取 Pod 所需镜像列表</span></span><br><span class="line">    images := getContainerImages(pod)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 计算已有镜像大小</span></span><br><span class="line">    matchedImageSize := <span class="type">int64</span>(<span class="number">0</span>)</span><br><span class="line">    <span class="keyword">for</span> _, image := <span class="keyword">range</span> images &#123;</span><br><span class="line">        <span class="keyword">if</span> size, ok := nodeInfo.ImageStates()[image]; ok &#123;</span><br><span class="line">            matchedImageSize += size</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 分数映射: 0 -&gt; 1 分, 总镜像大小 -&gt; 10 分</span></span><br><span class="line">    score := calculateImageLocalityScore(matchedImageSize, totalImageSize)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> score, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="调度队列"><a href="#调度队列" class="headerlink" title="调度队列"></a>调度队列</h2><h3 id="三种队列"><a href="#三种队列" class="headerlink" title="三种队列"></a>三种队列</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">┌──────────────────────────────────────────────────────────────────────────────┐</span><br><span class="line">│                           SchedulingQueue                                    │</span><br><span class="line">│                                                                             │</span><br><span class="line">│  ┌─────────────────────────────────────────────────────────────────────┐   │</span><br><span class="line">│  │ ActiveQ (活跃队列)                                                    │   │</span><br><span class="line">│  │                                                                       │   │</span><br><span class="line">│  │ - 优先级队列，按 Pod 优先级排序                                        │   │</span><br><span class="line">│  │ - 高优先级 Pod 优先调度                                                │   │</span><br><span class="line">│  │ - 使用堆实现 O(log n) 入队/出队                                       │   │</span><br><span class="line">│  └─────────────────────────────────────────────────────────────────────┘   │</span><br><span class="line">│                                                                             │</span><br><span class="line">│  ┌─────────────────────────────────────────────────────────────────────┐   │</span><br><span class="line">│  │ UnschedulableQ (不可调度队列)                                         │   │</span><br><span class="line">│  │                                                                       │   │</span><br><span class="line">│  │ - 调度失败的 Pod                                                     │   │</span><br><span class="line">│  │ - 等待资源释放或条件满足                                               │   │</span><br><span class="line">│  │ - 定期尝试重新调度                                                    │   │</span><br><span class="line">│  └─────────────────────────────────────────────────────────────────────┘   │</span><br><span class="line">│                                                                             │</span><br><span class="line">│  ┌─────────────────────────────────────────────────────────────────────┐   │</span><br><span class="line">│  │ BackoffQ (退避队列)                                                   │   │</span><br><span class="line">│  │                                                                       │   │</span><br><span class="line">│  │ - 调度失败但可能很快成功的 Pod                                         │   │</span><br><span class="line">│  │ - 指数退避: 10s, 20s, 40s, 80s, ...                                │   │</span><br><span class="line">│  │ - 最大退避时间: 5min                                                  │   │</span><br><span class="line">│  └─────────────────────────────────────────────────────────────────────┘   │</span><br><span class="line">└──────────────────────────────────────────────────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<h3 id="Pod-优先级"><a href="#Pod-优先级" class="headerlink" title="Pod 优先级"></a>Pod 优先级</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 优先级计算</span></span><br><span class="line">priority = (pod.Spec.Priority != <span class="literal">nil</span> ? *pod.Spec.Priority : <span class="number">0</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 默认优先级类</span></span><br><span class="line">- system-cluster-critical: <span class="number">2000000000</span></span><br><span class="line">- system-node-critical: <span class="number">2000001000</span></span><br><span class="line">- <span class="keyword">default</span>: <span class="number">0</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="亲和性与反亲和性"><a href="#亲和性与反亲和性" class="headerlink" title="亲和性与反亲和性"></a>亲和性与反亲和性</h2><h3 id="Pod-间亲和性"><a href="#Pod-间亲和性" class="headerlink" title="Pod 间亲和性"></a>Pod 间亲和性</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// pkg/scheduler/framework/plugins/interpodaffinity/filtering.go</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(pl *InterPodAffinity)</span></span> Filter(ctx context.Context, cycleState *framework.CycleState, pod *v1.Pod, nodeInfo *framework.NodeInfo) (*framework.Status, <span class="type">error</span>) &#123;</span><br><span class="line">    <span class="comment">// 1. 检查硬亲和性 (requiredDuringSchedulingIgnoredDuringExecution)</span></span><br><span class="line">    <span class="keyword">for</span> _, term := <span class="keyword">range</span> pod.Spec.Affinity.PodAffinity.RequiredDuringSchedulingIgnoredDuringExecution &#123;</span><br><span class="line">        matchingPods := pl.getMatchingPods(term.TopologyKey, nodeInfo.Node())</span><br><span class="line">        <span class="keyword">if</span> !podMatchesAffinityTerm(pod, matchingPods, term) &#123;</span><br><span class="line">            <span class="keyword">return</span> framework.NewStatus(framework.Unschedulable, <span class="string">&quot;pod affinity not satisfied&quot;</span>), <span class="literal">nil</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 2. 检查硬反亲和性</span></span><br><span class="line">    <span class="keyword">for</span> _, term := <span class="keyword">range</span> pod.Spec.Affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution &#123;</span><br><span class="line">        matchingPods := pl.getMatchingPods(term.TopologyKey, nodeInfo.Node())</span><br><span class="line">        <span class="keyword">if</span> podMatchesAntiAffinityTerm(pod, matchingPods, term) &#123;</span><br><span class="line">            <span class="keyword">return</span> framework.NewStatus(framework.Unschedulable, <span class="string">&quot;pod anti-affinity not satisfied&quot;</span>), <span class="literal">nil</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span>, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="评分计算"><a href="#评分计算" class="headerlink" title="评分计算"></a>评分计算</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 软亲和性评分 (preferredDuringSchedulingIgnoredDuringExecution)</span></span><br><span class="line"><span class="keyword">for</span> _, term := <span class="keyword">range</span> pod.Spec.Affinity.PodAffinity.PreferredDuringSchedulingIgnoredDuringExecution &#123;</span><br><span class="line">    <span class="comment">// 获取匹配的 Pod</span></span><br><span class="line">    matchingPods := pl.getMatchingPods(term.TopologyKey, nodeInfo.Node())</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 权重 * 最大匹配数 / 总命名空间数</span></span><br><span class="line">    weight := <span class="type">int</span>(term.Weight)</span><br><span class="line">    score := weight * (maxMatching / totalNamespaces)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="Volume-调度"><a href="#Volume-调度" class="headerlink" title="Volume 调度"></a>Volume 调度</h2><h3 id="PVC-绑定流程"><a href="#PVC-绑定流程" class="headerlink" title="PVC 绑定流程"></a>PVC 绑定流程</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">┌──────────────────────────────────────────────────────────────────────────────┐</span><br><span class="line">│                        VolumeBinding 插件                                    │</span><br><span class="line">│                                                                             │</span><br><span class="line">│  1. 检查 PVC 是否已绑定                                                    │</span><br><span class="line">│     └── 已绑定 -&gt; 检查 PV 所在节点                                          │</span><br><span class="line">│                                                                             │</span><br><span class="line">│  2. 动态 provisioning                                                     │</span><br><span class="line">│     ├── 检查 StorageClass                                                  │</span><br><span class="line">│     ├── 调用 CSI Provisioner 创建 PV                                       │</span><br><span class="line">│     └── 等待 PVC 绑定                                                      │</span><br><span class="line">│                                                                             │</span><br><span class="line">│  3. 延迟绑定 (WaitForFirstConsumer)                                       │</span><br><span class="line">│     ├── 暂不绑定 PVC                                                      │</span><br><span class="line">│     └── 等 Pod 调度后再绑定                                                │</span><br><span class="line">└──────────────────────────────────────────────────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<h3 id="延迟绑定模式"><a href="#延迟绑定模式" class="headerlink" title="延迟绑定模式"></a>延迟绑定模式</h3><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">StorageClass</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">delayed-binding</span></span><br><span class="line"><span class="attr">provisioner:</span> <span class="string">pd.csi.storage.gke.io</span></span><br><span class="line"><span class="attr">parameters:</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">pd-standard</span></span><br><span class="line"><span class="attr">volumeBindingMode:</span> <span class="string">WaitForFirstConsumer</span>  <span class="comment"># 延迟绑定</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="调度优化"><a href="#调度优化" class="headerlink" title="调度优化"></a>调度优化</h2><h3 id="1-调度器配置"><a href="#1-调度器配置" class="headerlink" title="1. 调度器配置"></a>1. 调度器配置</h3><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># scheduler-config.yaml</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">kubescheduler.config.k8s.io/v1beta3</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">KubeSchedulerConfiguration</span></span><br><span class="line"><span class="attr">profiles:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">pluginConfig:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">NodeResourcesBalancedAllocation</span></span><br><span class="line">    <span class="attr">args:</span></span><br><span class="line">      <span class="attr">resources:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">cpu</span></span><br><span class="line">        <span class="attr">weight:</span> <span class="number">1</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">memory</span></span><br><span class="line">        <span class="attr">weight:</span> <span class="number">1</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">NodeResourcesFit</span></span><br><span class="line">    <span class="attr">args:</span></span><br><span class="line">      <span class="attr">scoringStrategy:</span></span><br><span class="line">        <span class="attr">type:</span> <span class="string">LeastAllocated</span></span><br><span class="line">        <span class="attr">resources:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">cpu</span></span><br><span class="line">          <span class="attr">weight:</span> <span class="number">1</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">memory</span></span><br><span class="line">          <span class="attr">weight:</span> <span class="number">1</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-多个调度器"><a href="#2-多个调度器" class="headerlink" title="2. 多个调度器"></a>2. 多个调度器</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 创建自定义调度器</span></span><br><span class="line">kube-scheduler --scheduler-name=custom-scheduler</span><br><span class="line"></span><br><span class="line"><span class="comment"># Pod 指定调度器</span></span><br><span class="line">apiVersion: v1</span><br><span class="line">kind: Pod</span><br><span class="line">spec:</span><br><span class="line">  schedulerName: custom-scheduler</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-调度框架扩展"><a href="#3-调度框架扩展" class="headerlink" title="3. 调度框架扩展"></a>3. 调度框架扩展</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 实现自定义调度插件</span></span><br><span class="line"><span class="keyword">type</span> MyFilterPlugin <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(pl *MyFilterPlugin)</span></span> Filter(ctx context.Context, state *framework.CycleState, pod *v1.Pod, nodeInfo *framework.NodeInfo) (*framework.Status, <span class="type">error</span>) &#123;</span><br><span class="line">    <span class="comment">// 自定义过滤逻辑</span></span><br><span class="line">    <span class="keyword">if</span> !pl.shouldSchedule(pod, nodeInfo.Node()) &#123;</span><br><span class="line">        <span class="keyword">return</span> framework.NewStatus(framework.Unschedulable, <span class="string">&quot;custom reason&quot;</span>), <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span>, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 注册插件</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line">    framework.RegisterFilterPlugin(<span class="string">&quot;MyFilter&quot;</span>, <span class="function"><span class="keyword">func</span><span class="params">(_ runtime.Object, _ framework.Handle)</span></span> (framework.FilterPlugin, <span class="type">error</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> &amp;MyFilterPlugin&#123;&#125;, <span class="literal">nil</span></span><br><span class="line">    &#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="关键代码路径"><a href="#关键代码路径" class="headerlink" title="关键代码路径"></a>关键代码路径</h2><table>
+<thead>
+<tr>
+<th>文件</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>cmd/kube-scheduler/scheduler.go</code></td>
+<td>调度器入口</td>
+</tr>
+<tr>
+<td><code>pkg/scheduler/scheduler.go</code></td>
+<td>调度主逻辑</td>
+</tr>
+<tr>
+<td><code>pkg/scheduler/framework/</code></td>
+<td>调度框架</td>
+</tr>
+<tr>
+<td><code>pkg/scheduler/internal/queue/</code></td>
+<td>调度队列</td>
+</tr>
+<tr>
+<td><code>pkg/scheduler/framework/plugins/</code></td>
+<td>内置插件</td>
+</tr>
+<tr>
+<td><code>pkg/scheduler/core/generic_scheduler.go</code></td>
+<td>通用调度器</td>
+</tr>
+<tr>
+<td><code>staging/src/k8s.io/client-go/</code></td>
+<td>客户端库</td>
+</tr>
+</tbody></table>
+<h2 id="常见问题排查"><a href="#常见问题排查" class="headerlink" title="常见问题排查"></a>常见问题排查</h2><h3 id="1-Pod-一直处于-Pending"><a href="#1-Pod-一直处于-Pending" class="headerlink" title="1. Pod 一直处于 Pending"></a>1. Pod 一直处于 Pending</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 检查调度器日志</span></span><br><span class="line">kubectl logs -n kube-system kube-scheduler-&lt;node&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查调度事件</span></span><br><span class="line">kubectl describe pod &lt;pod-name&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看调度原因</span></span><br><span class="line">kubectl get events --field-selector involvedObject.name=&lt;pod-name&gt;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-Pod-调度失败"><a href="#2-Pod-调度失败" class="headerlink" title="2. Pod 调度失败"></a>2. Pod 调度失败</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 常见原因</span></span><br><span class="line"><span class="comment"># - 资源不足: NoNodeResourcesFit</span></span><br><span class="line"><span class="comment"># - 污点不匹配: node(s) had taints</span></span><br><span class="line"><span class="comment"># - 亲和性不满足: pod affinity/anti-affinity</span></span><br><span class="line"><span class="comment"># - 存储卷不可用: node(s) had volume node affinity conflict</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="3-调度性能问题"><a href="#3-调度性能问题" class="headerlink" title="3. 调度性能问题"></a>3. 调度性能问题</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 启用调度追踪</span></span><br><span class="line">kube-scheduler --v=5</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看调度时间</span></span><br><span class="line">kubectl get events --field-selector reason=Scheduled</span><br></pre></td></tr></table></figure>
+
+<h2 id="调度器指标"><a href="#调度器指标" class="headerlink" title="调度器指标"></a>调度器指标</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"># 调度相关指标</span><br><span class="line">scheduler_schedule_attempts_total  # 调度尝试次数</span><br><span class="line">scheduler_e2e_scheduling_duration_seconds  # 端到端调度时间</span><br><span class="line">scheduler_pod_scheduling_duration_seconds  # Pod 调度时间</span><br><span class="line">scheduler_binding_duration_seconds  # 绑定时间</span><br><span class="line">scheduler_queue_incoming_pods_total  # 入队 Pod 数</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h1 id="面试题"><a href="#面试题" class="headerlink" title="面试题"></a>面试题</h1><h2 id="基础题"><a href="#基础题" class="headerlink" title="基础题"></a>基础题</h2><h3 id="1-Kubernetes-调度器的主要职责是什么？"><a href="#1-Kubernetes-调度器的主要职责是什么？" class="headerlink" title="1. Kubernetes 调度器的主要职责是什么？"></a>1. Kubernetes 调度器的主要职责是什么？</h3><p><strong>参考答案：</strong></p>
+<ul>
+<li>为新创建的 Pod 选择最优的 Node</li>
+<li>协调 Pod 与 Node 的绑定关系</li>
+<li>保证调度的公平性、效率和资源利用率</li>
+</ul>
+<h3 id="2-调度器的工作流程是什么？"><a href="#2-调度器的工作流程是什么？" class="headerlink" title="2. 调度器的工作流程是什么？"></a>2. 调度器的工作流程是什么？</h3><p><strong>参考答案：</strong></p>
+<ol>
+<li>从调度队列获取待调度 Pod</li>
+<li>构建调度上下文</li>
+<li>执行 Filter 阶段（过滤不可行节点）</li>
+<li>执行 Score 阶段（为可行节点打分）</li>
+<li>选择最优节点</li>
+<li>执行 Bind 绑定 Pod 到 Node</li>
+</ol>
+<h3 id="3-Filter-阶段和-Score-阶段的区别是什么？"><a href="#3-Filter-阶段和-Score-阶段的区别是什么？" class="headerlink" title="3. Filter 阶段和 Score 阶段的区别是什么？"></a>3. Filter 阶段和 Score 阶段的区别是什么？</h3><p><strong>参考答案：</strong></p>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>作用</th>
+<th>行为</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Filter</td>
+<td>过滤不可行节点</td>
+<td>短路逻辑，任一失败即排除</td>
+</tr>
+<tr>
+<td>Score</td>
+<td>为可行节点打分</td>
+<td>所有可行节点都打分</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="中级题"><a href="#中级题" class="headerlink" title="中级题"></a>中级题</h2><h3 id="4-调度队列有哪几种？各自的作用是什么？"><a href="#4-调度队列有哪几种？各自的作用是什么？" class="headerlink" title="4. 调度队列有哪几种？各自的作用是什么？"></a>4. 调度队列有哪几种？各自的作用是什么？</h3><p><strong>参考答案：</strong></p>
+<ul>
+<li><strong>ActiveQ</strong>：活跃队列，按优先级排序，高优先级先调度</li>
+<li><strong>UnschedulableQ</strong>：不可调度队列，存放调度失败的 Pod</li>
+<li><strong>BackoffQ</strong>：退避队列，指数退避重试（10s, 20s, 40s…）</li>
+</ul>
+<h3 id="5-Pod-亲和性有哪几种类型？如何工作？"><a href="#5-Pod-亲和性有哪几种类型？如何工作？" class="headerlink" title="5. Pod 亲和性有哪几种类型？如何工作？"></a>5. Pod 亲和性有哪几种类型？如何工作？</h3><p><strong>参考答案：</strong></p>
+<ul>
+<li><strong>requiredDuringSchedulingIgnoredDuringExecution</strong>：硬亲和性，必须满足</li>
+<li><strong>preferredDuringSchedulingIgnoredDuringExecution</strong>：软亲和性，尽量满足</li>
+<li>反亲和性：要求&#x2F;避免 Pod 调度到同一拓扑域</li>
+</ul>
+<h3 id="6-调度器如何处理存储卷？"><a href="#6-调度器如何处理存储卷？" class="headerlink" title="6. 调度器如何处理存储卷？"></a>6. 调度器如何处理存储卷？</h3><p><strong>参考答案：</strong></p>
+<ul>
+<li>静态绑定：手动创建 PV，调度时匹配</li>
+<li>动态绑定：StorageClass 创建 PV</li>
+<li>延迟绑定：<code>volumeBindingMode: WaitForFirstConsumer</code>，Pod 调度后再绑定</li>
+</ul>
+<h3 id="7-如何自定义调度行为？"><a href="#7-如何自定义调度行为？" class="headerlink" title="7. 如何自定义调度行为？"></a>7. 如何自定义调度行为？</h3><p><strong>参考答案：</strong></p>
+<ul>
+<li><strong>NodeSelector&#x2F;NodeAffinity</strong>：节点选择</li>
+<li><strong>PodAffinity&#x2F;PodAntiAffinity</strong>：Pod 亲和性</li>
+<li><strong>Taints&#x2F;Tolerations</strong>：污点和容忍</li>
+<li><strong>自定义调度器</strong>：指定 schedulerName</li>
+<li><strong>调度框架扩展</strong>：编写 Filter&#x2F;Score 插件</li>
+</ul>
+<hr>
+<h2 id="高级题"><a href="#高级题" class="headerlink" title="高级题"></a>高级题</h2><h3 id="8-调度器的调度算法有哪些？各自优缺点？"><a href="#8-调度器的调度算法有哪些？各自优缺点？" class="headerlink" title="8. 调度器的调度算法有哪些？各自优缺点？"></a>8. 调度器的调度算法有哪些？各自优缺点？</h3><p><strong>参考答案：</strong></p>
+<table>
+<thead>
+<tr>
+<th>算法</th>
+<th>优点</th>
+<th>缺点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>BinPack</td>
+<td>资源利用率高</td>
+<td>碎片化，可能无法调度大 Pod</td>
+</tr>
+<tr>
+<td>Spread</td>
+<td>分布均匀，高可用</td>
+<td>资源利用率低</td>
+</tr>
+<tr>
+<td>LeastAllocated</td>
+<td>简单</td>
+<td>不考虑负载平衡</td>
+</tr>
+</tbody></table>
+<h3 id="9-调度器如何保证-Pod-调度的公平性？"><a href="#9-调度器如何保证-Pod-调度的公平性？" class="headerlink" title="9. 调度器如何保证 Pod 调度的公平性？"></a>9. 调度器如何保证 Pod 调度的公平性？</h3><p><strong>参考答案：</strong></p>
+<ul>
+<li>使用优先级队列，高优先级 Pod 优先调度</li>
+<li>相同优先级 Pod 轮询调度</li>
+<li>配额控制限制租户资源使用</li>
+</ul>
+<h3 id="10-调度器性能优化有哪些方法？"><a href="#10-调度器性能优化有哪些方法？" class="headerlink" title="10. 调度器性能优化有哪些方法？"></a>10. 调度器性能优化有哪些方法？</h3><p><strong>参考答案：</strong></p>
+<ul>
+<li><strong>缓存优化</strong>：使用 SchedulerCache 减少 API Server 调用</li>
+<li><strong>并行化</strong>：Filter&#x2F;Score 阶段并行执行</li>
+<li><strong>快照机制</strong>：批量获取节点信息</li>
+<li><strong>Pod 反亲和性优化</strong>：避免过度分散</li>
+</ul>
+<h3 id="11-调度框架的扩展点有哪些？"><a href="#11-调度框架的扩展点有哪些？" class="headerlink" title="11. 调度框架的扩展点有哪些？"></a>11. 调度框架的扩展点有哪些？</h3><p><strong>参考答案：</strong></p>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>扩展点</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>调度前</td>
+<td>Sort</td>
+<td>自定义排序</td>
+</tr>
+<tr>
+<td>过滤前</td>
+<td>PreFilter</td>
+<td>预处理</td>
+</tr>
+<tr>
+<td>过滤</td>
+<td>Filter</td>
+<td>过滤不可行节点</td>
+</tr>
+<tr>
+<td>评分前</td>
+<td>PreScore</td>
+<td>预处理评分数据</td>
+</tr>
+<tr>
+<td>评分</td>
+<td>Score</td>
+<td>为节点打分</td>
+</tr>
+<tr>
+<td>预留</td>
+<td>Reserve</td>
+<td>预留资源</td>
+</tr>
+<tr>
+<td>许可</td>
+<td>Permit</td>
+<td>延迟绑定</td>
+</tr>
+<tr>
+<td>绑定</td>
+<td>Bind</td>
+<td>执行绑定</td>
+</tr>
+<tr>
+<td>绑定后</td>
+<td>PostBind</td>
+<td>后置处理</td>
+</tr>
+<tr>
+<td>失败</td>
+<td>Unreserve</td>
+<td>取消预留</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="场景题"><a href="#场景题" class="headerlink" title="场景题"></a>场景题</h2><h3 id="12-如何实现-Pod-尽量分散在不同的可用区？"><a href="#12-如何实现-Pod-尽量分散在不同的可用区？" class="headerlink" title="12. 如何实现 Pod 尽量分散在不同的可用区？"></a>12. 如何实现 Pod 尽量分散在不同的可用区？</h3><p><strong>参考答案：</strong></p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Pod</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">affinity:</span></span><br><span class="line">    <span class="attr">podAntiAffinity:</span></span><br><span class="line">      <span class="attr">requiredDuringSchedulingIgnoredDuringExecution:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">labelSelector:</span></span><br><span class="line">          <span class="attr">matchLabels:</span></span><br><span class="line">            <span class="attr">app:</span> <span class="string">my-app</span></span><br><span class="line">        <span class="attr">topologyKey:</span> <span class="string">topology.kubernetes.io/zone</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="13-如何实现-GPU-调度？"><a href="#13-如何实现-GPU-调度？" class="headerlink" title="13. 如何实现 GPU 调度？"></a>13. 如何实现 GPU 调度？</h3><p><strong>参考答案：</strong></p>
+<ol>
+<li><p><strong>节点标签</strong>：标记 GPU 类型</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl label node &lt;node&gt; nvidia.com/gpu=1</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><strong>Pod 配置</strong>：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Pod</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">nodeSelector:</span></span><br><span class="line">    <span class="attr">nvidia.com/gpu:</span> <span class="string">&quot;1&quot;</span></span><br><span class="line">  <span class="attr">containers:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">gpu-container</span></span><br><span class="line">    <span class="attr">resources:</span></span><br><span class="line">      <span class="attr">limits:</span></span><br><span class="line">        <span class="attr">nvidia.com/gpu:</span> <span class="number">1</span></span><br></pre></td></tr></table></figure></li>
+</ol>
+<h3 id="14-调度器如何处理大规模集群？"><a href="#14-调度器如何处理大规模集群？" class="headerlink" title="14. 调度器如何处理大规模集群？"></a>14. 调度器如何处理大规模集群？</h3><p><strong>参考答案：</strong></p>
+<ul>
+<li>使用 <strong>NodeResourcesFit</strong> 快速过滤</li>
+<li>启用 <strong>VolumeBinding</strong> 延迟绑定</li>
+<li>配置 <strong>percentageOfNodesToScore</strong> 减少评分节点数</li>
+<li>使用 <strong>调度器亲和性</strong> 分散调度器负载</li>
+</ul>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-%E8%B0%83%E5%BA%A6%E5%99%A8%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/">https://piwriw.github.io/2026/03/25/cloud/arch/架构-调度器深度剖析/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a><a class="post-meta__tags" href="/tags/cloud/">cloud</a><a class="post-meta__tags" href="/tags/%E6%9E%B6%E6%9E%84%E5%88%86%E6%9E%90/">架构分析</a></div><div class="post-share"><div class="social-share" data-image="/img/k8s-go.jpg" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2026/03/26/cloud/arch/Kubernetes%E9%80%9A%E4%BF%A1%E9%93%BE%E8%B7%AF%E8%AF%A6%E7%BB%86%E5%88%86%E6%9E%90/" title="Kubernetes 通信链路详细分析"><img class="cover" src="/img/k8s-go.jpg" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">Kubernetes 通信链路详细分析</div></div><div class="info-2"><div class="info-item-1">Kubernetes 通信链路详细分析目录 1. Pod 与 Pod 通信 1.1 同节点 Pod 间通信 1.2 跨节点 Pod 间通信   2. Pod 到 Service 通信 2.1 ClusterIP 类型 2.2 NodePort 类型 2.3 LoadBalancer 类型 2.4 Headless Service   3. 外部到 Service 通信 4. DNS 解析流程 5. 网络流量架构图   1. Pod 与 Pod 通信1.1 同节点 Pod 间通信当两个 Pod 在同一个节点上运行时，它们的通信路径如下： 12345678910111213141516171819202122232425262728293031323334┌─────────────────────────────────────────────────────────────────────┐│                      Node (Linux Host)                              ││                        ...</div></div></div></a><a class="pagination-related" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-%E7%BD%91%E7%BB%9C%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="网络架构深度剖析"><img class="cover" src="/img/k8s-go.jpg" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">网络架构深度剖析</div></div><div class="info-2"><div class="info-item-1">网络架构深度剖析概述Kubernetes 网络系统涵盖 Pod 网络、Service 网络、Ingress 网络等多个层次，涉及 CNI 插件、kube-proxy、CoreDNS 等多个组件。本文深入剖析 Kubernetes 网络架构的工作原理。 整体架构12345678910111213141516171819202122232425┌──────────────────────────────────────────────────────────────────────────────┐│                           Kubernetes 网络分层                                  ││                                                                             ││  ┌─────────────────────────────────────────────────────────────────────┐   ││  │       ...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2026/03/26/cloud/arch/Kubernetes%E9%80%9A%E4%BF%A1%E9%93%BE%E8%B7%AF%E8%AF%A6%E7%BB%86%E5%88%86%E6%9E%90/" title="Kubernetes 通信链路详细分析"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-26</div><div class="info-item-2">Kubernetes 通信链路详细分析</div></div><div class="info-2"><div class="info-item-1">Kubernetes 通信链路详细分析目录 1. Pod 与 Pod 通信 1.1 同节点 Pod 间通信 1.2 跨节点 Pod 间通信   2. Pod 到 Service 通信 2.1 ClusterIP 类型 2.2 NodePort 类型 2.3 LoadBalancer 类型 2.4 Headless Service   3. 外部到 Service 通信 4. DNS 解析流程 5. 网络流量架构图   1. Pod 与 Pod 通信1.1 同节点 Pod 间通信当两个 Pod 在同一个节点上运行时，它们的通信路径如下： 12345678910111213141516171819202122232425262728293031323334┌─────────────────────────────────────────────────────────────────────┐│                      Node (Linux Host)                              ││                        ...</div></div></div></a><a class="pagination-related" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-API%20Server%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="kube-apiserver 深度剖析"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-25</div><div class="info-item-2">kube-apiserver 深度剖析</div></div><div class="info-2"><div class="info-item-1">kube-apiserver 深度剖析概述kube-apiserver 是 Kubernetes 控制平面的核心组件，提供 RESTful API，是所有组件和客户端与集群交互的网关。它负责：  处理所有 REST 操作 执行认证、授权、准入控制 数据存储到 etcd 资源验证和变更  1234567891011121314151617181920212223242526272829303132333435┌─────────────────────────────────────────────────────────────────────────┐│                    kube-apiserver 架构图                                 │├─────────────────────────────────────────────────────────────────────────┤│                                                                    ...</div></div></div></a><a class="pagination-related" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-etcd%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="etcd 深度剖析"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-25</div><div class="info-item-2">etcd 深度剖析</div></div><div class="info-2"><div class="info-item-1">etcd 深度剖析概述etcd 是一个高可用的分布式键值存储系统，是 Kubernetes 集群的核心数据存储层。所有集群状态（Pod、Service、ConfigMap、Deployment 等资源）都存储在 etcd 中。etcd 使用 Raft 共识算法保证数据一致性和高可用性。 1234567891011121314151617181920212223242526272829303132333435363738394041424344┌─────────────────────────────────────────────────────────────────────────┐│                         etcd 架构图                                      │├─────────────────────────────────────────────────────────────────────────┤│                                                  ...</div></div></div></a><a class="pagination-related" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-%E5%AD%98%E5%82%A8%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="存储架构深度剖析"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-25</div><div class="info-item-2">存储架构深度剖析</div></div><div class="info-2"><div class="info-item-1">存储架构深度剖析概述Kubernetes 存储系统是一个复杂的多层架构，涉及 PV、PVC、StorageClass、CSI 等多个组件。本文深入剖析存储系统的工作原理、生命周期管理和源码实现。 核心架构12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849505152535455565758596061┌──────────────────────────────────────────────────────────────────────────────┐│                           用户层                                              ││                                                                             ││  ┌─────────────┐  ┌─────────────┐  ┌───────...</div></div></div></a><a class="pagination-related" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-kubelet%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="Kubelet 深度剖析"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-25</div><div class="info-item-2">Kubelet 深度剖析</div></div><div class="info-2"><div class="info-item-1">Kubelet 深度剖析概述Kubelet 是 Kubernetes 集群中运行在每个节点上的核心组件，负责管理和维护 Pod 的生命周期。它是节点与 API Server 之间的桥梁，将容器运行时（Container Runtime）的实际状态与 etcd 中期望的状态进行调和（Reconciliation）。 123456789101112131415161718192021222324252627282930313233343536373839404142434445┌─────────────────────────────────────────────────────────────────────┐│                        Kubelet 架构图                                │├─────────────────────────────────────────────────────────────────────┤│                                              ...</div></div></div></a><a class="pagination-related" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-%E5%AE%89%E5%85%A8%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="安全架构深度剖析"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-25</div><div class="info-item-2">安全架构深度剖析</div></div><div class="info-2"><div class="info-item-1">安全架构深度剖析概述Kubernetes 安全架构涵盖身份认证(Authentication)、授权(Authorization)、准入控制(Admission Control)、网络策略(NetworkPolicy)等多个层次。本文深入剖析 Kubernetes 安全机制的工作原理。 安全分层架构1234567891011121314151617181920212223242526272829303132333435363738┌──────────────────────────────────────────────────────────────────────────────┐│                          Kubernetes 安全分层                                 ││                                                                             ││  ┌─────────────────────────────────────────...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">303</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">96</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E8%B0%83%E5%BA%A6%E5%99%A8%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90"><span class="toc-number">1.</span> <span class="toc-text">调度器深度剖析</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%A6%82%E8%BF%B0"><span class="toc-number">1.1.</span> <span class="toc-text">概述</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%A0%B8%E5%BF%83%E6%9E%B6%E6%9E%84"><span class="toc-number">1.2.</span> <span class="toc-text">核心架构</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%B0%83%E5%BA%A6%E5%91%A8%E6%9C%9F"><span class="toc-number">1.3.</span> <span class="toc-text">调度周期</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%BB%E5%BE%AA%E7%8E%AF"><span class="toc-number">1.3.1.</span> <span class="toc-text">主循环</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%B0%83%E5%BA%A6%E7%AE%97%E6%B3%95%E8%AF%A6%E8%A7%A3"><span class="toc-number">1.4.</span> <span class="toc-text">调度算法详解</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-Filter-%E9%98%B6%E6%AE%B5-Predicates"><span class="toc-number">1.4.1.</span> <span class="toc-text">1. Filter 阶段 (Predicates)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-Score-%E9%98%B6%E6%AE%B5-Priorities"><span class="toc-number">1.4.2.</span> <span class="toc-text">2. Score 阶段 (Priorities)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-%E8%B5%84%E6%BA%90%E5%B9%B3%E8%A1%A1%E5%88%86%E9%85%8D"><span class="toc-number">1.4.3.</span> <span class="toc-text">3. 资源平衡分配</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-%E9%95%9C%E5%83%8F%E6%9C%AC%E5%9C%B0%E6%80%A7%E8%AF%84%E5%88%86"><span class="toc-number">1.4.4.</span> <span class="toc-text">4. 镜像本地性评分</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%B0%83%E5%BA%A6%E9%98%9F%E5%88%97"><span class="toc-number">1.5.</span> <span class="toc-text">调度队列</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%89%E7%A7%8D%E9%98%9F%E5%88%97"><span class="toc-number">1.5.1.</span> <span class="toc-text">三种队列</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Pod-%E4%BC%98%E5%85%88%E7%BA%A7"><span class="toc-number">1.5.2.</span> <span class="toc-text">Pod 优先级</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%B2%E5%92%8C%E6%80%A7%E4%B8%8E%E5%8F%8D%E4%BA%B2%E5%92%8C%E6%80%A7"><span class="toc-number">1.6.</span> <span class="toc-text">亲和性与反亲和性</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Pod-%E9%97%B4%E4%BA%B2%E5%92%8C%E6%80%A7"><span class="toc-number">1.6.1.</span> <span class="toc-text">Pod 间亲和性</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%AF%84%E5%88%86%E8%AE%A1%E7%AE%97"><span class="toc-number">1.6.2.</span> <span class="toc-text">评分计算</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Volume-%E8%B0%83%E5%BA%A6"><span class="toc-number">1.7.</span> <span class="toc-text">Volume 调度</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#PVC-%E7%BB%91%E5%AE%9A%E6%B5%81%E7%A8%8B"><span class="toc-number">1.7.1.</span> <span class="toc-text">PVC 绑定流程</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%BB%B6%E8%BF%9F%E7%BB%91%E5%AE%9A%E6%A8%A1%E5%BC%8F"><span class="toc-number">1.7.2.</span> <span class="toc-text">延迟绑定模式</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%B0%83%E5%BA%A6%E4%BC%98%E5%8C%96"><span class="toc-number">1.8.</span> <span class="toc-text">调度优化</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E8%B0%83%E5%BA%A6%E5%99%A8%E9%85%8D%E7%BD%AE"><span class="toc-number">1.8.1.</span> <span class="toc-text">1. 调度器配置</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E5%A4%9A%E4%B8%AA%E8%B0%83%E5%BA%A6%E5%99%A8"><span class="toc-number">1.8.2.</span> <span class="toc-text">2. 多个调度器</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-%E8%B0%83%E5%BA%A6%E6%A1%86%E6%9E%B6%E6%89%A9%E5%B1%95"><span class="toc-number">1.8.3.</span> <span class="toc-text">3. 调度框架扩展</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%B3%E9%94%AE%E4%BB%A3%E7%A0%81%E8%B7%AF%E5%BE%84"><span class="toc-number">1.9.</span> <span class="toc-text">关键代码路径</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5"><span class="toc-number">1.10.</span> <span class="toc-text">常见问题排查</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-Pod-%E4%B8%80%E7%9B%B4%E5%A4%84%E4%BA%8E-Pending"><span class="toc-number">1.10.1.</span> <span class="toc-text">1. Pod 一直处于 Pending</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-Pod-%E8%B0%83%E5%BA%A6%E5%A4%B1%E8%B4%A5"><span class="toc-number">1.10.2.</span> <span class="toc-text">2. Pod 调度失败</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-%E8%B0%83%E5%BA%A6%E6%80%A7%E8%83%BD%E9%97%AE%E9%A2%98"><span class="toc-number">1.10.3.</span> <span class="toc-text">3. 调度性能问题</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%B0%83%E5%BA%A6%E5%99%A8%E6%8C%87%E6%A0%87"><span class="toc-number">1.11.</span> <span class="toc-text">调度器指标</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E9%9D%A2%E8%AF%95%E9%A2%98"><span class="toc-number">2.</span> <span class="toc-text">面试题</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9F%BA%E7%A1%80%E9%A2%98"><span class="toc-number">2.1.</span> <span class="toc-text">基础题</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-Kubernetes-%E8%B0%83%E5%BA%A6%E5%99%A8%E7%9A%84%E4%B8%BB%E8%A6%81%E8%81%8C%E8%B4%A3%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="toc-number">2.1.1.</span> <span class="toc-text">1. Kubernetes 调度器的主要职责是什么？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E8%B0%83%E5%BA%A6%E5%99%A8%E7%9A%84%E5%B7%A5%E4%BD%9C%E6%B5%81%E7%A8%8B%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="toc-number">2.1.2.</span> <span class="toc-text">2. 调度器的工作流程是什么？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-Filter-%E9%98%B6%E6%AE%B5%E5%92%8C-Score-%E9%98%B6%E6%AE%B5%E7%9A%84%E5%8C%BA%E5%88%AB%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="toc-number">2.1.3.</span> <span class="toc-text">3. Filter 阶段和 Score 阶段的区别是什么？</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%AD%E7%BA%A7%E9%A2%98"><span class="toc-number">2.2.</span> <span class="toc-text">中级题</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#4-%E8%B0%83%E5%BA%A6%E9%98%9F%E5%88%97%E6%9C%89%E5%93%AA%E5%87%A0%E7%A7%8D%EF%BC%9F%E5%90%84%E8%87%AA%E7%9A%84%E4%BD%9C%E7%94%A8%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="toc-number">2.2.1.</span> <span class="toc-text">4. 调度队列有哪几种？各自的作用是什么？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-Pod-%E4%BA%B2%E5%92%8C%E6%80%A7%E6%9C%89%E5%93%AA%E5%87%A0%E7%A7%8D%E7%B1%BB%E5%9E%8B%EF%BC%9F%E5%A6%82%E4%BD%95%E5%B7%A5%E4%BD%9C%EF%BC%9F"><span class="toc-number">2.2.2.</span> <span class="toc-text">5. Pod 亲和性有哪几种类型？如何工作？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-%E8%B0%83%E5%BA%A6%E5%99%A8%E5%A6%82%E4%BD%95%E5%A4%84%E7%90%86%E5%AD%98%E5%82%A8%E5%8D%B7%EF%BC%9F"><span class="toc-number">2.2.3.</span> <span class="toc-text">6. 调度器如何处理存储卷？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#7-%E5%A6%82%E4%BD%95%E8%87%AA%E5%AE%9A%E4%B9%89%E8%B0%83%E5%BA%A6%E8%A1%8C%E4%B8%BA%EF%BC%9F"><span class="toc-number">2.2.4.</span> <span class="toc-text">7. 如何自定义调度行为？</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%AB%98%E7%BA%A7%E9%A2%98"><span class="toc-number">2.3.</span> <span class="toc-text">高级题</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#8-%E8%B0%83%E5%BA%A6%E5%99%A8%E7%9A%84%E8%B0%83%E5%BA%A6%E7%AE%97%E6%B3%95%E6%9C%89%E5%93%AA%E4%BA%9B%EF%BC%9F%E5%90%84%E8%87%AA%E4%BC%98%E7%BC%BA%E7%82%B9%EF%BC%9F"><span class="toc-number">2.3.1.</span> <span class="toc-text">8. 调度器的调度算法有哪些？各自优缺点？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#9-%E8%B0%83%E5%BA%A6%E5%99%A8%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81-Pod-%E8%B0%83%E5%BA%A6%E7%9A%84%E5%85%AC%E5%B9%B3%E6%80%A7%EF%BC%9F"><span class="toc-number">2.3.2.</span> <span class="toc-text">9. 调度器如何保证 Pod 调度的公平性？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#10-%E8%B0%83%E5%BA%A6%E5%99%A8%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96%E6%9C%89%E5%93%AA%E4%BA%9B%E6%96%B9%E6%B3%95%EF%BC%9F"><span class="toc-number">2.3.3.</span> <span class="toc-text">10. 调度器性能优化有哪些方法？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#11-%E8%B0%83%E5%BA%A6%E6%A1%86%E6%9E%B6%E7%9A%84%E6%89%A9%E5%B1%95%E7%82%B9%E6%9C%89%E5%93%AA%E4%BA%9B%EF%BC%9F"><span class="toc-number">2.3.4.</span> <span class="toc-text">11. 调度框架的扩展点有哪些？</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9C%BA%E6%99%AF%E9%A2%98"><span class="toc-number">2.4.</span> <span class="toc-text">场景题</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#12-%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0-Pod-%E5%B0%BD%E9%87%8F%E5%88%86%E6%95%A3%E5%9C%A8%E4%B8%8D%E5%90%8C%E7%9A%84%E5%8F%AF%E7%94%A8%E5%8C%BA%EF%BC%9F"><span class="toc-number">2.4.1.</span> <span class="toc-text">12. 如何实现 Pod 尽量分散在不同的可用区？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#13-%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0-GPU-%E8%B0%83%E5%BA%A6%EF%BC%9F"><span class="toc-number">2.4.2.</span> <span class="toc-text">13. 如何实现 GPU 调度？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#14-%E8%B0%83%E5%BA%A6%E5%99%A8%E5%A6%82%E4%BD%95%E5%A4%84%E7%90%86%E5%A4%A7%E8%A7%84%E6%A8%A1%E9%9B%86%E7%BE%A4%EF%BC%9F"><span class="toc-number">2.4.3.</span> <span class="toc-text">14. 调度器如何处理大规模集群？</span></a></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/03/26/cloud/arch/Kubernetes%E9%80%9A%E4%BF%A1%E9%93%BE%E8%B7%AF%E8%AF%A6%E7%BB%86%E5%88%86%E6%9E%90/" title="Kubernetes 通信链路详细分析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="Kubernetes 通信链路详细分析"/></a><div class="content"><a class="title" href="/2026/03/26/cloud/arch/Kubernetes%E9%80%9A%E4%BF%A1%E9%93%BE%E8%B7%AF%E8%AF%A6%E7%BB%86%E5%88%86%E6%9E%90/" title="Kubernetes 通信链路详细分析">Kubernetes 通信链路详细分析</a><time datetime="2026-03-26T13:15:00.000Z" title="发表于 2026-03-26 21:15:00">2026-03-26</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-API%20Server%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="kube-apiserver 深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="kube-apiserver 深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-API%20Server%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="kube-apiserver 深度剖析">kube-apiserver 深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-etcd%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="etcd 深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="etcd 深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-etcd%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="etcd 深度剖析">etcd 深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-%E5%AD%98%E5%82%A8%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="存储架构深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="存储架构深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-%E5%AD%98%E5%82%A8%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="存储架构深度剖析">存储架构深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-kubelet%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="Kubelet 深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="Kubelet 深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-kubelet%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="Kubelet 深度剖析">Kubelet 深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script src="/js/reading-progress.js"></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

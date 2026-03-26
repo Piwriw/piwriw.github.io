@@ -1,0 +1,671 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>K8s-PVC供应与绑定流程 | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="PVC 供应与绑定流程本文档描述 Kubernetes 中 PVC（PersistentVolumeClaim）、PV（PersistentVolume）和 StorageClass 的完整交互流程。 概述PVC 供应与绑定涉及以下核心组件：  PV Controller：管理 PV 和 PVC 的绑定 StorageClass：定义动态供应参数 Provisioner：实际创建存储卷（in-tr">
+<meta property="og:type" content="article">
+<meta property="og:title" content="K8s-PVC供应与绑定流程">
+<meta property="og:url" content="https://piwriw.github.io/2026/03/22/cloud/k8s/PVC%E4%BE%9B%E5%BA%94%E4%B8%8E%E7%BB%91%E5%AE%9A%E6%B5%81%E7%A8%8B/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="PVC 供应与绑定流程本文档描述 Kubernetes 中 PVC（PersistentVolumeClaim）、PV（PersistentVolume）和 StorageClass 的完整交互流程。 概述PVC 供应与绑定涉及以下核心组件：  PV Controller：管理 PV 和 PVC 的绑定 StorageClass：定义动态供应参数 Provisioner：实际创建存储卷（in-tr">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/k8sLogo.png">
+<meta property="article:published_time" content="2026-03-22T13:22:55.000Z">
+<meta property="article:modified_time" content="2026-03-26T15:28:20.112Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="k8s">
+<meta property="article:tag" content="cloud">
+<meta property="article:tag" content="K8s源码">
+<meta property="article:tag" content="PVC">
+<meta property="article:tag" content="PV">
+<meta property="article:tag" content="StorageClass">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/k8sLogo.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "K8s-PVC供应与绑定流程",
+  "url": "https://piwriw.github.io/2026/03/22/cloud/k8s/PVC%E4%BE%9B%E5%BA%94%E4%B8%8E%E7%BB%91%E5%AE%9A%E6%B5%81%E7%A8%8B/",
+  "image": "https://piwriw.github.io/img/k8sLogo.png",
+  "datePublished": "2026-03-22T13:22:55.000Z",
+  "dateModified": "2026-03-26T15:28:20.112Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2026/03/22/cloud/k8s/PVC%E4%BE%9B%E5%BA%94%E4%B8%8E%E7%BB%91%E5%AE%9A%E6%B5%81%E7%A8%8B/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          const hour = new Date().getHours()
+          const isNight = hour <= 6 || hour >= 18
+          if (theme === undefined) isNight ? activateDarkMode() : activateLightMode()
+          else theme === 'light' ? activateLightMode() : activateDarkMode()
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '天',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'K8s-PVC供应与绑定流程',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">303</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">96</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/k8sLogo.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">K8s-PVC供应与绑定流程</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">K8s-PVC供应与绑定流程</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-03-22T13:22:55.000Z" title="发表于 2026-03-22 21:22:55">2026-03-22</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-03-26T15:28:20.112Z" title="更新于 2026-03-26 23:28:20">2026-03-26</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/">k8s</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">3.1k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>14分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-03-26 23:28:20&quot;}" hidden></div><h1 id="PVC-供应与绑定流程"><a href="#PVC-供应与绑定流程" class="headerlink" title="PVC 供应与绑定流程"></a>PVC 供应与绑定流程</h1><p>本文档描述 Kubernetes 中 PVC（PersistentVolumeClaim）、PV（PersistentVolume）和 StorageClass 的完整交互流程。</p>
+<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>PVC 供应与绑定涉及以下核心组件：</p>
+<ul>
+<li><strong>PV Controller</strong>：管理 PV 和 PVC 的绑定</li>
+<li><strong>StorageClass</strong>：定义动态供应参数</li>
+<li><strong>Provisioner</strong>：实际创建存储卷（in-tree 或 CSI）</li>
+<li><strong>Scheduler</strong>：处理 WaitForFirstConsumer 模式</li>
+</ul>
+<pre><code class="highlight mermaid">flowchart TD
+    subgraph User[&quot;用户操作&quot;]
+        A[&quot;创建 PVC&quot;]
+    end
+
+    subgraph APIServer[&quot;API Server&quot;]
+        B[&quot;PVC 资源&quot;]
+        C[&quot;PV 资源&quot;]
+        D[&quot;StorageClass&quot;]
+    end
+
+    subgraph PVController[&quot;PV Controller&quot;]
+        E[&quot;Watch PVC&quot;]
+        F[&quot;syncClaim&quot;]
+        G[&quot;FindMatchingVolume&quot;]
+        H[&quot;provisionClaim&quot;]
+    end
+
+    subgraph Provisioner[&quot;Provisioner&quot;]
+        I[&quot;In-tree Provisioner&quot;]
+        J[&quot;CSI External Provisioner&quot;]
+    end
+
+    subgraph StorageBackend[&quot;存储后端&quot;]
+        K[&quot;Cloud Disk&quot;]
+        L[&quot;NFS&quot;]
+        M[&quot;Local Path&quot;]
+    end
+
+    A --&gt; B
+    B --&gt;|触发| E
+    E --&gt; F
+
+    alt 静态供应
+        F --&gt; G
+        G --&gt;|匹配现有 PV| C
+    else 动态供应
+        F --&gt; H
+        H --&gt; I
+        H --&gt; J
+        I --&gt;|创建| K
+        I --&gt;|创建| L
+        J --&gt;|创建| K
+        K --&gt;|创建 PV| C
+        M --&gt;|创建 PV| C
+    end
+
+    C --&gt;|绑定| B
+
+    style F fill:#c8e6c9
+    style H fill:#fff9c4</code></pre>
+
+<h2 id="流程详解"><a href="#流程详解" class="headerlink" title="流程详解"></a>流程详解</h2><h3 id="1-PV-Controller-架构"><a href="#1-PV-Controller-架构" class="headerlink" title="1. PV Controller 架构"></a>1. PV Controller 架构</h3><p><strong>代码路径</strong>: <code>pkg/controller/volume/persistentvolume/pv_controller.go</code></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> PersistentVolumeController <span class="keyword">struct</span> &#123;</span><br><span class="line">    volumeLister       corelisters.PersistentVolumeLister</span><br><span class="line">    volumeSynced       cache.InformerSynced</span><br><span class="line">    claimLister        corelisters.PersistentVolumeClaimLister</span><br><span class="line">    claimSynced        cache.InformerSynced</span><br><span class="line">    classLister        storagelisters.StorageClassLister</span><br><span class="line">    classSynced        cache.InformerSynced</span><br><span class="line"></span><br><span class="line">    kubeClient clientset.Interface</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 事件记录</span></span><br><span class="line">    eventRecorder record.EventRecorder</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Provisioner 插件</span></span><br><span class="line">    volumePlugins []volume.VolumePlugin</span><br><span class="line">    cloud         cloudprovider.Interface</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 工作队列</span></span><br><span class="line">    queue workqueue.RateLimitingInterface</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-PVC-绑定状态机"><a href="#2-PVC-绑定状态机" class="headerlink" title="2. PVC 绑定状态机"></a>2. PVC 绑定状态机</h3><pre><code class="highlight mermaid">stateDiagram-v2
+    [*] --&gt; Pending: 创建 PVC
+    Pending --&gt; Bound: 找到匹配 PV (静态供应)
+    Pending --&gt; Bound: 动态供应完成
+    Bound --&gt; Released: 删除 PVC
+    Released --&gt; Available: ReclaimPolicy=Retain
+    Released --&gt; [*]: ReclaimPolicy=Delete
+    Pending --&gt; Lost: 绑定失败</code></pre>
+
+<h3 id="3-syncClaim-核心逻辑"><a href="#3-syncClaim-核心逻辑" class="headerlink" title="3. syncClaim 核心逻辑"></a>3. syncClaim 核心逻辑</h3><p><strong>代码路径</strong>: <code>pkg/controller/volume/persistentvolume/pv_controller.go:250</code></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(ctrl *PersistentVolumeController)</span></span> syncClaim(ctx context.Context, claim *v1.PersistentVolumeClaim) <span class="type">error</span> &#123;</span><br><span class="line">    logger := klog.FromContext(ctx)</span><br><span class="line">    logger.V(<span class="number">4</span>).Info(<span class="string">&quot;Synchronizing PersistentVolumeClaim&quot;</span>, <span class="string">&quot;PVC&quot;</span>, klog.KObj(claim))</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 更新迁移注解</span></span><br><span class="line">    newClaim, err := ctrl.updateClaimMigrationAnnotations(ctx, claim)</span><br><span class="line">    claim = newClaim</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 判断绑定状态</span></span><br><span class="line">    <span class="keyword">if</span> !metav1.HasAnnotation(claim.ObjectMeta, storagehelpers.AnnBindCompleted) &#123;</span><br><span class="line">        <span class="comment">// 未绑定的 PVC</span></span><br><span class="line">        <span class="keyword">return</span> ctrl.syncUnboundClaim(ctx, claim)</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">// 已绑定的 PVC</span></span><br><span class="line">        <span class="keyword">return</span> ctrl.syncBoundClaim(ctx, claim)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-未绑定-PVC-处理-syncUnboundClaim"><a href="#4-未绑定-PVC-处理-syncUnboundClaim" class="headerlink" title="4. 未绑定 PVC 处理 (syncUnboundClaim)"></a>4. 未绑定 PVC 处理 (syncUnboundClaim)</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(ctrl *PersistentVolumeController)</span></span> syncUnboundClaim(ctx context.Context, claim *v1.PersistentVolumeClaim) <span class="type">error</span> &#123;</span><br><span class="line">    <span class="comment">// 检查是否已绑定到 PV</span></span><br><span class="line">    <span class="keyword">if</span> claim.Spec.VolumeName != <span class="string">&quot;&quot;</span> &#123;</span><br><span class="line">        <span class="comment">// 已指定 VolumeName，验证绑定</span></span><br><span class="line">        <span class="keyword">return</span> ctrl.bindClaimToVolume(ctx, claim)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 1. 尝试匹配现有 PV (静态供应)</span></span><br><span class="line">    volume, err := ctrl.findBestMatchForClaim(ctx, claim)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> volume != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="comment">// 找到匹配的 PV，执行绑定</span></span><br><span class="line">        <span class="keyword">return</span> ctrl.bindClaimToVolume(ctx, claim, volume)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 2. 没有找到匹配的 PV，尝试动态供应</span></span><br><span class="line">    <span class="keyword">if</span> ctrl.shouldProvision(claim) &#123;</span><br><span class="line">        <span class="keyword">return</span> ctrl.provisionClaim(ctx, claim)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 3. 无法供应，保持 Pending 状态</span></span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="5-静态供应-vs-动态供应"><a href="#5-静态供应-vs-动态供应" class="headerlink" title="5. 静态供应 vs 动态供应"></a>5. 静态供应 vs 动态供应</h3><h4 id="5-1-静态供应"><a href="#5-1-静态供应" class="headerlink" title="5.1 静态供应"></a>5.1 静态供应</h4><p>管理员预先创建 PV：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">PersistentVolume</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">pv-nfs</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">capacity:</span></span><br><span class="line">    <span class="attr">storage:</span> <span class="string">10Gi</span></span><br><span class="line">  <span class="attr">accessModes:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">ReadWriteMany</span></span><br><span class="line">  <span class="attr">persistentVolumeReclaimPolicy:</span> <span class="string">Retain</span></span><br><span class="line">  <span class="attr">nfs:</span></span><br><span class="line">    <span class="attr">server:</span> <span class="number">192.168</span><span class="number">.1</span><span class="number">.100</span></span><br><span class="line">    <span class="attr">path:</span> <span class="string">/data</span></span><br></pre></td></tr></table></figure>
+
+<p>PVC 绑定到预创建的 PV：</p>
+<pre><code class="highlight mermaid">sequenceDiagram
+    participant Admin as 管理员
+    participant API as API Server
+    participant PVC as PV Controller
+    participant PV as PV 资源
+
+    Admin-&gt;&gt;API: 创建 PV
+    API-&gt;&gt;PV: Available 状态
+
+    Note over API: 用户创建 PVC
+    API-&gt;&gt;PVC: syncClaim 触发
+    PVC-&gt;&gt;PV: findBestMatchForClaim
+    PV-&gt;&gt;PVC: 返回匹配的 PV
+    PVC-&gt;&gt;API: 更新 PVC.Spec.VolumeName
+    PVC-&gt;&gt;API: 更新 PV.Spec.ClaimRef
+    API-&gt;&gt;PV: Bound 状态
+    API-&gt;&gt;PVC: Bound 状态</code></pre>
+
+<h4 id="5-2-动态供应"><a href="#5-2-动态供应" class="headerlink" title="5.2 动态供应"></a>5.2 动态供应</h4><p>根据 StorageClass 自动创建 PV：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">storage.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">StorageClass</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">fast-storage</span></span><br><span class="line"><span class="attr">provisioner:</span> <span class="string">kubernetes.io/gce-pd</span></span><br><span class="line"><span class="attr">parameters:</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">pd-ssd</span></span><br><span class="line"><span class="attr">reclaimPolicy:</span> <span class="string">Delete</span></span><br><span class="line"><span class="attr">volumeBindingMode:</span> <span class="string">Immediate</span></span><br></pre></td></tr></table></figure>
+
+<pre><code class="highlight mermaid">sequenceDiagram
+    participant User as 用户
+    participant API as API Server
+    participant PVC as PV Controller
+    participant Prov as Provisioner
+    participant Backend as 存储后端
+
+    User-&gt;&gt;API: 创建 PVC (指定 StorageClass)
+    API-&gt;&gt;PVC: syncClaim 触发
+    PVC-&gt;&gt;PVC: findBestMatchForClaim (无匹配)
+    PVC-&gt;&gt;PVC: shouldProvision (返回 true)
+    PVC-&gt;&gt;Prov: provisionClaim
+
+    Prov-&gt;&gt;Backend: 创建存储卷
+    Backend-&gt;&gt;Prov: 返回卷 ID
+    Prov-&gt;&gt;API: 创建 PV
+    API-&gt;&gt;PVC: PV Available
+
+    Note over PVC: 下一次 syncClaim
+    PVC-&gt;&gt;API: 绑定 PV 到 PVC
+    API-&gt;&gt;PVC: Bound 状态</code></pre>
+
+<h3 id="6-FindMatchingVolume-逻辑"><a href="#6-FindMatchingVolume-逻辑" class="headerlink" title="6. FindMatchingVolume 逻辑"></a>6. FindMatchingVolume 逻辑</h3><p><strong>代码路径</strong>: <code>staging/src/k8s.io/component-helpers/storage/volume/pv_helpers.go:185</code></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">FindMatchingVolume</span><span class="params">(</span></span></span><br><span class="line"><span class="params"><span class="function">    claim *v1.PersistentVolumeClaim,</span></span></span><br><span class="line"><span class="params"><span class="function">    volumes []*v1.PersistentVolume,</span></span></span><br><span class="line"><span class="params"><span class="function">    node *v1.Node,</span></span></span><br><span class="line"><span class="params"><span class="function">    excludedVolumes <span class="keyword">map</span>[<span class="type">string</span>]*v1.PersistentVolume,</span></span></span><br><span class="line"><span class="params"><span class="function">    delayBinding <span class="type">bool</span>)</span></span> (*v1.PersistentVolume, <span class="type">error</span>) &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">var</span> smallestVolume *v1.PersistentVolume</span><br><span class="line">    requestedQty := claim.Spec.Resources.Requests[v1.ResourceName(v1.ResourceStorage)]</span><br><span class="line">    requestedClass := GetPersistentVolumeClaimClass(claim)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> _, volume := <span class="keyword">range</span> volumes &#123;</span><br><span class="line">        <span class="comment">// 检查容量</span></span><br><span class="line">        volumeQty := volume.Spec.Capacity[v1.ResourceStorage]</span><br><span class="line">        <span class="keyword">if</span> volumeQty.Cmp(requestedQty) &lt; <span class="number">0</span> &#123;</span><br><span class="line">            <span class="keyword">continue</span></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 检查 VolumeMode</span></span><br><span class="line">        <span class="keyword">if</span> CheckVolumeModeMismatches(&amp;claim.Spec, &amp;volume.Spec) &#123;</span><br><span class="line">            <span class="keyword">continue</span></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 检查 PV 是否正在删除</span></span><br><span class="line">        <span class="keyword">if</span> volume.ObjectMeta.DeletionTimestamp != <span class="literal">nil</span> &#123;</span><br><span class="line">            <span class="keyword">continue</span></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 检查 NodeAffinity (WaitForFirstConsumer 模式)</span></span><br><span class="line">        <span class="keyword">if</span> node != <span class="literal">nil</span> &#123;</span><br><span class="line">            err := CheckNodeAffinity(volume, node.Labels)</span><br><span class="line">            <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">                <span class="keyword">continue</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 检查 StorageClass</span></span><br><span class="line">        <span class="keyword">if</span> GetPersistentVolumeClass(volume) != requestedClass &#123;</span><br><span class="line">            <span class="keyword">continue</span></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 检查 AccessModes</span></span><br><span class="line">        <span class="keyword">if</span> !CheckAccessModes(claim, volume) &#123;</span><br><span class="line">            <span class="keyword">continue</span></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 选择最小的匹配卷</span></span><br><span class="line">        <span class="keyword">if</span> smallestVolume == <span class="literal">nil</span> || smallestVolumeQty.Cmp(volumeQty) &gt; <span class="number">0</span> &#123;</span><br><span class="line">            smallestVolume = volume</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> smallestVolume, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="7-VolumeBindingMode"><a href="#7-VolumeBindingMode" class="headerlink" title="7. VolumeBindingMode"></a>7. VolumeBindingMode</h3><h4 id="7-1-Immediate（立即绑定）"><a href="#7-1-Immediate（立即绑定）" class="headerlink" title="7.1 Immediate（立即绑定）"></a>7.1 Immediate（立即绑定）</h4><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">volumeBindingMode:</span> <span class="string">Immediate</span></span><br></pre></td></tr></table></figure>
+
+<p>PVC 创建后立即绑定，不考虑 Pod 调度位置。</p>
+<h4 id="7-2-WaitForFirstConsumer（延迟绑定）"><a href="#7-2-WaitForFirstConsumer（延迟绑定）" class="headerlink" title="7.2 WaitForFirstConsumer（延迟绑定）"></a>7.2 WaitForFirstConsumer（延迟绑定）</h4><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">volumeBindingMode:</span> <span class="string">WaitForFirstConsumer</span></span><br></pre></td></tr></table></figure>
+
+<p>等待使用该 PVC 的 Pod 被调度后再绑定：</p>
+<pre><code class="highlight mermaid">sequenceDiagram
+    participant User as 用户
+    participant API as API Server
+    participant PVC as PV Controller
+    participant Sched as Scheduler
+    participant Prov as Provisioner
+
+    User-&gt;&gt;API: 创建 PVC (WaitForFirstConsumer)
+    API-&gt;&gt;PVC: syncClaim
+    PVC-&gt;&gt;PVC: IsDelayBindingMode (true)
+    Note over PVC: 不立即绑定，等待调度
+
+    User-&gt;&gt;API: 创建 Pod (使用 PVC)
+    API-&gt;&gt;Sched: 调度 Pod
+    Sched-&gt;&gt;Sched: 选择节点
+    Sched-&gt;&gt;API: 添加 AnnSelectedNode 注解
+
+    API-&gt;&gt;PVC: PVC 更新事件
+    PVC-&gt;&gt;Prov: provisionClaim (with selected node)
+    Prov-&gt;&gt;API: 创建 PV (with node affinity)
+    API-&gt;&gt;PVC: 绑定完成</code></pre>
+
+<p><strong>相关注解</strong>:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> (</span><br><span class="line">    <span class="comment">// AnnSelectedNode 表示调度器选中的节点</span></span><br><span class="line">    AnnSelectedNode = <span class="string">&quot;volume.kubernetes.io/selected-node&quot;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// AnnStorageProvisioner 表示应该供应此 PVC 的 provisioner</span></span><br><span class="line">    AnnStorageProvisioner = <span class="string">&quot;volume.kubernetes.io/storage-provisioner&quot;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// AnnBindCompleted 表示绑定已完成</span></span><br><span class="line">    AnnBindCompleted = <span class="string">&quot;pv.kubernetes.io/bind-completed&quot;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// AnnBoundByController 表示由控制器完成绑定</span></span><br><span class="line">    AnnBoundByController = <span class="string">&quot;pv.kubernetes.io/bound-by-controller&quot;</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// AnnDynamicallyProvisioned 表示动态供应的 PV</span></span><br><span class="line">    AnnDynamicallyProvisioned = <span class="string">&quot;pv.kubernetes.io/provisioned-by&quot;</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<h3 id="8-Reclaim-Policy"><a href="#8-Reclaim-Policy" class="headerlink" title="8. Reclaim Policy"></a>8. Reclaim Policy</h3><p><strong>代码路径</strong>: <code>pkg/controller/volume/persistentvolume/pv_controller.go:1154</code></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(ctrl *PersistentVolumeController)</span></span> reclaimVolume(ctx context.Context, volume *v1.PersistentVolume) <span class="type">error</span> &#123;</span><br><span class="line">    logger := klog.FromContext(ctx)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 检查是否迁移到 CSI</span></span><br><span class="line">    <span class="keyword">if</span> migrated := volume.Annotations[storagehelpers.AnnMigratedTo]; <span class="built_in">len</span>(migrated) &gt; <span class="number">0</span> &#123;</span><br><span class="line">        <span class="comment">// CSI provisioner 负责处理</span></span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">switch</span> volume.Spec.PersistentVolumeReclaimPolicy &#123;</span><br><span class="line">    <span class="keyword">case</span> v1.PersistentVolumeReclaimRetain:</span><br><span class="line">        <span class="comment">// 保留 PV，需要手动处理</span></span><br><span class="line">        <span class="keyword">return</span> ctrl.retainVolume(ctx, volume)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">case</span> v1.PersistentVolumeReclaimDelete:</span><br><span class="line">        <span class="comment">// 删除 PV 和后端存储</span></span><br><span class="line">        <span class="keyword">return</span> ctrl.deleteVolume(ctx, volume)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">case</span> v1.PersistentVolumeReclaimRecycle:</span><br><span class="line">        <span class="comment">// 已废弃，执行回收脚本</span></span><br><span class="line">        <span class="keyword">return</span> ctrl.recycleVolume(ctx, volume)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>Reclaim Policy</th>
+<th>行为</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Retain</td>
+<td>保留 PV 和数据，需手动清理</td>
+</tr>
+<tr>
+<td>Delete</td>
+<td>删除 PV 和后端存储</td>
+</tr>
+<tr>
+<td>Recycle</td>
+<td>已废弃，执行 <code>rm -rf /volume/*</code></td>
+</tr>
+</tbody></table>
+<h3 id="9-syncVolume-核心逻辑"><a href="#9-syncVolume-核心逻辑" class="headerlink" title="9. syncVolume 核心逻辑"></a>9. syncVolume 核心逻辑</h3><p><strong>代码路径</strong>: <code>pkg/controller/volume/persistentvolume/pv_controller.go:556</code></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(ctrl *PersistentVolumeController)</span></span> syncVolume(ctx context.Context, volume *v1.PersistentVolume) <span class="type">error</span> &#123;</span><br><span class="line">    logger := klog.FromContext(ctx)</span><br><span class="line">    logger.V(<span class="number">4</span>).Info(<span class="string">&quot;Synchronizing PersistentVolume&quot;</span>, <span class="string">&quot;volumeName&quot;</span>, volume.Name)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 更新迁移注解和 Finalizer</span></span><br><span class="line">    newVolume, err := ctrl.updateVolumeMigrationAnnotationsAndFinalizers(ctx, volume)</span><br><span class="line">    volume = newVolume</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> volume.Spec.ClaimRef == <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="comment">// PV 未绑定，设置为 Available</span></span><br><span class="line">        <span class="keyword">return</span> ctrl.updateVolumePhase(ctx, volume, v1.VolumeAvailable, <span class="string">&quot;&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 获取关联的 PVC</span></span><br><span class="line">    claim, err := ctrl.claimLister.PersistentVolumeClaims(volume.Spec.ClaimRef.Namespace).Get(volume.Spec.ClaimRef.Name)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> apierrors.IsNotFound(err) &#123;</span><br><span class="line">        <span class="comment">// PVC 不存在，执行 Reclaim</span></span><br><span class="line">        <span class="keyword">return</span> ctrl.reclaimVolume(ctx, volume)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 检查绑定是否有效</span></span><br><span class="line">    <span class="keyword">if</span> !IsVolumeBoundToClaim(volume, claim) &#123;</span><br><span class="line">        <span class="comment">// 绑定无效，重置 PV</span></span><br><span class="line">        <span class="keyword">return</span> ctrl.unbindVolume(ctx, volume)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 更新 PV 状态为 Bound</span></span><br><span class="line">    <span class="keyword">return</span> ctrl.updateVolumePhase(ctx, volume, v1.VolumeBound, <span class="string">&quot;&quot;</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="10-CSI-动态供应"><a href="#10-CSI-动态供应" class="headerlink" title="10. CSI 动态供应"></a>10. CSI 动态供应</h3><p>现代 Kubernetes 推荐使用 CSI (Container Storage Interface)：</p>
+<pre><code class="highlight mermaid">flowchart TD
+    subgraph Kubernetes[&quot;Kubernetes 集群&quot;]
+        A[&quot;PVC&quot;]
+        B[&quot;StorageClass&quot;]
+        C[&quot;CSIDriver&quot;]
+    end
+
+    subgraph ExternalProvisioner[&quot;external-provisioner&quot;]
+        D[&quot;Watch PVC&quot;]
+        E[&quot;调用 CSI 接口&quot;]
+    end
+
+    subgraph CSI[&quot;CSI Driver&quot;]
+        F[&quot;CreateVolume&quot;]
+        G[&quot;DeleteVolume&quot;]
+        H[&quot;ControllerPublishVolume&quot;]
+    end
+
+    subgraph Storage[&quot;存储系统&quot;]
+        I[&quot;云磁盘 / NFS / 本地存储&quot;]
+    end
+
+    A --&gt;|指定| B
+    B --&gt;|provisioner:csi.xxx| C
+    A --&gt;|触发| D
+    D --&gt; E
+    E --&gt; F
+    F --&gt;|创建| I
+    I --&gt;|返回卷 ID| F
+    F --&gt;|创建 PV| A</code></pre>
+
+<h2 id="关键代码锚点"><a href="#关键代码锚点" class="headerlink" title="关键代码锚点"></a>关键代码锚点</h2><table>
+<thead>
+<tr>
+<th>功能</th>
+<th>文件路径</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PV Controller 结构</td>
+<td><code>pkg/controller/volume/persistentvolume/pv_controller.go</code></td>
+</tr>
+<tr>
+<td>syncClaim 入口</td>
+<td><code>pkg/controller/volume/persistentvolume/pv_controller.go:250</code></td>
+</tr>
+<tr>
+<td>syncVolume 入口</td>
+<td><code>pkg/controller/volume/persistentvolume/pv_controller.go:556</code></td>
+</tr>
+<tr>
+<td>reclaimVolume</td>
+<td><code>pkg/controller/volume/persistentvolume/pv_controller.go:1154</code></td>
+</tr>
+<tr>
+<td>FindMatchingVolume</td>
+<td><code>staging/src/k8s.io/component-helpers/storage/volume/pv_helpers.go:185</code></td>
+</tr>
+<tr>
+<td>注解常量</td>
+<td><code>staging/src/k8s.io/component-helpers/storage/volume/pv_helpers.go:33</code></td>
+</tr>
+</tbody></table>
+<h2 id="完整流程示例"><a href="#完整流程示例" class="headerlink" title="完整流程示例"></a>完整流程示例</h2><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 1. 创建 StorageClass</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">storage.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">StorageClass</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">standard</span></span><br><span class="line"><span class="attr">provisioner:</span> <span class="string">kubernetes.io/aws-ebs</span></span><br><span class="line"><span class="attr">parameters:</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">gp2</span></span><br><span class="line"><span class="attr">reclaimPolicy:</span> <span class="string">Delete</span></span><br><span class="line"><span class="attr">volumeBindingMode:</span> <span class="string">WaitForFirstConsumer</span></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="comment"># 2. 创建 PVC</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">PersistentVolumeClaim</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">my-pvc</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">accessModes:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">ReadWriteOnce</span></span><br><span class="line">  <span class="attr">storageClassName:</span> <span class="string">standard</span></span><br><span class="line">  <span class="attr">resources:</span></span><br><span class="line">    <span class="attr">requests:</span></span><br><span class="line">      <span class="attr">storage:</span> <span class="string">10Gi</span></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="comment"># 3. 创建 Pod 使用 PVC</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Pod</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">my-pod</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">containers:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">app</span></span><br><span class="line">    <span class="attr">image:</span> <span class="string">nginx</span></span><br><span class="line">    <span class="attr">volumeMounts:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">data</span></span><br><span class="line">      <span class="attr">mountPath:</span> <span class="string">/data</span></span><br><span class="line">  <span class="attr">volumes:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">data</span></span><br><span class="line">    <span class="attr">persistentVolumeClaim:</span></span><br><span class="line">      <span class="attr">claimName:</span> <span class="string">my-pvc</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="常见问题"><a href="#常见问题" class="headerlink" title="常见问题"></a>常见问题</h2><h3 id="PVC-一直-Pending"><a href="#PVC-一直-Pending" class="headerlink" title="PVC 一直 Pending"></a>PVC 一直 Pending</h3><ul>
+<li>检查是否有匹配的 PV 或 StorageClass</li>
+<li>检查 Provisioner 是否正常运行</li>
+<li>检查 WaitForFirstConsumer 模式是否有 Pod 使用</li>
+</ul>
+<h3 id="绑定失败"><a href="#绑定失败" class="headerlink" title="绑定失败"></a>绑定失败</h3><ul>
+<li>检查 PV 容量是否满足 PVC 请求</li>
+<li>检查 AccessModes 是否匹配</li>
+<li>检查 StorageClass 是否一致</li>
+</ul>
+<h3 id="动态供应失败"><a href="#动态供应失败" class="headerlink" title="动态供应失败"></a>动态供应失败</h3><ul>
+<li>检查 Provisioner 日志</li>
+<li>检查存储后端配额和权限</li>
+<li>检查 CSI Driver 状态</li>
+</ul>
+<h2 id="高频面试题"><a href="#高频面试题" class="headerlink" title="高频面试题"></a>高频面试题</h2><h3 id="Q1-PV-和-PVC-的绑定流程是怎样的？"><a href="#Q1-PV-和-PVC-的绑定流程是怎样的？" class="headerlink" title="Q1: PV 和 PVC 的绑定流程是怎样的？"></a>Q1: PV 和 PVC 的绑定流程是怎样的？</h3><p><strong>参考答案：</strong></p>
+<ol>
+<li><p><strong>静态供应：</strong></p>
+<ul>
+<li>管理员预先创建 PV（状态为 Available）</li>
+<li>用户创建 PVC</li>
+<li>PV Controller 执行 <code>syncClaim()</code></li>
+<li>调用 <code>findBestMatchForClaim()</code> 查找匹配的 PV</li>
+<li>匹配条件：容量、AccessMode、StorageClass、VolumeMode、Selector</li>
+<li>执行双向绑定：更新 PV.Spec.ClaimRef 和 PVC.Spec.VolumeName</li>
+<li>状态更新：PV → Bound，PVC → Bound</li>
+</ul>
+</li>
+<li><p><strong>动态供应：</strong></p>
+<ul>
+<li>用户创建 PVC（指定 StorageClass）</li>
+<li>PV Controller 发现没有匹配的 PV</li>
+<li>调用 <code>provisionClaim()</code> 触发动态供应</li>
+<li>Provisioner 创建后端存储，然后创建 PV</li>
+<li>下一次 syncClaim 时完成绑定</li>
+</ul>
+</li>
+</ol>
+<h3 id="Q2-StorageClass-的-VolumeBindingMode-有哪几种？"><a href="#Q2-StorageClass-的-VolumeBindingMode-有哪几种？" class="headerlink" title="Q2: StorageClass 的 VolumeBindingMode 有哪几种？"></a>Q2: StorageClass 的 VolumeBindingMode 有哪几种？</h3><p><strong>参考答案：</strong></p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 1. Immediate（立即绑定）</span></span><br><span class="line"><span class="attr">volumeBindingMode:</span> <span class="string">Immediate</span></span><br><span class="line"><span class="comment"># - PVC 创建后立即尝试绑定/供应</span></span><br><span class="line"><span class="comment"># - 不考虑 Pod 调度位置</span></span><br><span class="line"><span class="comment"># - 可能导致 Pod 调度到与 PV 不同的 Zone</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 2. WaitForFirstConsumer（延迟绑定）</span></span><br><span class="line"><span class="attr">volumeBindingMode:</span> <span class="string">WaitForFirstConsumer</span></span><br><span class="line"><span class="comment"># - 等待使用该 PVC 的 Pod 被调度</span></span><br><span class="line"><span class="comment"># - 调度器选择节点后，添加 AnnSelectedNode 注解</span></span><br><span class="line"><span class="comment"># - Provisioner 在选定节点所在的 Zone 创建 PV</span></span><br><span class="line"><span class="comment"># - 适用于 Local PV、跨 Zone 存储等场景</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="Q3-PV-的-ReclaimPolicy-有哪几种？分别是什么行为？"><a href="#Q3-PV-的-ReclaimPolicy-有哪几种？分别是什么行为？" class="headerlink" title="Q3: PV 的 ReclaimPolicy 有哪几种？分别是什么行为？"></a>Q3: PV 的 ReclaimPolicy 有哪几种？分别是什么行为？</h3><p><strong>参考答案：</strong></p>
+<table>
+<thead>
+<tr>
+<th>ReclaimPolicy</th>
+<th>行为</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Retain</strong></td>
+<td>保留 PV 和数据，需手动清理</td>
+<td>生产环境、重要数据</td>
+</tr>
+<tr>
+<td><strong>Delete</strong></td>
+<td>删除 PV 和后端存储</td>
+<td>动态供应的临时数据</td>
+</tr>
+<tr>
+<td><strong>Recycle</strong></td>
+<td>已废弃，执行 <code>rm -rf /volume/*</code></td>
+<td>旧版本兼容</td>
+</tr>
+</tbody></table>
+<p><strong>Retain 模式下的处理流程：</strong></p>
+<ol>
+<li>PVC 删除后，PV 状态变为 Released</li>
+<li>ClaimRef 保留（指向已删除的 PVC）</li>
+<li>管理员手动处理：<ul>
+<li>删除 PV（保留数据）</li>
+<li>或清除 ClaimRef 后 PV 重新 Available</li>
+</ul>
+</li>
+</ol>
+<h3 id="Q4-PVC-一直处于-Pending-状态，可能的原因有哪些？"><a href="#Q4-PVC-一直处于-Pending-状态，可能的原因有哪些？" class="headerlink" title="Q4: PVC 一直处于 Pending 状态，可能的原因有哪些？"></a>Q4: PVC 一直处于 Pending 状态，可能的原因有哪些？</h3><p><strong>参考答案：</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 排查命令</span></span><br><span class="line">kubectl describe pvc &lt;pvc-name&gt;</span><br><span class="line">kubectl get pv</span><br><span class="line">kubectl get storageclass</span><br><span class="line">kubectl get events --field-selector involvedObject.name=&lt;pvc-name&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 常见原因：</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 1. 没有匹配的 PV（静态供应）</span></span><br><span class="line"><span class="comment">#    - PV 容量不足</span></span><br><span class="line"><span class="comment">#    - AccessMode 不匹配</span></span><br><span class="line"><span class="comment">#    - StorageClass 不一致</span></span><br><span class="line"><span class="comment">#    - Selector 不匹配</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 2. 动态供应失败</span></span><br><span class="line"><span class="comment">#    - StorageClass 不存在</span></span><br><span class="line"><span class="comment">#    - Provisioner 未运行或异常</span></span><br><span class="line"><span class="comment">#    - 存储后端配额不足</span></span><br><span class="line"><span class="comment">#    - 权限问题</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 3. WaitForFirstConsumer 模式</span></span><br><span class="line"><span class="comment">#    - 没有使用该 PVC 的 Pod</span></span><br><span class="line"><span class="comment">#    - Pod 未被调度</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 4. CSI 驱动问题</span></span><br><span class="line"><span class="comment">#    - CSI Driver 未安装</span></span><br><span class="line"><span class="comment">#    - external-provisioner 未运行</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="Q5-CSI-动态供应的流程是怎样的？"><a href="#Q5-CSI-动态供应的流程是怎样的？" class="headerlink" title="Q5: CSI 动态供应的流程是怎样的？"></a>Q5: CSI 动态供应的流程是怎样的？</h3><p><strong>参考答案：</strong></p>
+<ol>
+<li><p><strong>PV Controller 处理：</strong></p>
+<ul>
+<li>发现 PVC 需要动态供应</li>
+<li>在 PVC 上设置 <code>volume.kubernetes.io/storage-provisioner</code> annotation</li>
+<li>发送 ExternalProvisioning 事件</li>
+</ul>
+</li>
+<li><p><strong>external-provisioner（CSI Sidecar）：</strong></p>
+<ul>
+<li>Watch PVC，发现 annotation 匹配自己的 driver name</li>
+<li>调用 CSI Driver 的 <code>CreateVolume</code> gRPC 接口</li>
+<li>获取后端存储返回的 Volume ID</li>
+</ul>
+</li>
+<li><p><strong>创建 PV：</strong></p>
+<ul>
+<li>external-provisioner 创建 PV 对象</li>
+<li>设置 <code>pv.kubernetes.io/provisioned-by</code> annotation</li>
+<li>设置 CSI 卷源（包含 Volume ID）</li>
+</ul>
+</li>
+<li><p><strong>完成绑定：</strong></p>
+<ul>
+<li>PV Controller 监听到新 PV</li>
+<li>执行正常的绑定流程</li>
+</ul>
+</li>
+</ol>
+<h3 id="Q6-PV-Controller-是如何保证绑定一致性的？"><a href="#Q6-PV-Controller-是如何保证绑定一致性的？" class="headerlink" title="Q6: PV Controller 是如何保证绑定一致性的？"></a>Q6: PV Controller 是如何保证绑定一致性的？</h3><p><strong>参考答案：</strong></p>
+<ol>
+<li><p><strong>双向绑定：</strong></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// bind() 函数执行顺序</span></span><br><span class="line"><span class="comment">// 1. 绑定 PV 到 PVC（设置 PV.Spec.ClaimRef）</span></span><br><span class="line"><span class="comment">// 2. 更新 PV 状态为 Bound</span></span><br><span class="line"><span class="comment">// 3. 绑定 PVC 到 PV（设置 PVC.Spec.VolumeName）</span></span><br><span class="line"><span class="comment">// 4. 更新 PVC 状态为 Bound</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p><strong>Annotation 标记：</strong></p>
+<ul>
+<li><code>pv.kubernetes.io/bind-completed</code>：绑定已完成</li>
+<li><code>pv.kubernetes.io/bound-by-controller</code>：由控制器绑定</li>
+</ul>
+</li>
+<li><p><strong>syncBoundClaim 验证：</strong></p>
+<ul>
+<li>检查 PVC.Spec.VolumeName 是否为空</li>
+<li>检查 PV 是否存在</li>
+<li>检查 PV.ClaimRef.UID 是否与 PVC.UID 匹配</li>
+<li>不匹配则设置 PVC 状态为 Lost</li>
+</ul>
+</li>
+<li><p><strong>Finalizer 保护：</strong></p>
+<ul>
+<li><code>kubernetes.io/pv-controller</code>：in-tree PV 删除保护</li>
+<li><code>external-provisioner.volume.kubernetes.io/finalizer</code>：CSI PV 保护</li>
+</ul>
+</li>
+</ol>
+<h3 id="Q7-如何实现存储的跨-Zone-高可用？"><a href="#Q7-如何实现存储的跨-Zone-高可用？" class="headerlink" title="Q7: 如何实现存储的跨 Zone 高可用？"></a>Q7: 如何实现存储的跨 Zone 高可用？</h3><p><strong>参考答案：</strong></p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 1. 使用 WaitForFirstConsumer 模式</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">storage.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">StorageClass</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">cross-zone-storage</span></span><br><span class="line"><span class="attr">provisioner:</span> <span class="string">ebs.csi.aws.com</span></span><br><span class="line"><span class="attr">volumeBindingMode:</span> <span class="string">WaitForFirstConsumer</span></span><br><span class="line"><span class="attr">allowedTopologies:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">matchLabelExpressions:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">key:</span> <span class="string">topology.kubernetes.io/zone</span></span><br><span class="line">    <span class="attr">values:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">us-west-2a</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">us-west-2b</span></span><br><span class="line">    <span class="bullet">-</span> <span class="string">us-west-2c</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 2. 工作原理：</span></span><br><span class="line"><span class="comment">#    - Pod 调度时，调度器选择一个 Zone</span></span><br><span class="line"><span class="comment">#    - 在 PVC 上设置 AnnSelectedNode annotation</span></span><br><span class="line"><span class="comment">#    - Provisioner 在 Pod 所在 Zone 创建 PV</span></span><br><span class="line"><span class="comment">#    - 确保 Pod 和存储在同一 Zone，减少延迟</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 3. 对于已存在的 PV（静态供应）：</span></span><br><span class="line"><span class="comment">#    - PV 设置 nodeAffinity</span></span><br><span class="line"><span class="comment">#    - 调度器根据 PV 的 nodeAffinity 选择节点</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="延伸阅读"><a href="#延伸阅读" class="headerlink" title="延伸阅读"></a>延伸阅读</h2><ul>
+<li><a href="./Deployment%E6%BB%9A%E5%8A%A8%E6%9B%B4%E6%96%B0%E6%B5%81%E7%A8%8B.md">Deployment滚动更新流程</a></li>
+<li><a href="./Pod%E8%B0%83%E5%BA%A6%E4%B8%8E%E7%BB%91%E5%AE%9A%E6%B5%81%E7%A8%8B.md">Pod调度与绑定流程</a></li>
+<li><a href="./CSI%E5%8D%B7%E6%8C%82%E8%BD%BD%E6%B5%81%E7%A8%8B.md">CSI卷挂载流程</a></li>
+</ul>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2026/03/22/cloud/k8s/PVC%E4%BE%9B%E5%BA%94%E4%B8%8E%E7%BB%91%E5%AE%9A%E6%B5%81%E7%A8%8B/">https://piwriw.github.io/2026/03/22/cloud/k8s/PVC供应与绑定流程/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a><a class="post-meta__tags" href="/tags/cloud/">cloud</a><a class="post-meta__tags" href="/tags/K8s%E6%BA%90%E7%A0%81/">K8s源码</a><a class="post-meta__tags" href="/tags/PVC/">PVC</a><a class="post-meta__tags" href="/tags/PV/">PV</a><a class="post-meta__tags" href="/tags/StorageClass/">StorageClass</a></div><div class="post-share"><div class="social-share" data-image="/img/k8sLogo.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2026/03/22/cloud/k8s/Pod%E5%9C%A8%E8%8A%82%E7%82%B9%E4%B8%8A%E5%AE%9E%E7%8E%B0%E6%B5%81%E7%A8%8B/" title="K8s-Pod在节点落地流程"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">K8s-Pod在节点落地流程</div></div><div class="info-2"><div class="info-item-1">Pod 在节点落地通信流程目标这篇文档只回答一个核心问题：kubelet 如何把“期望运行”的 Pod 变成“真实运行”的容器？ 重点放在 kubelet 内部各组件之间的协作与 CRI 通信边界，而不是每一个 gRPC 字段的含义。 一句话摘要kubelet 收到 Pod 更新后，把期望态交给 podWorkers；podWorkers 驱动单 Pod 生命周期状态机，再由 kubeGenericRuntimeManager 通过 CRI 调用容器运行时完成 sandbox、镜像与容器操作。  1. 流程总览从通信视角看，这条链路可以拆成 3 个阶段：  更新接入阶段：kubelet 从 Pod source 收到属于本节点的 Pod 更新，并交给内部子系统。 状态机驱动阶段：podWorkers 根据当前状态决定执行同步、终止还是清理。 运行时执行阶段：runtime manager 通过 CRI 把操作翻译给容器运行时，完成 sandbox 和容器的创建&#x2F;销毁。  Mermaid：总览图flowchart LR     A[Pod update from sour...</div></div></div></a><a class="pagination-related" href="/2026/03/22/cloud/k8s/EndpointSlice%E6%8E%A7%E5%88%B6%E5%99%A8%E6%B5%81%E7%A8%8B/" title="K8s-EndpointSlice控制器流程"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">K8s-EndpointSlice控制器流程</div></div><div class="info-2"><div class="info-item-1">EndpointSlice 控制器流程本文档描述 Kubernetes EndpointSlice 控制器如何让 Service 感知后端 Pod 变化的完整流程。 概述EndpointSlice 控制器负责：  监听 Service 和 Pod 变化 生成和管理 EndpointSlice 资源 记录 Service 后端 Pod 的 IP 地址和端口  flowchart TD     subgraph APIServer[&quot;API Server&quot;]         A[&quot;Service 资源&quot;]         B[&quot;Pod 资源&quot;]         C[&quot;EndpointSlice 资源&quot;]         D[&quot;Node 资源&quot;]     end      subgraph EndpointSliceController[&quot;EndpointSlice Controller&quot;]         E[&quot;Watch Service&quot;]  ...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2026/03/22/cloud/k8s/CSI%E5%8D%B7%E6%8C%82%E8%BD%BD%E6%B5%81%E7%A8%8B/" title="K8s-CSI卷挂载流程"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-22</div><div class="info-item-2">K8s-CSI卷挂载流程</div></div><div class="info-2"><div class="info-item-1">CSI 存储卷挂载通信流程目标这篇文档只回答一个核心问题：kubelet 如何通过 CSI (Container Storage Interface) 完成 Pod 存储卷的挂载？ 重点放在 VolumeManager 与 CSI driver 的交互，以及 attach&#x2F;mount 的完整流程。 一句话摘要kubelet 的 VolumeManager 通过 CSINode 和 CSIDriver 对象发现 CSI driver，然后通过 gRPC 调用 CSI driver 的 NodeStageVolume&#x2F;NodePublishVolume 完成卷的挂载。  1. 流程总览从通信视角看，这条链路可以拆成 3 个阶段：  卷准备阶段：CSI controller 完成 attach (对于块存储)。 节点挂载阶段：kubelet 通过 CSI driver 完成 stage 和 publish。 容器挂载阶段：kubelet 将卷 bind mount 到容器内。  架构总览图flowchart TB     subgraph 控制面[&quot;控制面...</div></div></div></a><a class="pagination-related" href="/2026/03/22/cloud/k8s/DNS%E8%A7%A3%E6%9E%90%E6%B5%81%E7%A8%8B/" title="K8s-DNS解析流程"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-22</div><div class="info-item-2">K8s-DNS解析流程</div></div><div class="info-2"><div class="info-item-1">DNS 解析流程本文档描述 Kubernetes 集群中 CoreDNS 如何解析 Service 到 Pod IP 的完整流程。 概述Kubernetes DNS 解析涉及以下核心组件：  CoreDNS：集群 DNS 服务器 kube-dns Service：指向 CoreDNS Pod 的 Service EndpointSlice：记录 CoreDNS Pod 的 IP 地址 Pod &#x2F;etc&#x2F;resolv.conf：Pod 内的 DNS 配置  flowchart TD     subgraph Pod[&quot;Pod (应用容器)&quot;]         A[&quot;应用发起 DNS 查询&quot;]         B[&quot;读取 /etc/resolv.conf&quot;]     end      subgraph CoreDNS[&quot;CoreDNS Pod&quot;]         C[&quot;CoreDNS 服务&quot;]         D[&quot;Watch API Server&quo...</div></div></div></a><a class="pagination-related" href="/2026/03/22/cloud/k8s/Deployment%E6%BB%9A%E5%8A%A8%E6%9B%B4%E6%96%B0%E6%B5%81%E7%A8%8B/" title="K8s-Deployment滚动更新流程"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-22</div><div class="info-item-2">K8s-Deployment滚动更新流程</div></div><div class="info-2"><div class="info-item-1">Deployment 滚动更新流程本文档描述 Kubernetes Deployment 如何通过 ReplicaSet Controller 管理滚动更新的完整流程。 概述Deployment 滚动更新涉及以下核心组件：  Deployment Controller：管理 Deployment 生命周期 ReplicaSet Controller：管理 Pod 副本数 API Server：存储和分发资源状态  flowchart TD     subgraph User[&quot;用户操作&quot;]         A[&quot;kubectl apply -f deployment.yaml&quot;]     end      subgraph APIServer[&quot;API Server&quot;]         B[&quot;Deployment 资源&quot;]         C[&quot;ReplicaSet 资源&quot;]         D[&quot;Pod 资源&quot;]     end      subgraph D...</div></div></div></a><a class="pagination-related" href="/2026/03/22/cloud/k8s/EndpointSlice%E6%8E%A7%E5%88%B6%E5%99%A8%E6%B5%81%E7%A8%8B/" title="K8s-EndpointSlice控制器流程"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-22</div><div class="info-item-2">K8s-EndpointSlice控制器流程</div></div><div class="info-2"><div class="info-item-1">EndpointSlice 控制器流程本文档描述 Kubernetes EndpointSlice 控制器如何让 Service 感知后端 Pod 变化的完整流程。 概述EndpointSlice 控制器负责：  监听 Service 和 Pod 变化 生成和管理 EndpointSlice 资源 记录 Service 后端 Pod 的 IP 地址和端口  flowchart TD     subgraph APIServer[&quot;API Server&quot;]         A[&quot;Service 资源&quot;]         B[&quot;Pod 资源&quot;]         C[&quot;EndpointSlice 资源&quot;]         D[&quot;Node 资源&quot;]     end      subgraph EndpointSliceController[&quot;EndpointSlice Controller&quot;]         E[&quot;Watch Service&quot;]  ...</div></div></div></a><a class="pagination-related" href="/2026/03/22/cloud/k8s/Pod%E5%9C%A8%E8%8A%82%E7%82%B9%E4%B8%8A%E5%AE%9E%E7%8E%B0%E6%B5%81%E7%A8%8B/" title="K8s-Pod在节点落地流程"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-22</div><div class="info-item-2">K8s-Pod在节点落地流程</div></div><div class="info-2"><div class="info-item-1">Pod 在节点落地通信流程目标这篇文档只回答一个核心问题：kubelet 如何把“期望运行”的 Pod 变成“真实运行”的容器？ 重点放在 kubelet 内部各组件之间的协作与 CRI 通信边界，而不是每一个 gRPC 字段的含义。 一句话摘要kubelet 收到 Pod 更新后，把期望态交给 podWorkers；podWorkers 驱动单 Pod 生命周期状态机，再由 kubeGenericRuntimeManager 通过 CRI 调用容器运行时完成 sandbox、镜像与容器操作。  1. 流程总览从通信视角看，这条链路可以拆成 3 个阶段：  更新接入阶段：kubelet 从 Pod source 收到属于本节点的 Pod 更新，并交给内部子系统。 状态机驱动阶段：podWorkers 根据当前状态决定执行同步、终止还是清理。 运行时执行阶段：runtime manager 通过 CRI 把操作翻译给容器运行时，完成 sandbox 和容器的创建&#x2F;销毁。  Mermaid：总览图flowchart LR     A[Pod update from sour...</div></div></div></a><a class="pagination-related" href="/2026/03/22/cloud/k8s/Pod%E8%B0%83%E5%BA%A6%E4%B8%8E%E7%BB%91%E5%AE%9A%E6%B5%81%E7%A8%8B/" title="K8s-Pod调度与绑定流程"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-22</div><div class="info-item-2">K8s-Pod调度与绑定流程</div></div><div class="info-2"><div class="info-item-1">Pod 调度与绑定通信流程目标这篇文档只回答一个核心问题：一个 Pod 是怎么从“等待调度”变成“被某个节点上的 kubelet 感知到”的？ 重点放在组件之间的通信与职责边界，而不是调度器内部打分算法细节。 一句话摘要kube-scheduler 负责为 Pod 选节点，kube-apiserver 负责持久化绑定结果，kubelet 通过监听 API Server 中属于本节点的 Pod 更新来感知这次分配。  1. 流程总览从通信视角看，这条链路可以拆成 3 个阶段：  调度决策阶段：scheduler 为 Pod 选择目标节点。 绑定落盘阶段：scheduler 通过 API Server 把绑定结果写回集群状态。 节点感知阶段：目标节点上的 kubelet 观察到这个 Pod 已经分配给自己，开始进入节点侧处理。  Mermaid：总览图flowchart LR     A[Pending Pod] --&gt; B[kube-scheduler]     B --&gt; C[select target node]     C --&gt; D[kube-apiser...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">303</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">96</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#PVC-%E4%BE%9B%E5%BA%94%E4%B8%8E%E7%BB%91%E5%AE%9A%E6%B5%81%E7%A8%8B"><span class="toc-number">1.</span> <span class="toc-text">PVC 供应与绑定流程</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%A6%82%E8%BF%B0"><span class="toc-number">1.1.</span> <span class="toc-text">概述</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%B5%81%E7%A8%8B%E8%AF%A6%E8%A7%A3"><span class="toc-number">1.2.</span> <span class="toc-text">流程详解</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-PV-Controller-%E6%9E%B6%E6%9E%84"><span class="toc-number">1.2.1.</span> <span class="toc-text">1. PV Controller 架构</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-PVC-%E7%BB%91%E5%AE%9A%E7%8A%B6%E6%80%81%E6%9C%BA"><span class="toc-number">1.2.2.</span> <span class="toc-text">2. PVC 绑定状态机</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-syncClaim-%E6%A0%B8%E5%BF%83%E9%80%BB%E8%BE%91"><span class="toc-number">1.2.3.</span> <span class="toc-text">3. syncClaim 核心逻辑</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-%E6%9C%AA%E7%BB%91%E5%AE%9A-PVC-%E5%A4%84%E7%90%86-syncUnboundClaim"><span class="toc-number">1.2.4.</span> <span class="toc-text">4. 未绑定 PVC 处理 (syncUnboundClaim)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-%E9%9D%99%E6%80%81%E4%BE%9B%E5%BA%94-vs-%E5%8A%A8%E6%80%81%E4%BE%9B%E5%BA%94"><span class="toc-number">1.2.5.</span> <span class="toc-text">5. 静态供应 vs 动态供应</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#5-1-%E9%9D%99%E6%80%81%E4%BE%9B%E5%BA%94"><span class="toc-number">1.2.5.1.</span> <span class="toc-text">5.1 静态供应</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#5-2-%E5%8A%A8%E6%80%81%E4%BE%9B%E5%BA%94"><span class="toc-number">1.2.5.2.</span> <span class="toc-text">5.2 动态供应</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-FindMatchingVolume-%E9%80%BB%E8%BE%91"><span class="toc-number">1.2.6.</span> <span class="toc-text">6. FindMatchingVolume 逻辑</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#7-VolumeBindingMode"><span class="toc-number">1.2.7.</span> <span class="toc-text">7. VolumeBindingMode</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#7-1-Immediate%EF%BC%88%E7%AB%8B%E5%8D%B3%E7%BB%91%E5%AE%9A%EF%BC%89"><span class="toc-number">1.2.7.1.</span> <span class="toc-text">7.1 Immediate（立即绑定）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#7-2-WaitForFirstConsumer%EF%BC%88%E5%BB%B6%E8%BF%9F%E7%BB%91%E5%AE%9A%EF%BC%89"><span class="toc-number">1.2.7.2.</span> <span class="toc-text">7.2 WaitForFirstConsumer（延迟绑定）</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#8-Reclaim-Policy"><span class="toc-number">1.2.8.</span> <span class="toc-text">8. Reclaim Policy</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#9-syncVolume-%E6%A0%B8%E5%BF%83%E9%80%BB%E8%BE%91"><span class="toc-number">1.2.9.</span> <span class="toc-text">9. syncVolume 核心逻辑</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#10-CSI-%E5%8A%A8%E6%80%81%E4%BE%9B%E5%BA%94"><span class="toc-number">1.2.10.</span> <span class="toc-text">10. CSI 动态供应</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%B3%E9%94%AE%E4%BB%A3%E7%A0%81%E9%94%9A%E7%82%B9"><span class="toc-number">1.3.</span> <span class="toc-text">关键代码锚点</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%8C%E6%95%B4%E6%B5%81%E7%A8%8B%E7%A4%BA%E4%BE%8B"><span class="toc-number">1.4.</span> <span class="toc-text">完整流程示例</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98"><span class="toc-number">1.5.</span> <span class="toc-text">常见问题</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#PVC-%E4%B8%80%E7%9B%B4-Pending"><span class="toc-number">1.5.1.</span> <span class="toc-text">PVC 一直 Pending</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%BB%91%E5%AE%9A%E5%A4%B1%E8%B4%A5"><span class="toc-number">1.5.2.</span> <span class="toc-text">绑定失败</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8A%A8%E6%80%81%E4%BE%9B%E5%BA%94%E5%A4%B1%E8%B4%A5"><span class="toc-number">1.5.3.</span> <span class="toc-text">动态供应失败</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%AB%98%E9%A2%91%E9%9D%A2%E8%AF%95%E9%A2%98"><span class="toc-number">1.6.</span> <span class="toc-text">高频面试题</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Q1-PV-%E5%92%8C-PVC-%E7%9A%84%E7%BB%91%E5%AE%9A%E6%B5%81%E7%A8%8B%E6%98%AF%E6%80%8E%E6%A0%B7%E7%9A%84%EF%BC%9F"><span class="toc-number">1.6.1.</span> <span class="toc-text">Q1: PV 和 PVC 的绑定流程是怎样的？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Q2-StorageClass-%E7%9A%84-VolumeBindingMode-%E6%9C%89%E5%93%AA%E5%87%A0%E7%A7%8D%EF%BC%9F"><span class="toc-number">1.6.2.</span> <span class="toc-text">Q2: StorageClass 的 VolumeBindingMode 有哪几种？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Q3-PV-%E7%9A%84-ReclaimPolicy-%E6%9C%89%E5%93%AA%E5%87%A0%E7%A7%8D%EF%BC%9F%E5%88%86%E5%88%AB%E6%98%AF%E4%BB%80%E4%B9%88%E8%A1%8C%E4%B8%BA%EF%BC%9F"><span class="toc-number">1.6.3.</span> <span class="toc-text">Q3: PV 的 ReclaimPolicy 有哪几种？分别是什么行为？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Q4-PVC-%E4%B8%80%E7%9B%B4%E5%A4%84%E4%BA%8E-Pending-%E7%8A%B6%E6%80%81%EF%BC%8C%E5%8F%AF%E8%83%BD%E7%9A%84%E5%8E%9F%E5%9B%A0%E6%9C%89%E5%93%AA%E4%BA%9B%EF%BC%9F"><span class="toc-number">1.6.4.</span> <span class="toc-text">Q4: PVC 一直处于 Pending 状态，可能的原因有哪些？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Q5-CSI-%E5%8A%A8%E6%80%81%E4%BE%9B%E5%BA%94%E7%9A%84%E6%B5%81%E7%A8%8B%E6%98%AF%E6%80%8E%E6%A0%B7%E7%9A%84%EF%BC%9F"><span class="toc-number">1.6.5.</span> <span class="toc-text">Q5: CSI 动态供应的流程是怎样的？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Q6-PV-Controller-%E6%98%AF%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81%E7%BB%91%E5%AE%9A%E4%B8%80%E8%87%B4%E6%80%A7%E7%9A%84%EF%BC%9F"><span class="toc-number">1.6.6.</span> <span class="toc-text">Q6: PV Controller 是如何保证绑定一致性的？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Q7-%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E5%AD%98%E5%82%A8%E7%9A%84%E8%B7%A8-Zone-%E9%AB%98%E5%8F%AF%E7%94%A8%EF%BC%9F"><span class="toc-number">1.6.7.</span> <span class="toc-text">Q7: 如何实现存储的跨 Zone 高可用？</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%BB%B6%E4%BC%B8%E9%98%85%E8%AF%BB"><span class="toc-number">1.7.</span> <span class="toc-text">延伸阅读</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/03/26/cloud/arch/Kubernetes%E9%80%9A%E4%BF%A1%E9%93%BE%E8%B7%AF%E8%AF%A6%E7%BB%86%E5%88%86%E6%9E%90/" title="Kubernetes 通信链路详细分析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="Kubernetes 通信链路详细分析"/></a><div class="content"><a class="title" href="/2026/03/26/cloud/arch/Kubernetes%E9%80%9A%E4%BF%A1%E9%93%BE%E8%B7%AF%E8%AF%A6%E7%BB%86%E5%88%86%E6%9E%90/" title="Kubernetes 通信链路详细分析">Kubernetes 通信链路详细分析</a><time datetime="2026-03-26T13:15:00.000Z" title="发表于 2026-03-26 21:15:00">2026-03-26</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-API%20Server%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="kube-apiserver 深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="kube-apiserver 深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-API%20Server%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="kube-apiserver 深度剖析">kube-apiserver 深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-etcd%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="etcd 深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="etcd 深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-etcd%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="etcd 深度剖析">etcd 深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-%E5%AD%98%E5%82%A8%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="存储架构深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="存储架构深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-%E5%AD%98%E5%82%A8%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="存储架构深度剖析">存储架构深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-kubelet%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="Kubelet 深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="Kubelet 深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-kubelet%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="Kubelet 深度剖析">Kubelet 深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script src="/js/reading-progress.js"></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

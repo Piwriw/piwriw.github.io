@@ -1,0 +1,1297 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>kube-proxy 服务代理通信流程 | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="kube-proxy 服务代理通信流程目标这篇文档只回答一个核心问题：kube-proxy 如何实现 Service 的负载均衡和网络代理？ 重点放在 kube-proxy 与 API Server 的交互、规则同步机制以及 iptables&#x2F;IPVS 模式的差异。 一句话摘要kube-proxy 通过 watch API Server 中的 Service 和 EndpointSlic">
+<meta property="og:type" content="article">
+<meta property="og:title" content="kube-proxy 服务代理通信流程">
+<meta property="og:url" content="https://piwriw.github.io/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-kube-proxy%E6%9C%8D%E5%8A%A1%E4%BB%A3%E7%90%86%E6%B5%81%E7%A8%8B/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="kube-proxy 服务代理通信流程目标这篇文档只回答一个核心问题：kube-proxy 如何实现 Service 的负载均衡和网络代理？ 重点放在 kube-proxy 与 API Server 的交互、规则同步机制以及 iptables&#x2F;IPVS 模式的差异。 一句话摘要kube-proxy 通过 watch API Server 中的 Service 和 EndpointSlic">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/k8s-go.jpg">
+<meta property="article:published_time" content="2026-03-25T13:10:00.000Z">
+<meta property="article:modified_time" content="2026-03-26T15:28:20.115Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="k8s">
+<meta property="article:tag" content="cloud">
+<meta property="article:tag" content="流程分析">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/k8s-go.jpg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "kube-proxy 服务代理通信流程",
+  "url": "https://piwriw.github.io/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-kube-proxy%E6%9C%8D%E5%8A%A1%E4%BB%A3%E7%90%86%E6%B5%81%E7%A8%8B/",
+  "image": "https://piwriw.github.io/img/k8s-go.jpg",
+  "datePublished": "2026-03-25T13:10:00.000Z",
+  "dateModified": "2026-03-26T15:28:20.115Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-kube-proxy%E6%9C%8D%E5%8A%A1%E4%BB%A3%E7%90%86%E6%B5%81%E7%A8%8B/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          const hour = new Date().getHours()
+          const isNight = hour <= 6 || hour >= 18
+          if (theme === undefined) isNight ? activateDarkMode() : activateLightMode()
+          else theme === 'light' ? activateLightMode() : activateDarkMode()
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '天',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'kube-proxy 服务代理通信流程',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">303</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">96</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/k8s-go.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">kube-proxy 服务代理通信流程</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">kube-proxy 服务代理通信流程</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-03-25T13:10:00.000Z" title="发表于 2026-03-25 21:10:00">2026-03-25</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-03-26T15:28:20.115Z" title="更新于 2026-03-26 23:28:20">2026-03-26</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/">k8s</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">5.9k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>25分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-03-26 23:28:20&quot;}" hidden></div><h1 id="kube-proxy-服务代理通信流程"><a href="#kube-proxy-服务代理通信流程" class="headerlink" title="kube-proxy 服务代理通信流程"></a>kube-proxy 服务代理通信流程</h1><h2 id="目标"><a href="#目标" class="headerlink" title="目标"></a>目标</h2><p>这篇文档只回答一个核心问题：<strong>kube-proxy 如何实现 Service 的负载均衡和网络代理？</strong></p>
+<p>重点放在 kube-proxy 与 API Server 的交互、规则同步机制以及 iptables&#x2F;IPVS 模式的差异。</p>
+<h2 id="一句话摘要"><a href="#一句话摘要" class="headerlink" title="一句话摘要"></a>一句话摘要</h2><p>kube-proxy 通过 watch API Server 中的 Service 和 EndpointSlice 对象，在本地维护 iptables&#x2F;IPVS 规则，将到达 Service ClusterIP 的流量转发到后端 Pod。</p>
+<hr>
+<h2 id="1-流程总览"><a href="#1-流程总览" class="headerlink" title="1. 流程总览"></a>1. 流程总览</h2><p>从通信视角看，这条链路可以拆成 3 个阶段：</p>
+<ol>
+<li><strong>配置获取阶段</strong>：kube-proxy watch Service 和 EndpointSlice 对象。</li>
+<li><strong>规则计算阶段</strong>：根据 Service 类型计算需要生成的代理规则。</li>
+<li><strong>规则同步阶段</strong>：将规则写入 iptables&#x2F;IPVS，实现流量转发。</li>
+</ol>
+<h3 id="架构总览图"><a href="#架构总览图" class="headerlink" title="架构总览图"></a>架构总览图</h3><pre><code class="highlight mermaid">flowchart TB
+    subgraph 控制面[&quot;控制面&quot;]
+        API[kube-apiserver]
+        SVC[Service 对象]
+        EPS[EndpointSlice 对象]
+    end
+
+    subgraph KubeProxy[&quot;kube-proxy&quot;]
+        direction TB
+        INFORMER[Informer&lt;br/&gt;watch Service/EndpointSlice]
+        HANDLER[EventHandler&lt;br/&gt;处理变更]
+        PROXIER[Proxier&lt;br/&gt;规则计算]
+        SYNC[SyncRunner&lt;br/&gt;规则同步]
+    end
+
+    subgraph 规则引擎[&quot;规则引擎&quot;]
+        direction LR
+        IPT[iptables 模式]
+        IPVS[ipvs 模式]
+        NFPROXY[nftables 模式&lt;br/&gt;Alpha]
+    end
+
+    subgraph 数据面[&quot;数据面&quot;]
+        direction TB
+        CLIP[ClusterIP&lt;br/&gt;服务虚拟IP]
+        NODEIP[NodePort&lt;br/&gt;节点端口]
+        EXTIP[ExternalIP&lt;br/&gt;外部IP]
+    end
+
+    API --&gt; INFORMER
+    SVC --&gt; API
+    EPS --&gt; API
+
+    INFORMER --&gt; HANDLER
+    HANDLER --&gt; PROXIER
+    PROXIER --&gt; SYNC
+    SYNC --&gt; IPT
+    SYNC --&gt; IPVS
+    SYNC --&gt; NFPROXY
+
+    CLIP --&gt; IPT
+    NODEIP --&gt; IPT
+    EXTIP --&gt; IPT</code></pre>
+
+<h3 id="kube-proxy-内部架构图"><a href="#kube-proxy-内部架构图" class="headerlink" title="kube-proxy 内部架构图"></a>kube-proxy 内部架构图</h3><pre><code class="highlight mermaid">flowchart TB
+    subgraph 输入层[&quot;配置输入&quot;]
+        direction LR
+        S1[Service Informer]
+        S2[EndpointSlice Informer]
+        S3[Node Informer]
+    end
+
+    subgraph 处理层[&quot;事件处理&quot;]
+        direction TB
+        QUEUE[Event Queue&lt;br/&gt;变更队列]
+        HANDLE[HandleServiceUpdate&lt;br/&gt;HandleEndpointSliceUpdate]
+    end
+
+    subgraph 计算层[&quot;规则计算&quot;]
+        direction TB
+        BUILD[buildServiceMap&lt;br/&gt;buildEndpointMap]
+        DIFF[computeDiff&lt;br/&gt;计算差异]
+        PLAN[planning&lt;br/&gt;规则规划]
+    end
+
+    subgraph 执行层[&quot;规则执行&quot;]
+        direction TB
+        SYNC[SyncRules&lt;br/&gt;同步规则]
+        IPT[iptables interface]
+        IPVS[ipvs interface]
+        NFT[nftables interface]
+    end
+
+    S1 --&gt; QUEUE
+    S2 --&gt; QUEUE
+    S3 --&gt; QUEUE
+    QUEUE --&gt; HANDLE
+    HANDLE --&gt; BUILD
+    BUILD --&gt; DIFF
+    DIFF --&gt; PLAN
+    PLAN --&gt; SYNC
+    SYNC --&gt; IPT
+    SYNC --&gt; IPVS
+    SYNC --&gt; NFT</code></pre>
+
+<h3 id="这张图想表达什么"><a href="#这张图想表达什么" class="headerlink" title="这张图想表达什么"></a>这张图想表达什么</h3><ul>
+<li>kube-proxy 是纯观察者，不主动创建 Service。</li>
+<li>规则同步是定期执行的，不是每次变更都立即同步。</li>
+<li>支持多种后端模式，iptables 是默认模式。</li>
+</ul>
+<hr>
+<h2 id="2-分阶段通信流程"><a href="#2-分阶段通信流程" class="headerlink" title="2. 分阶段通信流程"></a>2. 分阶段通信流程</h2><hr>
+<h3 id="阶段一：配置获取"><a href="#阶段一：配置获取" class="headerlink" title="阶段一：配置获取"></a>阶段一：配置获取</h3><p>这个阶段的本质是：<strong>kube-proxy 通过 Informer 机制获取 Service 和 EndpointSlice 的变更。</strong></p>
+<h4 id="步骤-1-1：启动-Informer"><a href="#步骤-1-1：启动-Informer" class="headerlink" title="步骤 1.1：启动 Informer"></a>步骤 1.1：启动 Informer</h4><p>kube-proxy 启动时，会创建三个 Informer：</p>
+<ul>
+<li>Service Informer：watch Service 对象</li>
+<li>EndpointSlice Informer：watch EndpointSlice 对象</li>
+<li>Node Informer：watch Node 对象（用于检测本节点网络变化）</li>
+</ul>
+<p><strong>通信方向</strong>：kube-proxy → API Server（通过 informer&#x2F;watch）</p>
+<h4 id="步骤-1-2：收到-Service-变更事件"><a href="#步骤-1-2：收到-Service-变更事件" class="headerlink" title="步骤 1.2：收到 Service 变更事件"></a>步骤 1.2：收到 Service 变更事件</h4><p>当 Service 被创建、更新或删除时，Informer 会收到事件，并触发 EventHandler。</p>
+<p><strong>通信方向</strong>：API Server → kube-proxy（watch 推送）</p>
+<h4 id="步骤-1-3：收到-EndpointSlice-变更事件"><a href="#步骤-1-3：收到-EndpointSlice-变更事件" class="headerlink" title="步骤 1.3：收到 EndpointSlice 变更事件"></a>步骤 1.3：收到 EndpointSlice 变更事件</h4><p>当后端 Pod 发生变化时，EndpointSlice Controller 会更新 EndpointSlice，kube-proxy 的 Informer 会收到事件。</p>
+<p><strong>通信方向</strong>：EndpointSlice Controller → API Server → kube-proxy（watch 推送）</p>
+<h4 id="步骤-1-4：事件入队"><a href="#步骤-1-4：事件入队" class="headerlink" title="步骤 1.4：事件入队"></a>步骤 1.4：事件入队</h4><p>EventHandler 不会立即处理变更，而是将变更信息放入队列，等待 SyncRunner 定期处理。</p>
+<p><strong>通信方向</strong>：EventHandler → Queue（内部队列）</p>
+<hr>
+<h3 id="阶段二：规则计算"><a href="#阶段二：规则计算" class="headerlink" title="阶段二：规则计算"></a>阶段二：规则计算</h3><p>这个阶段的本质是：<strong>根据 Service 配置计算需要生成的 iptables&#x2F;IPVS 规则。</strong></p>
+<h4 id="步骤-2-1：构建服务映射"><a href="#步骤-2-1：构建服务映射" class="headerlink" title="步骤 2.1：构建服务映射"></a>步骤 2.1：构建服务映射</h4><p>Proxier 会构建两个核心数据结构：</p>
+<ul>
+<li><code>serviceMap</code>：Service UID → ServiceInfo（ClusterIP、Port、Protocol 等）</li>
+<li><code>endpointsMap</code>：Service UID → []Endpoint（Pod IP、Port、Ready 状态等）</li>
+</ul>
+<p><strong>通信方向</strong>：Proxier 内部计算</p>
+<h4 id="步骤-2-2：计算规则差异"><a href="#步骤-2-2：计算规则差异" class="headerlink" title="步骤 2.2：计算规则差异"></a>步骤 2.2：计算规则差异</h4><p>Proxier 会对比当前规则和期望规则，计算需要：</p>
+<ul>
+<li>添加哪些规则</li>
+<li>修改哪些规则</li>
+<li>删除哪些规则</li>
+</ul>
+<p><strong>通信方向</strong>：Proxier 内部 diff 计算</p>
+<h4 id="步骤-3-3：生成规则指令"><a href="#步骤-3-3：生成规则指令" class="headerlink" title="步骤 3.3：生成规则指令"></a>步骤 3.3：生成规则指令</h4><p>对于每个 Service，Proxier 会生成对应的规则指令，包括：</p>
+<ul>
+<li>ClusterIP 规则（KUBE-SERVICES 链）</li>
+<li>NodePort 规则（KUBE-NODEPORTS 链）</li>
+<li>外部 IP 规则</li>
+<li>负载均衡规则（KUBE-SVC-xxx 链）</li>
+<li>会话亲和规则（KUBE-SEP-xxx 链）</li>
+</ul>
+<p><strong>通信方向</strong>：Proxier 内部规划</p>
+<hr>
+<h3 id="阶段三：规则同步"><a href="#阶段三：规则同步" class="headerlink" title="阶段三：规则同步"></a>阶段三：规则同步</h3><p>这个阶段的本质是：<strong>将计算好的规则写入内核网络栈。</strong></p>
+<h4 id="步骤-3-1：执行-Sync-规则"><a href="#步骤-3-1：执行-Sync-规则" class="headerlink" title="步骤 3.1：执行 Sync 规则"></a>步骤 3.1：执行 Sync 规则</h4><p>SyncRunner 定期（默认 1 分钟）或在收到变更时触发 <code>Sync()</code> 方法。</p>
+<p><strong>通信方向</strong>：SyncRunner → Proxier.Sync()</p>
+<h4 id="步骤-3-2：调用-iptables-ipvs-命令"><a href="#步骤-3-2：调用-iptables-ipvs-命令" class="headerlink" title="步骤 3.2：调用 iptables&#x2F;ipvs 命令"></a>步骤 3.2：调用 iptables&#x2F;ipvs 命令</h4><p>Proxier 调用 iptables 或 ipvs 命令，将规则写入内核：</p>
+<ul>
+<li>iptables 模式：调用 <code>iptables-restore</code> 批量更新</li>
+<li>ipvs 模式：调用 <code>ipvsadm</code> 配置虚拟服务器</li>
+</ul>
+<p><strong>通信方向</strong>：kube-proxy → Linux 内核（通过系统调用）</p>
+<h4 id="步骤-3-3：清理过期规则"><a href="#步骤-3-3：清理过期规则" class="headerlink" title="步骤 3.3：清理过期规则"></a>步骤 3.3：清理过期规则</h4><p>同步完成后，Proxier 会清理不再需要的规则，避免规则堆积。</p>
+<p><strong>通信方向</strong>：kube-proxy → Linux 内核</p>
+<hr>
+<h2 id="3-iptables-模式详解"><a href="#3-iptables-模式详解" class="headerlink" title="3. iptables 模式详解"></a>3. iptables 模式详解</h2><h3 id="iptables-规则链结构"><a href="#iptables-规则链结构" class="headerlink" title="iptables 规则链结构"></a>iptables 规则链结构</h3><pre><code class="highlight mermaid">flowchart TB
+    subgraph nat表[&quot;iptables nat 表&quot;]
+        PREROUTING[PREROUTING 链]
+        OUTPUT[OUTPUT 链]
+        POSTROUTING[POSTROUTING 链]
+
+        KS[KUBE-SERVICES 链&lt;br/&gt;所有 Service 入口]
+        KN[KUBE-NODEPORTS 链&lt;br/&gt;NodePort 规则]
+        KEXT[KUBE-EXTERNAL-SERVICES 链&lt;br/&gt;ExternalIP 规则]
+
+        KSVC[KUBE-SVC-xxx 链&lt;br/&gt;Service 负载均衡]
+        KSEP[KUBE-SEP-xxx 链&lt;br/&gt;后端端点]
+        KMARK[KUBE-MARK-MASQ 链&lt;br/&gt;标记需要 SNAT]
+    end
+
+    PREROUTING --&gt; KS
+    OUTPUT --&gt; KS
+    KS --&gt; KN
+    KS --&gt; KEXT
+    KS --&gt; KSVC
+
+    KSVC --&gt; KSEP
+    KSVC --&gt; KMARK
+    KSEP --&gt; KMARK
+
+    POSTROUTING --&gt; KMARK</code></pre>
+
+<h3 id="ClusterIP-流量路径"><a href="#ClusterIP-流量路径" class="headerlink" title="ClusterIP 流量路径"></a>ClusterIP 流量路径</h3><pre><code class="highlight mermaid">sequenceDiagram
+    autonumber
+    participant Client as 客户端 Pod
+    participant IPT as iptables/nat
+    participant EP as 后端 Pod
+    participant RESP as 响应路径
+
+    Client-&gt;&gt;IPT: 发送到 ClusterIP:Port
+    Note over IPT: PREROUTING → KUBE-SERVICES
+
+    IPT-&gt;&gt;IPT: 匹配 KUBE-SVC-xxx 链
+    Note over IPT: 概率选择后端
+
+    IPT-&gt;&gt;IPT: 进入 KUBE-SEP-xxx 链
+    Note over IPT: DNAT: ClusterIP → PodIP
+
+    IPT-&gt;&gt;EP: 转发到 PodIP:Port
+    EP-&gt;&gt;RESP: 处理请求
+
+    RESP-&gt;&gt;Client: 响应 (源 IP: PodIP)
+    Note over RESP: conntrack 反向 NAT</code></pre>
+
+<h3 id="NodePort-流量路径"><a href="#NodePort-流量路径" class="headerlink" title="NodePort 流量路径"></a>NodePort 流量路径</h3><pre><code class="highlight mermaid">sequenceDiagram
+    autonumber
+    participant Ext as 外部客户端
+    participant NODE as 节点网络栈
+    participant IPT as iptables/nat
+    participant EP as 后端 Pod
+
+    Ext-&gt;&gt;NODE: 发送到 NodeIP:NodePort
+    Note over NODE: 监听在所有接口
+
+    NODE-&gt;&gt;IPT: 进入 PREROUTING
+    IPT-&gt;&gt;IPT: KUBE-SERVICES → KUBE-NODEPORTS
+
+    IPT-&gt;&gt;IPT: 匹配 NodePort 规则
+    Note over IPT: DNAT: NodePort → ClusterIP
+
+    IPT-&gt;&gt;IPT: KUBE-SVC-xxx 负载均衡
+    IPT-&gt;&gt;IPT: KUBE-SEP-xxx 选择后端
+
+    IPT-&gt;&gt;EP: 转发到 PodIP:Port
+
+    EP--&gt;&gt;Ext: 响应
+    Note over Ext,EP: SNAT: 源 IP 可能被改写</code></pre>
+
+<hr>
+<h2 id="4-IPVS-模式详解"><a href="#4-IPVS-模式详解" class="headerlink" title="4. IPVS 模式详解"></a>4. IPVS 模式详解</h2><h3 id="IPVS-vs-iptables-对比"><a href="#IPVS-vs-iptables-对比" class="headerlink" title="IPVS vs iptables 对比"></a>IPVS vs iptables 对比</h3><table>
+<thead>
+<tr>
+<th>特性</th>
+<th>iptables 模式</th>
+<th>IPVS 模式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>规则更新</td>
+<td>全量更新 (iptables-restore)</td>
+<td>增量更新 (netlink)</td>
+</tr>
+<tr>
+<td>负载均衡算法</td>
+<td>随机 (概率规则)</td>
+<td>多种算法 (rr&#x2F;lc&#x2F;dh&#x2F;sh&#x2F;sed&#x2F;nq等)</td>
+</tr>
+<tr>
+<td>性能</td>
+<td>O(n) 规则匹配</td>
+<td>O(1) 哈希查找</td>
+</tr>
+<tr>
+<td>规则数量</td>
+<td>随 Service 数量线性增长</td>
+<td>与 Service 数量无关</td>
+</tr>
+<tr>
+<td>健康检查</td>
+<td>无内置支持</td>
+<td>支持后端健康检查</td>
+</tr>
+<tr>
+<td>内核依赖</td>
+<td>所有 Linux 内核</td>
+<td>需要加载 ip_vs 模块</td>
+</tr>
+</tbody></table>
+<h3 id="IPVS-规则结构"><a href="#IPVS-规则结构" class="headerlink" title="IPVS 规则结构"></a>IPVS 规则结构</h3><pre><code class="highlight mermaid">flowchart TB
+    subgraph IPVS[&quot;IPVS 虚拟服务&quot;]
+        VS1[Virtual Service&lt;br/&gt;ClusterIP:Port]
+        RS1[Real Server 1&lt;br/&gt;PodIP1:Port]
+        RS2[Real Server 2&lt;br/&gt;PodIP2:Port]
+        RS3[Real Server 3&lt;br/&gt;PodIP3:Port]
+    end
+
+    subgraph iptables[&quot;iptables (辅助)&quot;]
+        MASQ[KUBE-MARK-MASQ&lt;br/&gt;SNAT 标记]
+        CLUSTER[KUBE-CLUSTER-IP&lt;br/&gt;ClusterIP 跳转]
+    end
+
+    VS1 --&gt; RS1
+    VS1 --&gt; RS2
+    VS1 --&gt; RS3
+
+    CLUSTER --&gt; VS1
+    RS1 --&gt; MASQ
+    RS2 --&gt; MASQ
+    RS3 --&gt; MASQ</code></pre>
+
+<h3 id="IPVS-负载均衡算法"><a href="#IPVS-负载均衡算法" class="headerlink" title="IPVS 负载均衡算法"></a>IPVS 负载均衡算法</h3><table>
+<thead>
+<tr>
+<th>算法</th>
+<th>代码</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>轮询</td>
+<td>rr</td>
+<td>Round Robin，依次分发</td>
+</tr>
+<tr>
+<td>加权轮询</td>
+<td>wrr</td>
+<td>Weighted Round Robin，按权重分发</td>
+</tr>
+<tr>
+<td>最少连接</td>
+<td>lc</td>
+<td>Least Connections，选连接数最少的</td>
+</tr>
+<tr>
+<td>加权最少连接</td>
+<td>wlc</td>
+<td>Weighted Least Connections</td>
+</tr>
+<tr>
+<td>源地址哈希</td>
+<td>sh</td>
+<td>Source Hashing，相同源 IP 到同一后端</td>
+</tr>
+<tr>
+<td>目标地址哈希</td>
+<td>dh</td>
+<td>Destination Hashing</td>
+</tr>
+<tr>
+<td>短期期望延迟</td>
+<td>sed</td>
+<td>Shortest Expected Delay</td>
+</tr>
+<tr>
+<td>最少队列</td>
+<td>nq</td>
+<td>Never Queue</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="5-详细时序图"><a href="#5-详细时序图" class="headerlink" title="5. 详细时序图"></a>5. 详细时序图</h2><h3 id="5-1-Service-创建完整时序图"><a href="#5-1-Service-创建完整时序图" class="headerlink" title="5.1 Service 创建完整时序图"></a>5.1 Service 创建完整时序图</h3><pre><code class="highlight mermaid">sequenceDiagram
+    autonumber
+    participant User as 用户
+    participant API as kube-apiserver
+    participant EP as EndpointSlice Controller
+    participant KP as kube-proxy
+    participant IPT as iptables/ipvs
+    participant KERNEL as Linux 内核
+
+    User-&gt;&gt;API: kubectl apply -f service.yaml
+    API-&gt;&gt;API: 创建 Service 对象
+
+    Note over API,KP: Informer watch 触发
+
+    API--&gt;&gt;KP: watch Service ADDED
+    KP-&gt;&gt;KP: ServiceHandler.OnServiceAdd()
+    KP-&gt;&gt;KP: 入队 serviceUpdate
+
+    Note over API,EP: EndpointSlice 创建
+
+    EP-&gt;&gt;EP: watch Service 创建
+    EP-&gt;&gt;EP: 匹配 Pod labels
+    EP-&gt;&gt;API: 创建 EndpointSlice
+
+    API--&gt;&gt;KP: watch EndpointSlice ADDED
+    KP-&gt;&gt;KP: EndpointSliceHandler.OnAdd()
+    KP-&gt;&gt;KP: 入队 endpointUpdate
+
+    Note over KP: SyncRunner 触发
+
+    KP-&gt;&gt;KP: Sync()
+    KP-&gt;&gt;KP: buildServiceMap()
+    KP-&gt;&gt;KP: buildEndpointsMap()
+    KP-&gt;&gt;KP: computeDifferences()
+    KP-&gt;&gt;KP: generateRules()
+
+    KP-&gt;&gt;IPT: iptables-restore / ipvsadm
+    IPT-&gt;&gt;KERNEL: 写入网络规则
+    KERNEL--&gt;&gt;IPT: 确认
+    IPT--&gt;&gt;KP: 成功
+
+    Note over KP: Service 现在可达</code></pre>
+
+<h3 id="5-2-后端-Pod-变更时序图"><a href="#5-2-后端-Pod-变更时序图" class="headerlink" title="5.2 后端 Pod 变更时序图"></a>5.2 后端 Pod 变更时序图</h3><pre><code class="highlight mermaid">sequenceDiagram
+    autonumber
+    participant KL as Kubelet
+    participant API as kube-apiserver
+    participant EP as EndpointSlice Controller
+    participant KP as kube-proxy
+    participant IPT as iptables/ipvs
+
+    Note over KL: Pod Ready 状态变化
+
+    KL-&gt;&gt;API: 更新 Pod status
+    API--&gt;&gt;EP: watch Pod UPDATE
+
+    EP-&gt;&gt;EP: 检查 Pod 是否匹配 Service
+    EP-&gt;&gt;EP: 更新 EndpointSlice
+
+    alt Pod 变为 Ready
+        EP-&gt;&gt;API: 添加 Endpoint 到 EndpointSlice
+    else Pod 变为 NotReady
+        EP-&gt;&gt;API: 从 EndpointSlice 移除 Endpoint
+    end
+
+    API--&gt;&gt;KP: watch EndpointSlice UPDATE
+
+    KP-&gt;&gt;KP: EndpointSliceHandler.OnUpdate()
+    KP-&gt;&gt;KP: 入队更新
+
+    Note over KP: 等待 SyncRunner
+
+    KP-&gt;&gt;KP: Sync()
+    KP-&gt;&gt;KP: 重新计算 endpointsMap
+    KP-&gt;&gt;KP: 计算规则差异
+
+    KP-&gt;&gt;IPT: 更新 iptables/ipvs 规则
+    IPT--&gt;&gt;KP: 成功
+
+    Note over KP: 流量现在路由到新后端</code></pre>
+
+<h3 id="5-3-规则同步失败重试时序图"><a href="#5-3-规则同步失败重试时序图" class="headerlink" title="5.3 规则同步失败重试时序图"></a>5.3 规则同步失败重试时序图</h3><pre><code class="highlight mermaid">sequenceDiagram
+    autonumber
+    participant KP as kube-proxy
+    participant IPT as iptables/ipvs
+    participant KERNEL as Linux 内核
+
+    KP-&gt;&gt;KP: SyncRunner 触发
+    KP-&gt;&gt;KP: generateRules()
+
+    KP-&gt;&gt;IPT: iptables-restore &lt; rules
+    IPT-&gt;&gt;KERNEL: 写入规则
+
+    alt 规则写入失败
+        KERNEL--&gt;&gt;IPT: Error (如资源不足)
+        IPT--&gt;&gt;KP: 失败
+
+        KP-&gt;&gt;KP: 记录错误
+        KP-&gt;&gt;KP: 保留旧规则
+
+        Note over KP: 等待下次 Sync
+
+        KP-&gt;&gt;KP: SyncRunner 再次触发
+        KP-&gt;&gt;IPT: 重试 iptables-restore
+        IPT-&gt;&gt;KERNEL: 写入规则
+        KERNEL--&gt;&gt;IPT: 成功
+        IPT--&gt;&gt;KP: 成功
+    else 规则写入成功
+        KERNEL--&gt;&gt;IPT: 成功
+        IPT--&gt;&gt;KP: 成功
+    end</code></pre>
+
+<hr>
+<h2 id="6-故障排查指南"><a href="#6-故障排查指南" class="headerlink" title="6. 故障排查指南"></a>6. 故障排查指南</h2><h3 id="6-1-常见问题与诊断方法"><a href="#6-1-常见问题与诊断方法" class="headerlink" title="6.1 常见问题与诊断方法"></a>6.1 常见问题与诊断方法</h3><h4 id="问题-1：Service-ClusterIP-无法访问"><a href="#问题-1：Service-ClusterIP-无法访问" class="headerlink" title="问题 1：Service ClusterIP 无法访问"></a>问题 1：Service ClusterIP 无法访问</h4><p><strong>症状</strong>：通过 Service ClusterIP 访问服务超时或拒绝连接</p>
+<p><strong>排查流程图</strong>：</p>
+<pre><code class="highlight mermaid">flowchart TD
+    A[ClusterIP 不可达] --&gt; B&#123;检查 Service 是否存在&#125;
+
+    B --&gt;|不存在| B1[创建 Service]
+    B --&gt;|存在| C&#123;检查 EndpointSlice&#125;
+
+    C --&gt;|无后端| C1[检查 Pod labels]
+    C1 --&gt; C2[检查 Pod Ready 状态]
+    C2 --&gt; C3[检查 selector 匹配]
+
+    C --&gt;|有后端| D&#123;检查 iptables 规则&#125;
+
+    D --&gt;|无规则| D1[检查 kube-proxy 日志]
+    D1 --&gt; D2[重启 kube-proxy]
+
+    D --&gt;|有规则| E&#123;检查 conntrack&#125;
+    E --&gt; E1[conntrack -L]
+    E --&gt; E2[检查连接状态]
+
+    A --&gt; F&#123;检查网络策略&#125;
+    F --&gt; F1[检查 NetworkPolicy]
+    F --&gt; F2[检查 CNI 配置]</code></pre>
+
+<p><strong>诊断命令</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 检查 Service</span></span><br><span class="line">kubectl get svc -n &lt;namespace&gt;</span><br><span class="line">kubectl describe svc &lt;service-name&gt; -n &lt;namespace&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 EndpointSlice</span></span><br><span class="line">kubectl get endpointslices -n &lt;namespace&gt; -l kubernetes.io/service-name=&lt;service-name&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 iptables 规则</span></span><br><span class="line">sudo iptables -t nat -L KUBE-SERVICES -n</span><br><span class="line">sudo iptables -t nat -L KUBE-SVC-&lt;<span class="built_in">hash</span>&gt; -n</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 IPVS 规则</span></span><br><span class="line">sudo ipvsadm -Ln</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 conntrack</span></span><br><span class="line">sudo conntrack -L | grep &lt;cluster-ip&gt;</span><br><span class="line">sudo conntrack -F  <span class="comment"># 清理 conntrack (谨慎使用)</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 kube-proxy 日志</span></span><br><span class="line">kubectl logs -n kube-system &lt;kube-proxy-pod&gt;</span><br><span class="line">journalctl -u kube-proxy</span><br></pre></td></tr></table></figure>
+
+<h4 id="问题-2：NodePort-外部无法访问"><a href="#问题-2：NodePort-外部无法访问" class="headerlink" title="问题 2：NodePort 外部无法访问"></a>问题 2：NodePort 外部无法访问</h4><p><strong>症状</strong>：从集群外部无法通过 NodeIP:NodePort 访问服务</p>
+<p><strong>排查流程图</strong>：</p>
+<pre><code class="highlight mermaid">flowchart TD
+    A[NodePort 不可达] --&gt; B&#123;检查防火墙&#125;
+
+    B --&gt; B1[检查节点防火墙规则]
+    B1 --&gt; B2[iptables -L INPUT]
+    B1 --&gt; B3[firewalld/ufw 状态]
+
+    B --&gt; C&#123;检查 NodePort 范围&#125;
+    C --&gt; C1[kubectl get svc]
+    C1 --&gt; C2[NodePort 是否在 30000-32767]
+
+    A --&gt; D&#123;检查 kube-proxy&#125;
+    D --&gt; D1[检查 KUBE-NODEPORTS 链]
+    D --&gt; D2[检查 IPVS 虚拟服务]
+
+    A --&gt; E&#123;检查网络连通性&#125;
+    E --&gt; E1[从节点内测试 curl localhost:NodePort]
+    E --&gt; E2[从节点外测试 curl NodeIP:NodePort]
+
+    A --&gt; F&#123;检查 local 部流量策略&#125;
+    F --&gt; F1[externalTrafficPolicy]
+    F1 --&gt; F2[Local 模式只转发到本节点 Pod]</code></pre>
+
+<p><strong>诊断命令</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 检查 NodePort 范围</span></span><br><span class="line">kubectl cluster-info dump | grep -i <span class="string">&quot;service-node-port-range&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 iptables NodePort 规则</span></span><br><span class="line">sudo iptables -t nat -L KUBE-NODEPORTS -n</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查节点防火墙</span></span><br><span class="line">sudo iptables -L INPUT -n</span><br><span class="line">sudo firewall-cmd --list-all  <span class="comment"># CentOS/RHEL</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 从节点内测试</span></span><br><span class="line">curl -v http://localhost:&lt;nodeport&gt;</span><br><span class="line">curl -v http://127.0.0.1:&lt;nodeport&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 externalTrafficPolicy</span></span><br><span class="line">kubectl get svc &lt;service-name&gt; -o jsonpath=<span class="string">&#x27;&#123;.spec.externalTrafficPolicy&#125;&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="问题-3：Session-Affinity-不生效"><a href="#问题-3：Session-Affinity-不生效" class="headerlink" title="问题 3：Session Affinity 不生效"></a>问题 3：Session Affinity 不生效</h4><p><strong>症状</strong>：相同客户端请求被分发到不同后端</p>
+<p><strong>排查流程图</strong>：</p>
+<pre><code class="highlight mermaid">flowchart TD
+    A[Session Affinity 失效] --&gt; B&#123;检查 Service 配置&#125;
+
+    B --&gt; B1[检查 sessionAffinity]
+    B --&gt; B2[检查 sessionAffinityConfig.timeoutSeconds]
+
+    A --&gt; C&#123;检查负载均衡模式&#125;
+    C --&gt; C1[iptables 模式: 检查概率规则]
+    C --&gt; C2[IPVS 模式: 检查调度算法]
+
+    A --&gt; D&#123;检查 conntrack&#125;
+    D --&gt; D1[conntrack 状态]
+    D --&gt; D2[连接超时时间]
+
+    A --&gt; E&#123;检查客户端 IP&#125;
+    E --&gt; E1[是否经过 SNAT]
+    E --&gt; E2[externalTrafficPolicy 设置]</code></pre>
+
+<p><strong>诊断命令</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 检查 Session Affinity 配置</span></span><br><span class="line">kubectl get svc &lt;service-name&gt; -o yaml | grep -A 5 sessionAffinity</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 iptables 规则中的 affinity</span></span><br><span class="line">sudo iptables -t nat -L KUBE-SEP-&lt;<span class="built_in">hash</span>&gt; -n -v | grep recent</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 conntrack</span></span><br><span class="line">sudo conntrack -L -p tcp --dport &lt;service-port&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 IPVS 持久化</span></span><br><span class="line">sudo ipvsadm -Ln --persistent-conn</span><br></pre></td></tr></table></figure>
+
+<h3 id="6-2-关键日志关键词"><a href="#6-2-关键日志关键词" class="headerlink" title="6.2 关键日志关键词"></a>6.2 关键日志关键词</h3><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>日志关键词</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>规则同步</td>
+<td><code>Sync rules</code></td>
+<td>开始同步规则</td>
+</tr>
+<tr>
+<td>规则更新</td>
+<td><code>Setting iptables</code></td>
+<td>更新 iptables</td>
+</tr>
+<tr>
+<td>Service 变更</td>
+<td><code>Adding new service</code></td>
+<td>新增 Service</td>
+</tr>
+<tr>
+<td>Endpoint 变更</td>
+<td><code>Updating endpoints</code></td>
+<td>更新后端</td>
+</tr>
+<tr>
+<td>同步失败</td>
+<td><code>Failed to execute</code></td>
+<td>规则执行失败</td>
+</tr>
+<tr>
+<td>IPVS 模式</td>
+<td><code>Using ipvs Proxier</code></td>
+<td>IPVS 模式启动</td>
+</tr>
+</tbody></table>
+<h3 id="6-3-配置参数参考"><a href="#6-3-配置参数参考" class="headerlink" title="6.3 配置参数参考"></a>6.3 配置参数参考</h3><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>默认值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>--proxy-mode</code></td>
+<td>iptables</td>
+<td>代理模式 (iptables&#x2F;ipvs&#x2F;userspace)</td>
+</tr>
+<tr>
+<td><code>--cluster-cidr</code></td>
+<td>无</td>
+<td>Pod 网段，用于 masquerade</td>
+</tr>
+<tr>
+<td><code>--ipvs-sync-period</code></td>
+<td>1m</td>
+<td>IPVS 规则同步周期</td>
+</tr>
+<tr>
+<td><code>--iptables-sync-period</code></td>
+<td>1m</td>
+<td>iptables 规则同步周期</td>
+</tr>
+<tr>
+<td><code>--masquerade-all</code></td>
+<td>false</td>
+<td>是否对所有流量 SNAT</td>
+</tr>
+<tr>
+<td><code>--nodeport-addresses</code></td>
+<td>所有</td>
+<td>NodePort 监听地址</td>
+</tr>
+</tbody></table>
+<h3 id="6-4-一键诊断命令"><a href="#6-4-一键诊断命令" class="headerlink" title="6.4 一键诊断命令"></a>6.4 一键诊断命令</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># kube-proxy 问题诊断脚本</span></span><br><span class="line">SVC_NAME=<span class="variable">$&#123;1:-&quot;&lt;service-name&gt;&quot;&#125;</span></span><br><span class="line">NAMESPACE=<span class="variable">$&#123;2:-&quot;default&quot;&#125;</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;=== Service Info ===&quot;</span> &amp;&amp; \</span><br><span class="line">kubectl get svc <span class="variable">$SVC_NAME</span> -n <span class="variable">$NAMESPACE</span> -o wide &amp;&amp; \</span><br><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;\n=== Endpoints ===&quot;</span> &amp;&amp; \</span><br><span class="line">kubectl get endpoints <span class="variable">$SVC_NAME</span> -n <span class="variable">$NAMESPACE</span> &amp;&amp; \</span><br><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;\n=== EndpointSlice ===&quot;</span> &amp;&amp; \</span><br><span class="line">kubectl get endpointslices -n <span class="variable">$NAMESPACE</span> -l kubernetes.io/service-name=<span class="variable">$SVC_NAME</span> &amp;&amp; \</span><br><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;\n=== Service iptables Rules ===&quot;</span> &amp;&amp; \</span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;Run on node: sudo iptables -t nat -L KUBE-SERVICES -n | grep <span class="variable">$SVC_NAME</span>&quot;</span> &amp;&amp; \</span><br><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;\n=== IPVS Services ===&quot;</span> &amp;&amp; \</span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;Run on node: sudo ipvsadm -Ln | grep -A 5 &lt;cluster-ip&gt;&quot;</span></span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="7-版本差异说明"><a href="#7-版本差异说明" class="headerlink" title="7. 版本差异说明"></a>7. 版本差异说明</h2><h3 id="1-27-→-1-28-变化"><a href="#1-27-→-1-28-变化" class="headerlink" title="1.27 → 1.28 变化"></a>1.27 → 1.28 变化</h3><table>
+<thead>
+<tr>
+<th>变化点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>nftables 模式 (Alpha)</td>
+<td>新增 nftables 后端，未来将替代 iptables</td>
+</tr>
+<tr>
+<td>Dual-stack Service 改进</td>
+<td>IPv4&#x2F;IPv6 双栈支持更完善</td>
+</tr>
+</tbody></table>
+<h3 id="1-28-→-1-29-变化"><a href="#1-28-→-1-29-变化" class="headerlink" title="1.28 → 1.29 变化"></a>1.28 → 1.29 变化</h3><table>
+<thead>
+<tr>
+<th>变化点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Service 内部流量策略</td>
+<td><code>internalTrafficPolicy: Local</code> 支持</td>
+</tr>
+<tr>
+<td>nftables 模式 (Beta)</td>
+<td>nftables 模式更稳定</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="8-代码入口（精简版）"><a href="#8-代码入口（精简版）" class="headerlink" title="8. 代码入口（精简版）"></a>8. 代码入口（精简版）</h2><p>如果读者想从流程跳回实现，可从下面几个入口开始：</p>
+<ul>
+<li>kube-proxy 主入口：<a href="../cmd/kube-proxy/proxy.go"><code>cmd/kube-proxy/proxy.go</code></a></li>
+<li>Proxier 接口：<a href="../pkg/proxy/proxy.go"><code>pkg/proxy/proxy.go</code></a></li>
+<li>iptables Proxier：<a href="../pkg/proxy/iptables/proxier.go"><code>pkg/proxy/iptables/proxier.go</code></a></li>
+<li>IPVS Proxier：<a href="../pkg/proxy/ipvs/proxier.go"><code>pkg/proxy/ipvs/proxier.go</code></a></li>
+<li>EndpointSlice 缓存：<a href="../pkg/proxy/endpointslicecache.go"><code>pkg/proxy/endpointslicecache.go</code></a></li>
+</ul>
+<hr>
+<h2 id="9-面试题与详细解答"><a href="#9-面试题与详细解答" class="headerlink" title="9. 面试题与详细解答"></a>9. 面试题与详细解答</h2><h3 id="问题-1：kube-proxy-的三种模式（userspace-iptables-IPVS）有什么区别？生产环境如何选择？"><a href="#问题-1：kube-proxy-的三种模式（userspace-iptables-IPVS）有什么区别？生产环境如何选择？" class="headerlink" title="问题 1：kube-proxy 的三种模式（userspace&#x2F;iptables&#x2F;IPVS）有什么区别？生产环境如何选择？"></a>问题 1：kube-proxy 的三种模式（userspace&#x2F;iptables&#x2F;IPVS）有什么区别？生产环境如何选择？</h3><p><strong>回答要点</strong>：</p>
+<p><strong>三种模式对比</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>userspace</th>
+<th>iptables</th>
+<th>IPVS</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>性能</td>
+<td>最差（用户态转发）</td>
+<td>中等（内核态 O(n)）</td>
+<td>最好（内核态 O(1)）</td>
+</tr>
+<tr>
+<td>规则更新</td>
+<td>立即生效</td>
+<td>全量更新</td>
+<td>增量更新</td>
+</tr>
+<tr>
+<td>负载均衡</td>
+<td>随机</td>
+<td>概率规则</td>
+<td>多种算法</td>
+</tr>
+<tr>
+<td>可靠性</td>
+<td>高</td>
+<td>高</td>
+<td>需加载 ip_vs 模块</td>
+</tr>
+</tbody></table>
+<p><strong>选择建议</strong>：</p>
+<ol>
+<li><p><strong>生产环境推荐 IPVS</strong>：</p>
+<ul>
+<li>大规模集群（Service &gt; 1000）必须使用</li>
+<li>需要高级负载均衡算法（如最少连接）</li>
+<li>规则更新频繁场景</li>
+</ul>
+</li>
+<li><p><strong>中小规模可用 iptables</strong>：</p>
+<ul>
+<li>默认模式，无需额外配置</li>
+<li>所有 Linux 内核都支持</li>
+<li>规则数量可控时性能足够</li>
+</ul>
+</li>
+<li><p><strong>避免使用 userspace</strong>：</p>
+<ul>
+<li>仅用于兼容旧系统</li>
+<li>性能瓶颈明显</li>
+</ul>
+</li>
+</ol>
+<p><strong>代码位置</strong>：</p>
+<ul>
+<li>iptables Proxier：<code>pkg/proxy/iptables/proxier.go</code></li>
+<li>IPVS Proxier：<code>pkg/proxy/ipvs/proxier.go</code></li>
+</ul>
+<hr>
+<h3 id="问题-2：kube-proxy-如何保证-Service-后端-Pod-变更后规则及时更新？更新延迟是多少？"><a href="#问题-2：kube-proxy-如何保证-Service-后端-Pod-变更后规则及时更新？更新延迟是多少？" class="headerlink" title="问题 2：kube-proxy 如何保证 Service 后端 Pod 变更后规则及时更新？更新延迟是多少？"></a>问题 2：kube-proxy 如何保证 Service 后端 Pod 变更后规则及时更新？更新延迟是多少？</h3><p><strong>回答要点</strong>：</p>
+<p><strong>更新机制</strong>：</p>
+<ol>
+<li><p><strong>Informer Watch 机制</strong>：</p>
+<ul>
+<li>kube-proxy watch API Server 的 EndpointSlice 对象</li>
+<li>变更事件实时推送到 kube-proxy</li>
+</ul>
+</li>
+<li><p><strong>事件处理流程</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">EndpointSlice 变更 → Informer 收到事件 → EventHandler 入队 → SyncRunner 定期处理 → 规则计算 → 规则同步</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><strong>同步周期</strong>（默认配置）：</p>
+<ul>
+<li><code>--iptables-sync-period</code>：1 分钟（定期全量同步）</li>
+<li><code>--ipvs-sync-period</code>：1 分钟</li>
+<li>但变更事件会立即触发增量更新</li>
+</ul>
+</li>
+</ol>
+<p><strong>延迟分析</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>延迟</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>EndpointSlice 更新</td>
+<td>1-2 秒（kubelet 上报 Pod Ready）</td>
+</tr>
+<tr>
+<td>Informer Watch 延迟</td>
+<td>&lt; 1 秒</td>
+</tr>
+<tr>
+<td>队列等待</td>
+<td>0 - sync-period</td>
+</tr>
+<tr>
+<td>规则写入</td>
+<td>&lt; 1 秒</td>
+</tr>
+<tr>
+<td><strong>总延迟</strong></td>
+<td><strong>通常 &lt; 5 秒</strong></td>
+</tr>
+</tbody></table>
+<p><strong>代码位置</strong>：</p>
+<ul>
+<li>EndpointSlice 缓存：<code>pkg/proxy/endpointslicecache.go</code></li>
+<li>SyncRunner：<code>pkg/proxy/sync_runner.go</code></li>
+</ul>
+<hr>
+<h3 id="问题-3：iptables-模式下的-ClusterIP-流量转发完整流程是什么？为什么需要-SNAT？"><a href="#问题-3：iptables-模式下的-ClusterIP-流量转发完整流程是什么？为什么需要-SNAT？" class="headerlink" title="问题 3：iptables 模式下的 ClusterIP 流量转发完整流程是什么？为什么需要 SNAT？"></a>问题 3：iptables 模式下的 ClusterIP 流量转发完整流程是什么？为什么需要 SNAT？</h3><p><strong>回答要点</strong>：</p>
+<p><strong>流量转发流程</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">1. Pod 发送请求到 ClusterIP:Port</span><br><span class="line">2. 进入节点网络栈 PREROUTING 链</span><br><span class="line">3. 跳转到 KUBE-SERVICES 链</span><br><span class="line">4. 匹配 KUBE-SVC-xxx 链（根据 ClusterIP:Port）</span><br><span class="line">5. 概率选择进入 KUBE-SEP-xxx 链（负载均衡）</span><br><span class="line">6. 执行 DNAT：ClusterIP → PodIP</span><br><span class="line">7. 转发到后端 Pod</span><br><span class="line">8. 响应包通过 conntrack 反向 NAT 返回</span><br></pre></td></tr></table></figure>
+
+<p><strong>iptables 链关系</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">PREROUTING → KUBE-SERVICES → KUBE-SVC-xxx → KUBE-SEP-xxx</span><br><span class="line">                                                    ↓</span><br><span class="line">                                                 DNAT</span><br><span class="line">                                                    ↓</span><br><span class="line">                                              后端 Pod</span><br></pre></td></tr></table></figure>
+
+<p><strong>SNAT 的必要性</strong>：</p>
+<ol>
+<li><strong>场景</strong>：Pod 访问自身 Service（hairpin 模式）</li>
+<li><strong>问题</strong>：如果不 SNAT，响应包直接返回给客户端 Pod，源 IP 是后端 Pod IP，客户端无法识别</li>
+<li><strong>解决</strong>：<ul>
+<li><code>KUBE-MARK-MASQ</code> 链标记需要 SNAT 的流量</li>
+<li>POSTROUTING 链执行 MASQUERADE</li>
+</ul>
+</li>
+</ol>
+<p><strong>关键规则示例</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># KUBE-SVC-xxx 链（概率负载均衡）</span></span><br><span class="line">-A KUBE-SVC-xxx -m statistic --mode random --probability 0.5 -j KUBE-SEP-xxx1</span><br><span class="line">-A KUBE-SVC-xxx -m statistic --mode random --probability 1.0 -j KUBE-SEP-xxx2</span><br><span class="line"></span><br><span class="line"><span class="comment"># KUBE-SEP-xxx 链（DNAT）</span></span><br><span class="line">-A KUBE-SEP-xxx -s 10.244.1.2/32 -j KUBE-MARK-MASQ</span><br><span class="line">-A KUBE-SEP-xxx -p tcp -m tcp -j DNAT --to-destination 10.244.1.2:8080</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h3 id="问题-4：Service-的-SessionAffinity-是如何实现的？为什么有时候不生效？"><a href="#问题-4：Service-的-SessionAffinity-是如何实现的？为什么有时候不生效？" class="headerlink" title="问题 4：Service 的 SessionAffinity 是如何实现的？为什么有时候不生效？"></a>问题 4：Service 的 SessionAffinity 是如何实现的？为什么有时候不生效？</h3><p><strong>回答要点</strong>：</p>
+<p><strong>实现原理</strong>：</p>
+<ol>
+<li><p><strong>iptables 模式</strong>：</p>
+<ul>
+<li>使用 <code>recent</code> 模块记录源 IP</li>
+<li>后续请求优先匹配已建立连接的后端<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 示例规则</span></span><br><span class="line">-A KUBE-SEP-xxx -m recent --<span class="built_in">set</span> --name KUBE-SEP-xxx</span><br><span class="line">-A KUBE-SEP-xxx -m recent --rcheck --seconds 10800 --name KUBE-SEP-xxx -j DNAT</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><p><strong>IPVS 模式</strong>：</p>
+<ul>
+<li>使用 IPVS 的持久化连接（persistent connection）</li>
+<li><code>ipvsadm -p</code> 参数设置持久化时间</li>
+<li>支持 source hashing 调度算法</li>
+</ul>
+</li>
+</ol>
+<p><strong>不生效的常见原因</strong>：</p>
+<ol>
+<li><p><strong>客户端 IP 变化</strong>：</p>
+<ul>
+<li>经过 SNAT 后，源 IP 被改写</li>
+<li>解决：设置 <code>externalTrafficPolicy: Local</code></li>
+</ul>
+</li>
+<li><p><strong>超时时间过期</strong>：</p>
+<ul>
+<li>默认 3 小时，可在 <code>sessionAffinityConfig</code> 调整<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">sessionAffinity:</span> <span class="string">ClientIP</span></span><br><span class="line"><span class="attr">sessionAffinityConfig:</span></span><br><span class="line">  <span class="attr">clientIP:</span></span><br><span class="line">    <span class="attr">timeoutSeconds:</span> <span class="number">3600</span></span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+<li><p><strong>负载均衡算法</strong>：</p>
+<ul>
+<li>IPVS 模式需要使用 <code>sh</code>（source hashing）算法</li>
+<li>配置：<code>--ipvs-scheduler=sh</code></li>
+</ul>
+</li>
+<li><p><strong>后端 Pod 数量变化</strong>：</p>
+<ul>
+<li>Pod 增减导致哈希重新计算</li>
+<li>解决：使用一致性哈希或减少 Pod 变化频率</li>
+</ul>
+</li>
+</ol>
+<p><strong>调试命令</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 检查 SessionAffinity 配置</span></span><br><span class="line">kubectl get svc -o yaml | grep -A 5 sessionAffinity</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 iptables recent 规则</span></span><br><span class="line">sudo iptables -t nat -L KUBE-SEP-xxx -n -v | grep recent</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 IPVS 持久化</span></span><br><span class="line">sudo ipvsadm -Ln --persistent-conn</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h3 id="问题-5：NodePort-服务的外部流量策略（externalTrafficPolicy）有什么作用？Local-和-Cluster-模式的区别？"><a href="#问题-5：NodePort-服务的外部流量策略（externalTrafficPolicy）有什么作用？Local-和-Cluster-模式的区别？" class="headerlink" title="问题 5：NodePort 服务的外部流量策略（externalTrafficPolicy）有什么作用？Local 和 Cluster 模式的区别？"></a>问题 5：NodePort 服务的外部流量策略（externalTrafficPolicy）有什么作用？Local 和 Cluster 模式的区别？</h3><p><strong>回答要点</strong>：</p>
+<p><strong>两种模式对比</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>Cluster（默认）</th>
+<th>Local</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>流量转发</td>
+<td>可转发到任意节点 Pod</td>
+<td>只转发到本节点 Pod</td>
+</tr>
+<tr>
+<td>源 IP 保留</td>
+<td>否（SNAT）</td>
+<td>是（保留真实客户端 IP）</td>
+</tr>
+<tr>
+<td>负载均衡</td>
+<td>集群级别均匀</td>
+<td>取决于外部负载均衡</td>
+</tr>
+<tr>
+<td>可用性</td>
+<td>高（所有节点都可用）</td>
+<td>低（只有 Pod 所在节点可用）</td>
+</tr>
+</tbody></table>
+<p><strong>Cluster 模式流程</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">外部请求 → NodeIP:NodePort → KUBE-NODEPORTS → KUBE-SVC-xxx</span><br><span class="line">         → 任意节点 Pod（可能 SNAT 两次）</span><br></pre></td></tr></table></figure>
+
+<p><strong>Local 模式流程</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">外部请求 → NodeIP:NodePort → KUBE-XLB-xxx → 仅本节点 Pod（保留源 IP）</span><br></pre></td></tr></table></figure>
+
+<p><strong>使用场景</strong>：</p>
+<ol>
+<li><p><strong>Cluster 模式</strong>：</p>
+<ul>
+<li>对源 IP 无要求</li>
+<li>需要高可用性</li>
+<li>后端 Pod 分布不均匀</li>
+</ul>
+</li>
+<li><p><strong>Local 模式</strong>：</p>
+<ul>
+<li>需要保留源 IP（如安全策略、日志分析）</li>
+<li>配合外部负载均衡使用</li>
+<li>后端 Pod 在每个节点都有部署</li>
+</ul>
+</li>
+</ol>
+<p><strong>配置示例</strong>：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">my-service</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">NodePort</span></span><br><span class="line">  <span class="attr">externalTrafficPolicy:</span> <span class="string">Local</span>  <span class="comment"># 或 Cluster</span></span><br><span class="line">  <span class="attr">ports:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">port:</span> <span class="number">80</span></span><br><span class="line">      <span class="attr">targetPort:</span> <span class="number">8080</span></span><br><span class="line">      <span class="attr">nodePort:</span> <span class="number">30080</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>注意事项</strong>：</p>
+<ul>
+<li>Local 模式下，如果本节点没有 Pod，请求会被拒绝</li>
+<li>建议配合 DaemonSet 使用 Local 模式</li>
+</ul>
+<hr>
+<h3 id="问题-6：kube-proxy-如何处理-Service-的-headless-类型？DNS-解析与普通-Service-有什么区别？"><a href="#问题-6：kube-proxy-如何处理-Service-的-headless-类型？DNS-解析与普通-Service-有什么区别？" class="headerlink" title="问题 6：kube-proxy 如何处理 Service 的 headless 类型？DNS 解析与普通 Service 有什么区别？"></a>问题 6：kube-proxy 如何处理 Service 的 headless 类型？DNS 解析与普通 Service 有什么区别？</h3><p><strong>回答要点</strong>：</p>
+<p><strong>Headless Service 特点</strong>：</p>
+<ol>
+<li><strong>定义</strong>：<code>spec.clusterIP: None</code></li>
+<li><strong>kube-proxy 行为</strong>：不创建任何 iptables&#x2F;IPVS 规则</li>
+<li><strong>负载均衡</strong>：完全依赖 DNS 轮询或客户端实现</li>
+</ol>
+<p><strong>DNS 解析区别</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>DNS 返回</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>ClusterIP Service</td>
+<td>单个 ClusterIP</td>
+<td><code>10.96.0.1</code></td>
+</tr>
+<tr>
+<td>Headless Service</td>
+<td>所有 Ready Pod IP</td>
+<td><code>10.244.1.2, 10.244.1.3, ...</code></td>
+</tr>
+</tbody></table>
+<p><strong>Headless Service DNS 查询结果</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 普通 Service</span></span><br><span class="line">$ dig my-service.default.svc.cluster.local</span><br><span class="line">;; ANSWER SECTION:</span><br><span class="line">my-service.default.svc.cluster.local. 30 IN A 10.96.0.1</span><br><span class="line"></span><br><span class="line"><span class="comment"># Headless Service</span></span><br><span class="line">$ dig my-service.default.svc.cluster.local</span><br><span class="line">;; ANSWER SECTION:</span><br><span class="line">my-service.default.svc.cluster.local. 30 IN A 10.244.1.2</span><br><span class="line">my-service.default.svc.cluster.local. 30 IN A 10.244.1.3</span><br><span class="line">my-service.default.svc.cluster.local. 30 IN A 10.244.1.4</span><br></pre></td></tr></table></figure>
+
+<p><strong>使用场景</strong>：</p>
+<ol>
+<li><strong>StatefulSet</strong>：每个 Pod 有稳定网络标识</li>
+<li><strong>自定义负载均衡</strong>：客户端自行选择后端</li>
+<li><strong>服务发现</strong>：获取所有后端 IP 列表</li>
+<li><strong>数据库集群</strong>：需要区分主从节点</li>
+</ol>
+<p><strong>实现原理</strong>：</p>
+<ol>
+<li><p><strong>EndpointSlice Controller</strong>：</p>
+<ul>
+<li>仍然创建 EndpointSlice 对象</li>
+<li>包含所有 Ready Pod 的 IP</li>
+</ul>
+</li>
+<li><p><strong>CoreDNS</strong>：</p>
+<ul>
+<li>读取 EndpointSlice</li>
+<li>为每个 IP 返回 A 记录</li>
+<li>支持 SRV 记录（带端口）</li>
+</ul>
+</li>
+</ol>
+<p><strong>代码位置</strong>：</p>
+<ul>
+<li>EndpointSlice Controller：<code>pkg/controller/endpointslice/controller.go</code></li>
+</ul>
+<hr>
+<h3 id="问题-7：如何排查-Service-无法访问的问题？请给出完整的排查思路和命令。"><a href="#问题-7：如何排查-Service-无法访问的问题？请给出完整的排查思路和命令。" class="headerlink" title="问题 7：如何排查 Service 无法访问的问题？请给出完整的排查思路和命令。"></a>问题 7：如何排查 Service 无法访问的问题？请给出完整的排查思路和命令。</h3><p><strong>回答要点</strong>：</p>
+<p><strong>排查流程图</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">Service 无法访问</span><br><span class="line">    ↓</span><br><span class="line">检查 Service 是否存在</span><br><span class="line">    ↓</span><br><span class="line">检查 EndpointSlice 是否有后端</span><br><span class="line">    ↓</span><br><span class="line">检查 iptables/IPVS 规则</span><br><span class="line">    ↓</span><br><span class="line">检查网络连通性</span><br><span class="line">    ↓</span><br><span class="line">检查 conntrack 状态</span><br></pre></td></tr></table></figure>
+
+<p><strong>详细排查步骤</strong>：</p>
+<p><strong>步骤 1：检查 Service 配置</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看 Service</span></span><br><span class="line">kubectl get svc -n &lt;namespace&gt;</span><br><span class="line">kubectl describe svc &lt;service-name&gt; -n &lt;namespace&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 ClusterIP 和 Port</span></span><br><span class="line">kubectl get svc &lt;service-name&gt; -o jsonpath=<span class="string">&#x27;&#123;.spec.clusterIP&#125;:&#123;.spec.ports[0].port&#125;&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>步骤 2：检查 EndpointSlice</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看后端 Pod</span></span><br><span class="line">kubectl get endpointslices -n &lt;namespace&gt; -l kubernetes.io/service-name=&lt;service-name&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查后端是否 Ready</span></span><br><span class="line">kubectl get pods -n &lt;namespace&gt; -l &lt;selector&gt; -o wide</span><br></pre></td></tr></table></figure>
+
+<p><strong>步骤 3：检查 iptables 规则（在节点上）</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看 KUBE-SERVICES 链</span></span><br><span class="line">sudo iptables -t nat -L KUBE-SERVICES -n</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看特定 Service 的规则</span></span><br><span class="line">sudo iptables -t nat -L KUBE-SVC-&lt;<span class="built_in">hash</span>&gt; -n</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看 NodePort 规则</span></span><br><span class="line">sudo iptables -t nat -L KUBE-NODEPORTS -n</span><br></pre></td></tr></table></figure>
+
+<p><strong>步骤 4：检查 IPVS 规则（在节点上）</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看所有虚拟服务</span></span><br><span class="line">sudo ipvsadm -Ln</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看特定服务的后端</span></span><br><span class="line">sudo ipvsadm -Ln -t &lt;cluster-ip&gt;:&lt;port&gt;</span><br></pre></td></tr></table></figure>
+
+<p><strong>步骤 5：检查 conntrack 状态</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看连接追踪</span></span><br><span class="line">sudo conntrack -L | grep &lt;cluster-ip&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 清理 conntrack（谨慎使用）</span></span><br><span class="line">sudo conntrack -D -p tcp --dport &lt;port&gt;</span><br></pre></td></tr></table></figure>
+
+<p><strong>步骤 6：网络连通性测试</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 从 Pod 内测试</span></span><br><span class="line">kubectl <span class="built_in">exec</span> -it &lt;pod-name&gt; -- curl -v http://&lt;cluster-ip&gt;:&lt;port&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 从节点测试</span></span><br><span class="line">curl -v http://&lt;cluster-ip&gt;:&lt;port&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># DNS 解析测试</span></span><br><span class="line">kubectl <span class="built_in">exec</span> -it &lt;pod-name&gt; -- nslookup &lt;service-name&gt;</span><br></pre></td></tr></table></figure>
+
+<p><strong>常见问题及解决</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>问题</th>
+<th>原因</th>
+<th>解决方法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>无 ClusterIP</td>
+<td>Service 配置错误</td>
+<td>检查 yaml 配置</td>
+</tr>
+<tr>
+<td>无后端 Pod</td>
+<td>selector 不匹配</td>
+<td>修正 labels</td>
+</tr>
+<tr>
+<td>后端 NotReady</td>
+<td>Pod 未就绪</td>
+<td>检查 Pod 状态</td>
+</tr>
+<tr>
+<td>无 iptables 规则</td>
+<td>kube-proxy 故障</td>
+<td>重启 kube-proxy</td>
+</tr>
+<tr>
+<td>conntrack 满了</td>
+<td>连接数超限</td>
+<td>增大 conntrack 表</td>
+</tr>
+</tbody></table>
+<p><strong>一键诊断脚本</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line">SVC_NAME=<span class="variable">$&#123;1&#125;</span></span><br><span class="line">NAMESPACE=<span class="variable">$&#123;2:-default&#125;</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;=== Service Info ===&quot;</span> &amp;&amp; \</span><br><span class="line">kubectl get svc <span class="variable">$SVC_NAME</span> -n <span class="variable">$NAMESPACE</span> -o wide &amp;&amp; \</span><br><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;\n=== EndpointSlice ===&quot;</span> &amp;&amp; \</span><br><span class="line">kubectl get endpointslices -n <span class="variable">$NAMESPACE</span> -l kubernetes.io/service-name=<span class="variable">$SVC_NAME</span> &amp;&amp; \</span><br><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;\n=== Backend Pods ===&quot;</span> &amp;&amp; \</span><br><span class="line">kubectl get pods -n <span class="variable">$NAMESPACE</span> -o wide | grep -E <span class="string">&quot;NAME|<span class="subst">$(kubectl get endpointslices -n $NAMESPACE -l kubernetes.io/service-name=$SVC_NAME -o jsonpath=&#x27;&#123;.items[0].endpoints[*].ip&#125;&#x27; | tr &#x27; &#x27; &#x27;|&#x27;)</span>&quot;</span> &amp;&amp; \</span><br><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;\n=== Service Events ===&quot;</span> &amp;&amp; \</span><br><span class="line">kubectl get events -n <span class="variable">$NAMESPACE</span> --field-selector involvedObject.name=<span class="variable">$SVC_NAME</span></span><br></pre></td></tr></table></figure>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-kube-proxy%E6%9C%8D%E5%8A%A1%E4%BB%A3%E7%90%86%E6%B5%81%E7%A8%8B/">https://piwriw.github.io/2026/03/25/cloud/k8s/ProcessAnalysis/流程分析-kube-proxy服务代理流程/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a><a class="post-meta__tags" href="/tags/cloud/">cloud</a><a class="post-meta__tags" href="/tags/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90/">流程分析</a></div><div class="post-share"><div class="social-share" data-image="/img/k8s-go.jpg" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-kubelet%E7%8A%B6%E6%80%81%E4%B8%8E%E4%BA%8B%E4%BB%B6%E5%8F%8D%E9%A6%88%E6%B5%81%E7%A8%8B/" title="Kubelet 状态与事件回传流程"><img class="cover" src="/img/k8s-go.jpg" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">Kubelet 状态与事件回传流程</div></div><div class="info-2"><div class="info-item-1">Kubelet 状态与事件回传流程目标这篇文档只回答一个核心问题：kubelet 如何把节点侧观察到的 Pod 运行结果回传给控制面？ 重点放在状态回传与事件上报两条通信链路的区别，以及控制器真正依赖的观察面是什么。 一句话摘要kubelet 通过 statusManager 异步批量把 PodStatus 同步到 API Server，并通过事件记录器上报诊断性 Event；控制器主要观察的是 API Server 中资源对象的状态变化，而不是 kubelet 内部事件流本身。  1. 流程总览从通信视角看，这条链路包含两条并行但职责不同的子链路：  状态回传链路：kubelet 把 Pod 运行状态写回 API Server，成为控制面的共享事实。 事件上报链路：kubelet 把诊断性 Event 写入 API Server，用于排障与审计。  这两条链路共享 API Server 作为存储，但消费方和语义完全不同。 Mermaid：总览图flowchart LR     A[Kubelet subsystems] --&gt; B[statusManager]     A...</div></div></div></a><a class="pagination-related" href="/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-kube-apiserver%E8%AF%B7%E6%B1%82%E5%A4%84%E7%90%86%E6%B5%81%E7%A8%8B/" title="kube-apiserver 请求处理流程"><img class="cover" src="/img/k8s-go.jpg" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">kube-apiserver 请求处理流程</div></div><div class="info-2"><div class="info-item-1">kube-apiserver 请求处理流程概述kube-apiserver 是 Kubernetes 控制平面的核心组件，负责处理所有 API 请求。每个请求都需要经过认证(Authentication)、授权(Authorization)、准入控制(Admission Control) 才能被持久化到 etcd。 核心处理流程1234567891011121314151617181920212223242526272829303132┌──────────────────────────────────────────────────────────────────────────────┐│                          API 请求入口                                    ││                    http.Handler -&gt; DefaultBuildHandler                         │└───────────────────────────────────────...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2026/03/25/cloud/k8s/ProcessAnalysis/kubelet%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="Kubelet 深度分析"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-25</div><div class="info-item-2">Kubelet 深度分析</div></div><div class="info-2"><div class="info-item-1">Kubelet 深度分析本文档深入分析 Kubernetes Kubelet 组件的架构设计、启动流程、核心功能和关键子系统。 目录 架构概览 关键数据结构 启动流程分析 核心功能原理 关键子系统详解 5.1 PodManager 5.2 StatusManager 5.3 ProbeManager 5.4 VolumeManager 5.5 EvictionManager 5.6 PLEG   边界情况与错误处理 性能优化 最佳实践   1. 架构概览1.1 Kubelet 在 Kubernetes 架构中的位置Kubelet 是 Kubernetes 集群中运行在每个节点上的核心代理（Node Agent），是 Kubernetes 控制平面与节点级容器运行时之间的桥梁。它负责维护节点上容器的生命周期，并将节点状态上报给 API Server。 在 Kubernetes 整体架构中，Kubelet 处于如下位置： 12345678910111213141516171819202122+-------------------------+         +----------...</div></div></div></a><a class="pagination-related" href="/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-CNI%E7%BD%91%E7%BB%9C%E6%8F%92%E4%BB%B6%E6%B5%81%E7%A8%8B/" title="CNI 网络插件流程"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-25</div><div class="info-item-2">CNI 网络插件流程</div></div><div class="info-2"><div class="info-item-1">CNI 网络插件流程概述CNI (Container Network Interface) 是 Kubernetes 的网络插件标准，负责为 Pod 配置网络接口、IP 地址分配和网络连通性。 核心架构1234567891011121314151617181920212223242526272829303132333435363738394041424344454647┌──────────────────────────────────────────────────────────────────────────────┐│                              kubelet                                         ││                        pkg/kubelet/kubelet.go                                ││                                                                      ...</div></div></div></a><a class="pagination-related" href="/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-CSI%E5%8D%B7%E6%8C%82%E8%BD%BD%E6%B5%81%E7%A8%8B/" title="CSI 存储卷挂载通信流程"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-25</div><div class="info-item-2">CSI 存储卷挂载通信流程</div></div><div class="info-2"><div class="info-item-1">CSI 存储卷挂载通信流程目标这篇文档只回答一个核心问题：kubelet 如何通过 CSI (Container Storage Interface) 完成 Pod 存储卷的挂载？ 重点放在 VolumeManager 与 CSI driver 的交互，以及 attach&#x2F;mount 的完整流程。 一句话摘要kubelet 的 VolumeManager 通过 CSINode 和 CSIDriver 对象发现 CSI driver，然后通过 gRPC 调用 CSI driver 的 NodeStageVolume&#x2F;NodePublishVolume 完成卷的挂载。  1. 流程总览从通信视角看，这条链路可以拆成 3 个阶段：  卷准备阶段：CSI controller 完成 attach (对于块存储)。 节点挂载阶段：kubelet 通过 CSI driver 完成 stage 和 publish。 容器挂载阶段：kubelet 将卷 bind mount 到容器内。  架构总览图flowchart TB     subgraph 控制面[&quot;控制面...</div></div></div></a><a class="pagination-related" href="/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-DNS%E8%A7%A3%E6%9E%90%E6%B5%81%E7%A8%8B/" title="DNS 解析流程"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-25</div><div class="info-item-2">DNS 解析流程</div></div><div class="info-2"><div class="info-item-1">DNS 解析流程本文档描述 Kubernetes 集群中 CoreDNS 如何解析 Service 到 Pod IP 的完整流程。 概述Kubernetes DNS 解析涉及以下核心组件：  CoreDNS：集群 DNS 服务器 kube-dns Service：指向 CoreDNS Pod 的 Service EndpointSlice：记录 CoreDNS Pod 的 IP 地址 Pod &#x2F;etc&#x2F;resolv.conf：Pod 内的 DNS 配置  flowchart TD     subgraph Pod[&quot;Pod (应用容器)&quot;]         A[&quot;应用发起 DNS 查询&quot;]         B[&quot;读取 /etc/resolv.conf&quot;]     end      subgraph CoreDNS[&quot;CoreDNS Pod&quot;]         C[&quot;CoreDNS 服务&quot;]         D[&quot;Watch API Server&quo...</div></div></div></a><a class="pagination-related" href="/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-Deployment%E6%BB%9A%E5%8A%A8%E6%9B%B4%E6%96%B0%E6%B5%81%E7%A8%8B/" title="Deployment 滚动更新流程"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-25</div><div class="info-item-2">Deployment 滚动更新流程</div></div><div class="info-2"><div class="info-item-1">Deployment 滚动更新流程本文档描述 Kubernetes Deployment 如何通过 ReplicaSet Controller 管理滚动更新的完整流程。 概述Deployment 滚动更新涉及以下核心组件：  Deployment Controller：管理 Deployment 生命周期  ReplicaSet Controller：管理 Pod 副本数 API Server：存储和分发资源状态  flowchart TD     subgraph User[&quot;用户操作&quot;]         A[&quot;kubectl apply -f deployment.yaml&quot;]     end      subgraph APIServer[&quot;API Server&quot;]         B[&quot;Deployment 资源&quot;]         C[&quot;ReplicaSet 资源&quot;]         D[&quot;Pod 资源&quot;]     end      subgraph ...</div></div></div></a><a class="pagination-related" href="/2026/03/25/cloud/k8s/ProcessAnalysis/%E6%B5%81%E7%A8%8B%E5%88%86%E6%9E%90-HPA%E6%B0%B4%E5%B9%B3%E8%87%AA%E5%8A%A8%E6%89%A9%E7%BC%A9%E6%B5%81%E7%A8%8B/" title="HPA 水平自动扩缩流程"><img class="cover" src="/img/k8s-go.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-25</div><div class="info-item-2">HPA 水平自动扩缩流程</div></div><div class="info-2"><div class="info-item-1">HPA 水平自动扩缩流程概述HPA (Horizontal Pod Autoscaler) 根据 Pod 的资源使用率（如 CPU、内存）或自定义指标自动调整 Deployment、ReplicaSet 或 StatefulSet 的副本数。 核心架构1234567891011121314151617181920212223242526272829303132333435363738┌──────────────────────────────────────────────────────────────────────────────┐│                        HorizontalController                                 ││              pkg/controller/podautoscaler/horizontal.go                    ││                                                                  ...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">303</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">96</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#kube-proxy-%E6%9C%8D%E5%8A%A1%E4%BB%A3%E7%90%86%E9%80%9A%E4%BF%A1%E6%B5%81%E7%A8%8B"><span class="toc-number">1.</span> <span class="toc-text">kube-proxy 服务代理通信流程</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%9B%AE%E6%A0%87"><span class="toc-number">1.1.</span> <span class="toc-text">目标</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E5%8F%A5%E8%AF%9D%E6%91%98%E8%A6%81"><span class="toc-number">1.2.</span> <span class="toc-text">一句话摘要</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-%E6%B5%81%E7%A8%8B%E6%80%BB%E8%A7%88"><span class="toc-number">1.3.</span> <span class="toc-text">1. 流程总览</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9E%B6%E6%9E%84%E6%80%BB%E8%A7%88%E5%9B%BE"><span class="toc-number">1.3.1.</span> <span class="toc-text">架构总览图</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#kube-proxy-%E5%86%85%E9%83%A8%E6%9E%B6%E6%9E%84%E5%9B%BE"><span class="toc-number">1.3.2.</span> <span class="toc-text">kube-proxy 内部架构图</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%BF%99%E5%BC%A0%E5%9B%BE%E6%83%B3%E8%A1%A8%E8%BE%BE%E4%BB%80%E4%B9%88"><span class="toc-number">1.3.3.</span> <span class="toc-text">这张图想表达什么</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-%E5%88%86%E9%98%B6%E6%AE%B5%E9%80%9A%E4%BF%A1%E6%B5%81%E7%A8%8B"><span class="toc-number">1.4.</span> <span class="toc-text">2. 分阶段通信流程</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%98%B6%E6%AE%B5%E4%B8%80%EF%BC%9A%E9%85%8D%E7%BD%AE%E8%8E%B7%E5%8F%96"><span class="toc-number">1.4.1.</span> <span class="toc-text">阶段一：配置获取</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-1-1%EF%BC%9A%E5%90%AF%E5%8A%A8-Informer"><span class="toc-number">1.4.1.1.</span> <span class="toc-text">步骤 1.1：启动 Informer</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-1-2%EF%BC%9A%E6%94%B6%E5%88%B0-Service-%E5%8F%98%E6%9B%B4%E4%BA%8B%E4%BB%B6"><span class="toc-number">1.4.1.2.</span> <span class="toc-text">步骤 1.2：收到 Service 变更事件</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-1-3%EF%BC%9A%E6%94%B6%E5%88%B0-EndpointSlice-%E5%8F%98%E6%9B%B4%E4%BA%8B%E4%BB%B6"><span class="toc-number">1.4.1.3.</span> <span class="toc-text">步骤 1.3：收到 EndpointSlice 变更事件</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-1-4%EF%BC%9A%E4%BA%8B%E4%BB%B6%E5%85%A5%E9%98%9F"><span class="toc-number">1.4.1.4.</span> <span class="toc-text">步骤 1.4：事件入队</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%98%B6%E6%AE%B5%E4%BA%8C%EF%BC%9A%E8%A7%84%E5%88%99%E8%AE%A1%E7%AE%97"><span class="toc-number">1.4.2.</span> <span class="toc-text">阶段二：规则计算</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-2-1%EF%BC%9A%E6%9E%84%E5%BB%BA%E6%9C%8D%E5%8A%A1%E6%98%A0%E5%B0%84"><span class="toc-number">1.4.2.1.</span> <span class="toc-text">步骤 2.1：构建服务映射</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-2-2%EF%BC%9A%E8%AE%A1%E7%AE%97%E8%A7%84%E5%88%99%E5%B7%AE%E5%BC%82"><span class="toc-number">1.4.2.2.</span> <span class="toc-text">步骤 2.2：计算规则差异</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-3-3%EF%BC%9A%E7%94%9F%E6%88%90%E8%A7%84%E5%88%99%E6%8C%87%E4%BB%A4"><span class="toc-number">1.4.2.3.</span> <span class="toc-text">步骤 3.3：生成规则指令</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%98%B6%E6%AE%B5%E4%B8%89%EF%BC%9A%E8%A7%84%E5%88%99%E5%90%8C%E6%AD%A5"><span class="toc-number">1.4.3.</span> <span class="toc-text">阶段三：规则同步</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-3-1%EF%BC%9A%E6%89%A7%E8%A1%8C-Sync-%E8%A7%84%E5%88%99"><span class="toc-number">1.4.3.1.</span> <span class="toc-text">步骤 3.1：执行 Sync 规则</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-3-2%EF%BC%9A%E8%B0%83%E7%94%A8-iptables-ipvs-%E5%91%BD%E4%BB%A4"><span class="toc-number">1.4.3.2.</span> <span class="toc-text">步骤 3.2：调用 iptables&#x2F;ipvs 命令</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-3-3%EF%BC%9A%E6%B8%85%E7%90%86%E8%BF%87%E6%9C%9F%E8%A7%84%E5%88%99"><span class="toc-number">1.4.3.3.</span> <span class="toc-text">步骤 3.3：清理过期规则</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-iptables-%E6%A8%A1%E5%BC%8F%E8%AF%A6%E8%A7%A3"><span class="toc-number">1.5.</span> <span class="toc-text">3. iptables 模式详解</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#iptables-%E8%A7%84%E5%88%99%E9%93%BE%E7%BB%93%E6%9E%84"><span class="toc-number">1.5.1.</span> <span class="toc-text">iptables 规则链结构</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#ClusterIP-%E6%B5%81%E9%87%8F%E8%B7%AF%E5%BE%84"><span class="toc-number">1.5.2.</span> <span class="toc-text">ClusterIP 流量路径</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#NodePort-%E6%B5%81%E9%87%8F%E8%B7%AF%E5%BE%84"><span class="toc-number">1.5.3.</span> <span class="toc-text">NodePort 流量路径</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-IPVS-%E6%A8%A1%E5%BC%8F%E8%AF%A6%E8%A7%A3"><span class="toc-number">1.6.</span> <span class="toc-text">4. IPVS 模式详解</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#IPVS-vs-iptables-%E5%AF%B9%E6%AF%94"><span class="toc-number">1.6.1.</span> <span class="toc-text">IPVS vs iptables 对比</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#IPVS-%E8%A7%84%E5%88%99%E7%BB%93%E6%9E%84"><span class="toc-number">1.6.2.</span> <span class="toc-text">IPVS 规则结构</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#IPVS-%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1%E7%AE%97%E6%B3%95"><span class="toc-number">1.6.3.</span> <span class="toc-text">IPVS 负载均衡算法</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-%E8%AF%A6%E7%BB%86%E6%97%B6%E5%BA%8F%E5%9B%BE"><span class="toc-number">1.7.</span> <span class="toc-text">5. 详细时序图</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-Service-%E5%88%9B%E5%BB%BA%E5%AE%8C%E6%95%B4%E6%97%B6%E5%BA%8F%E5%9B%BE"><span class="toc-number">1.7.1.</span> <span class="toc-text">5.1 Service 创建完整时序图</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-2-%E5%90%8E%E7%AB%AF-Pod-%E5%8F%98%E6%9B%B4%E6%97%B6%E5%BA%8F%E5%9B%BE"><span class="toc-number">1.7.2.</span> <span class="toc-text">5.2 后端 Pod 变更时序图</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-3-%E8%A7%84%E5%88%99%E5%90%8C%E6%AD%A5%E5%A4%B1%E8%B4%A5%E9%87%8D%E8%AF%95%E6%97%B6%E5%BA%8F%E5%9B%BE"><span class="toc-number">1.7.3.</span> <span class="toc-text">5.3 规则同步失败重试时序图</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5%E6%8C%87%E5%8D%97"><span class="toc-number">1.8.</span> <span class="toc-text">6. 故障排查指南</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#6-1-%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98%E4%B8%8E%E8%AF%8A%E6%96%AD%E6%96%B9%E6%B3%95"><span class="toc-number">1.8.1.</span> <span class="toc-text">6.1 常见问题与诊断方法</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%97%AE%E9%A2%98-1%EF%BC%9AService-ClusterIP-%E6%97%A0%E6%B3%95%E8%AE%BF%E9%97%AE"><span class="toc-number">1.8.1.1.</span> <span class="toc-text">问题 1：Service ClusterIP 无法访问</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%97%AE%E9%A2%98-2%EF%BC%9ANodePort-%E5%A4%96%E9%83%A8%E6%97%A0%E6%B3%95%E8%AE%BF%E9%97%AE"><span class="toc-number">1.8.1.2.</span> <span class="toc-text">问题 2：NodePort 外部无法访问</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%97%AE%E9%A2%98-3%EF%BC%9ASession-Affinity-%E4%B8%8D%E7%94%9F%E6%95%88"><span class="toc-number">1.8.1.3.</span> <span class="toc-text">问题 3：Session Affinity 不生效</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-2-%E5%85%B3%E9%94%AE%E6%97%A5%E5%BF%97%E5%85%B3%E9%94%AE%E8%AF%8D"><span class="toc-number">1.8.2.</span> <span class="toc-text">6.2 关键日志关键词</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-3-%E9%85%8D%E7%BD%AE%E5%8F%82%E6%95%B0%E5%8F%82%E8%80%83"><span class="toc-number">1.8.3.</span> <span class="toc-text">6.3 配置参数参考</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-4-%E4%B8%80%E9%94%AE%E8%AF%8A%E6%96%AD%E5%91%BD%E4%BB%A4"><span class="toc-number">1.8.4.</span> <span class="toc-text">6.4 一键诊断命令</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#7-%E7%89%88%E6%9C%AC%E5%B7%AE%E5%BC%82%E8%AF%B4%E6%98%8E"><span class="toc-number">1.9.</span> <span class="toc-text">7. 版本差异说明</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-27-%E2%86%92-1-28-%E5%8F%98%E5%8C%96"><span class="toc-number">1.9.1.</span> <span class="toc-text">1.27 → 1.28 变化</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-28-%E2%86%92-1-29-%E5%8F%98%E5%8C%96"><span class="toc-number">1.9.2.</span> <span class="toc-text">1.28 → 1.29 变化</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#8-%E4%BB%A3%E7%A0%81%E5%85%A5%E5%8F%A3%EF%BC%88%E7%B2%BE%E7%AE%80%E7%89%88%EF%BC%89"><span class="toc-number">1.10.</span> <span class="toc-text">8. 代码入口（精简版）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#9-%E9%9D%A2%E8%AF%95%E9%A2%98%E4%B8%8E%E8%AF%A6%E7%BB%86%E8%A7%A3%E7%AD%94"><span class="toc-number">1.11.</span> <span class="toc-text">9. 面试题与详细解答</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%97%AE%E9%A2%98-1%EF%BC%9Akube-proxy-%E7%9A%84%E4%B8%89%E7%A7%8D%E6%A8%A1%E5%BC%8F%EF%BC%88userspace-iptables-IPVS%EF%BC%89%E6%9C%89%E4%BB%80%E4%B9%88%E5%8C%BA%E5%88%AB%EF%BC%9F%E7%94%9F%E4%BA%A7%E7%8E%AF%E5%A2%83%E5%A6%82%E4%BD%95%E9%80%89%E6%8B%A9%EF%BC%9F"><span class="toc-number">1.11.1.</span> <span class="toc-text">问题 1：kube-proxy 的三种模式（userspace&#x2F;iptables&#x2F;IPVS）有什么区别？生产环境如何选择？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%97%AE%E9%A2%98-2%EF%BC%9Akube-proxy-%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81-Service-%E5%90%8E%E7%AB%AF-Pod-%E5%8F%98%E6%9B%B4%E5%90%8E%E8%A7%84%E5%88%99%E5%8F%8A%E6%97%B6%E6%9B%B4%E6%96%B0%EF%BC%9F%E6%9B%B4%E6%96%B0%E5%BB%B6%E8%BF%9F%E6%98%AF%E5%A4%9A%E5%B0%91%EF%BC%9F"><span class="toc-number">1.11.2.</span> <span class="toc-text">问题 2：kube-proxy 如何保证 Service 后端 Pod 变更后规则及时更新？更新延迟是多少？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%97%AE%E9%A2%98-3%EF%BC%9Aiptables-%E6%A8%A1%E5%BC%8F%E4%B8%8B%E7%9A%84-ClusterIP-%E6%B5%81%E9%87%8F%E8%BD%AC%E5%8F%91%E5%AE%8C%E6%95%B4%E6%B5%81%E7%A8%8B%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81-SNAT%EF%BC%9F"><span class="toc-number">1.11.3.</span> <span class="toc-text">问题 3：iptables 模式下的 ClusterIP 流量转发完整流程是什么？为什么需要 SNAT？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%97%AE%E9%A2%98-4%EF%BC%9AService-%E7%9A%84-SessionAffinity-%E6%98%AF%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E7%9A%84%EF%BC%9F%E4%B8%BA%E4%BB%80%E4%B9%88%E6%9C%89%E6%97%B6%E5%80%99%E4%B8%8D%E7%94%9F%E6%95%88%EF%BC%9F"><span class="toc-number">1.11.4.</span> <span class="toc-text">问题 4：Service 的 SessionAffinity 是如何实现的？为什么有时候不生效？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%97%AE%E9%A2%98-5%EF%BC%9ANodePort-%E6%9C%8D%E5%8A%A1%E7%9A%84%E5%A4%96%E9%83%A8%E6%B5%81%E9%87%8F%E7%AD%96%E7%95%A5%EF%BC%88externalTrafficPolicy%EF%BC%89%E6%9C%89%E4%BB%80%E4%B9%88%E4%BD%9C%E7%94%A8%EF%BC%9FLocal-%E5%92%8C-Cluster-%E6%A8%A1%E5%BC%8F%E7%9A%84%E5%8C%BA%E5%88%AB%EF%BC%9F"><span class="toc-number">1.11.5.</span> <span class="toc-text">问题 5：NodePort 服务的外部流量策略（externalTrafficPolicy）有什么作用？Local 和 Cluster 模式的区别？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%97%AE%E9%A2%98-6%EF%BC%9Akube-proxy-%E5%A6%82%E4%BD%95%E5%A4%84%E7%90%86-Service-%E7%9A%84-headless-%E7%B1%BB%E5%9E%8B%EF%BC%9FDNS-%E8%A7%A3%E6%9E%90%E4%B8%8E%E6%99%AE%E9%80%9A-Service-%E6%9C%89%E4%BB%80%E4%B9%88%E5%8C%BA%E5%88%AB%EF%BC%9F"><span class="toc-number">1.11.6.</span> <span class="toc-text">问题 6：kube-proxy 如何处理 Service 的 headless 类型？DNS 解析与普通 Service 有什么区别？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%97%AE%E9%A2%98-7%EF%BC%9A%E5%A6%82%E4%BD%95%E6%8E%92%E6%9F%A5-Service-%E6%97%A0%E6%B3%95%E8%AE%BF%E9%97%AE%E7%9A%84%E9%97%AE%E9%A2%98%EF%BC%9F%E8%AF%B7%E7%BB%99%E5%87%BA%E5%AE%8C%E6%95%B4%E7%9A%84%E6%8E%92%E6%9F%A5%E6%80%9D%E8%B7%AF%E5%92%8C%E5%91%BD%E4%BB%A4%E3%80%82"><span class="toc-number">1.11.7.</span> <span class="toc-text">问题 7：如何排查 Service 无法访问的问题？请给出完整的排查思路和命令。</span></a></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/03/26/cloud/arch/Kubernetes%E9%80%9A%E4%BF%A1%E9%93%BE%E8%B7%AF%E8%AF%A6%E7%BB%86%E5%88%86%E6%9E%90/" title="Kubernetes 通信链路详细分析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="Kubernetes 通信链路详细分析"/></a><div class="content"><a class="title" href="/2026/03/26/cloud/arch/Kubernetes%E9%80%9A%E4%BF%A1%E9%93%BE%E8%B7%AF%E8%AF%A6%E7%BB%86%E5%88%86%E6%9E%90/" title="Kubernetes 通信链路详细分析">Kubernetes 通信链路详细分析</a><time datetime="2026-03-26T13:15:00.000Z" title="发表于 2026-03-26 21:15:00">2026-03-26</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-API%20Server%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="kube-apiserver 深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="kube-apiserver 深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-API%20Server%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="kube-apiserver 深度剖析">kube-apiserver 深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-etcd%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="etcd 深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="etcd 深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-etcd%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="etcd 深度剖析">etcd 深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-%E5%AD%98%E5%82%A8%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="存储架构深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="存储架构深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-%E5%AD%98%E5%82%A8%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="存储架构深度剖析">存储架构深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-kubelet%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="Kubelet 深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="Kubelet 深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-kubelet%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="Kubelet 深度剖析">Kubelet 深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script src="/js/reading-progress.js"></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

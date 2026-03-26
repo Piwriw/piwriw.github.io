@@ -1,0 +1,1312 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>K8s-kubelet认证授权流程 | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="Kubelet 认证授权通信流程目标这篇文档只回答一个核心问题：kubelet 如何验证和授权对 kubelet API 的访问请求？ 重点放在 kubelet 的认证模块、授权模块以及与 API Server 的交互流程。 一句话摘要kubelet 通过 webhook 认证和授权，将客户端请求转发给 API Server 进行验证，支持匿名访问、证书认证和 bootstrap token 认证">
+<meta property="og:type" content="article">
+<meta property="og:title" content="K8s-kubelet认证授权流程">
+<meta property="og:url" content="https://piwriw.github.io/2026/03/22/cloud/k8s/kubelet/kubelet%E8%AE%A4%E8%AF%81%E6%8E%88%E6%9D%83%E6%B5%81%E7%A8%8B/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="Kubelet 认证授权通信流程目标这篇文档只回答一个核心问题：kubelet 如何验证和授权对 kubelet API 的访问请求？ 重点放在 kubelet 的认证模块、授权模块以及与 API Server 的交互流程。 一句话摘要kubelet 通过 webhook 认证和授权，将客户端请求转发给 API Server 进行验证，支持匿名访问、证书认证和 bootstrap token 认证">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/k8sLogo.png">
+<meta property="article:published_time" content="2026-03-22T13:22:55.000Z">
+<meta property="article:modified_time" content="2026-03-26T15:28:20.125Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="k8s">
+<meta property="article:tag" content="cloud">
+<meta property="article:tag" content="K8s源码">
+<meta property="article:tag" content="kubelet">
+<meta property="article:tag" content="认证">
+<meta property="article:tag" content="授权">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/k8sLogo.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "K8s-kubelet认证授权流程",
+  "url": "https://piwriw.github.io/2026/03/22/cloud/k8s/kubelet/kubelet%E8%AE%A4%E8%AF%81%E6%8E%88%E6%9D%83%E6%B5%81%E7%A8%8B/",
+  "image": "https://piwriw.github.io/img/k8sLogo.png",
+  "datePublished": "2026-03-22T13:22:55.000Z",
+  "dateModified": "2026-03-26T15:28:20.125Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2026/03/22/cloud/k8s/kubelet/kubelet%E8%AE%A4%E8%AF%81%E6%8E%88%E6%9D%83%E6%B5%81%E7%A8%8B/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          const hour = new Date().getHours()
+          const isNight = hour <= 6 || hour >= 18
+          if (theme === undefined) isNight ? activateDarkMode() : activateLightMode()
+          else theme === 'light' ? activateLightMode() : activateDarkMode()
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '天',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'K8s-kubelet认证授权流程',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">303</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">96</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/k8sLogo.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">K8s-kubelet认证授权流程</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">K8s-kubelet认证授权流程</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-03-22T13:22:55.000Z" title="发表于 2026-03-22 21:22:55">2026-03-22</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-03-26T15:28:20.125Z" title="更新于 2026-03-26 23:28:20">2026-03-26</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/">k8s</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/kubelet/">kubelet</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">7.1k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>31分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-03-26 23:28:20&quot;}" hidden></div><h1 id="Kubelet-认证授权通信流程"><a href="#Kubelet-认证授权通信流程" class="headerlink" title="Kubelet 认证授权通信流程"></a>Kubelet 认证授权通信流程</h1><h2 id="目标"><a href="#目标" class="headerlink" title="目标"></a>目标</h2><p>这篇文档只回答一个核心问题：<strong>kubelet 如何验证和授权对 kubelet API 的访问请求？</strong></p>
+<p>重点放在 kubelet 的认证模块、授权模块以及与 API Server 的交互流程。</p>
+<h2 id="一句话摘要"><a href="#一句话摘要" class="headerlink" title="一句话摘要"></a>一句话摘要</h2><p>kubelet 通过 webhook 认证和授权，将客户端请求转发给 API Server 进行验证，支持匿名访问、证书认证和 bootstrap token 认证等多种方式。</p>
+<hr>
+<h2 id="1-流程总览"><a href="#1-流程总览" class="headerlink" title="1. 流程总览"></a>1. 流程总览</h2><p>从通信视角看，这条链路包含三个层次：</p>
+<ol>
+<li>**认证层 (Authentication)**：验证客户端身份。</li>
+<li>**授权层 (Authorization)**：验证客户端是否有权限执行操作。</li>
+<li>**准入层 (Admission)**：对请求进行额外检查和修改（仅部分操作）。</li>
+</ol>
+<h3 id="架构总览图"><a href="#架构总览图" class="headerlink" title="架构总览图"></a>架构总览图</h3><pre><code class="highlight mermaid">flowchart TB
+    subgraph 客户端[&quot;请求来源&quot;]
+        direction LR
+        API[kube-apiserver&lt;br/&gt;proxy/attach/exec]
+        KUBECTL[kubectl&lt;br/&gt;直接访问 kubelet]
+        PROBE[探针/监控&lt;br/&gt;healthz/metrics]
+        ANON[匿名请求&lt;br/&gt;未认证]
+    end
+
+    subgraph 认证[&quot;认证层 (Authentication)&quot;]
+        direction TB
+        ANONYMOUS[Anonymous&lt;br/&gt;匿名认证]
+        X509[X509 Cert&lt;br/&gt;证书认证]
+        BOOTSTRAP[Bootstrap Token&lt;br/&gt;启动引导]
+        WEBHOOK[Webhook&lt;br/&gt;委托 API Server]
+    end
+
+    subgraph 授权[&quot;授权层 (Authorization)&quot;]
+        direction TB
+        ALWAYS_ALLOW[AlwaysAllow&lt;br/&gt;允许所有]
+        WEBHOOK_AUTHZ[Webhook&lt;br/&gt;委托 API Server]
+    end
+
+    subgraph Kubelet[&quot;Kubelet API&quot;]
+        direction TB
+        HANDLERS[请求处理器]
+        PODS[/pods 端点]
+        EXEC[/exec 端点]
+        METRICS[/metrics 端点]
+    end
+
+    API --&gt; WEBHOOK
+    KUBECTL --&gt; X509
+    KUBECTL --&gt; WEBHOOK
+    PROBE --&gt; ANONYMOUS
+    ANON --&gt; ANONYMOUS
+
+    WEBHOOK --&gt; WEBHOOK_AUTHZ
+    X509 --&gt; WEBHOOK_AUTHZ
+    BOOTSTRAP --&gt; WEBHOOK_AUTHZ
+    ANONYMOUS --&gt; ALWAYS_ALLOW
+
+    WEBHOOK_AUTHZ --&gt; HANDLERS
+    ALWAYS_ALLOW --&gt; HANDLERS
+
+    HANDLERS --&gt; PODS
+    HANDLERS --&gt; EXEC
+    HANDLERS --&gt; METRICS</code></pre>
+
+<h3 id="认证授权流程图"><a href="#认证授权流程图" class="headerlink" title="认证授权流程图"></a>认证授权流程图</h3><pre><code class="highlight mermaid">flowchart TD
+    subgraph 请求[&quot;HTTP 请求&quot;]
+        A1[客户端发起请求] --&gt; A2&#123;检查认证配置&#125;
+    end
+
+    subgraph 认证[&quot;认证流程&quot;]
+        A2 --&gt; B1&#123;authentication.anonymous.enabled?&#125;
+
+        B1 --&gt;|true| B2&#123;有认证信息?&#125;
+        B2 --&gt;|无| B3[匿名用户]
+        B2 --&gt;|有| B4&#123;认证方式&#125;
+
+        B1 --&gt;|false| B4
+
+        B4 --&gt;|X509 证书| B5[证书认证]
+        B4 --&gt;|Bearer Token| B6&#123;Token 类型&#125;
+        B6 --&gt;|Bootstrap Token| B7[Bootstrap 认证]
+        B6 --&gt;|Service Account| B8[Webhook 认证]
+
+        B5 --&gt; B9[提取用户信息]
+        B7 --&gt; B9
+        B8 --&gt; B9
+        B3 --&gt; B9
+    end
+
+    subgraph 授权[&quot;授权流程&quot;]
+        B9 --&gt; C1&#123;authorization.mode?&#125;
+
+        C1 --&gt;|AlwaysAllow| C2[允许所有请求]
+        C1 --&gt;|Webhook| C3[构建 SubjectAccessReview]
+
+        C3 --&gt; C4[POST API Server /apis/authorization.k8s.io/v1/subjectaccessreviews]
+        C4 --&gt; C5&#123;API Server 返回&#125;
+        C5 --&gt;|allowed: true| C6[授权通过]
+        C5 --&gt;|allowed: false| C7[拒绝请求]
+    end
+
+    subgraph 处理[&quot;请求处理&quot;]
+        C2 --&gt; D1[执行请求]
+        C6 --&gt; D1
+        C7 --&gt; D2[403 Forbidden]
+        D1 --&gt; D3[返回响应]
+    end</code></pre>
+
+<h3 id="这张图想表达什么"><a href="#这张图想表达什么" class="headerlink" title="这张图想表达什么"></a>这张图想表达什么</h3><ul>
+<li>kubelet 支持多种认证方式，可以委托给 API Server。</li>
+<li>授权默认使用 Webhook 模式，需要 API Server 批准。</li>
+<li>匿名访问只适用于特定端点（如 &#x2F;healthz）。</li>
+</ul>
+<hr>
+<h2 id="2-分阶段通信流程"><a href="#2-分阶段通信流程" class="headerlink" title="2. 分阶段通信流程"></a>2. 分阶段通信流程</h2><hr>
+<h3 id="阶段一：认证-Authentication"><a href="#阶段一：认证-Authentication" class="headerlink" title="阶段一：认证 (Authentication)"></a>阶段一：认证 (Authentication)</h3><p>这个阶段的本质是：<strong>验证请求者的身份。</strong></p>
+<h4 id="步骤-1-1：检查认证配置"><a href="#步骤-1-1：检查认证配置" class="headerlink" title="步骤 1.1：检查认证配置"></a>步骤 1.1：检查认证配置</h4><p>kubelet 启动时根据配置初始化认证器：</p>
+<ul>
+<li><code>--anonymous-auth=true/false</code>：是否允许匿名访问</li>
+<li><code>--client-ca-file</code>：客户端 CA 证书文件</li>
+<li><code>--authentication-token-webhook</code>：使用 webhook 认证</li>
+</ul>
+<p><strong>通信方向</strong>：kubelet 启动配置</p>
+<h4 id="步骤-1-2：提取认证信息"><a href="#步骤-1-2：提取认证信息" class="headerlink" title="步骤 1.2：提取认证信息"></a>步骤 1.2：提取认证信息</h4><p>从请求中提取认证信息：</p>
+<ul>
+<li>TLS 证书（X509）</li>
+<li>Bearer Token（Header: Authorization: Bearer xxx）</li>
+</ul>
+<p><strong>通信方向</strong>：HTTP 请求解析</p>
+<h4 id="步骤-1-3：匿名认证"><a href="#步骤-1-3：匿名认证" class="headerlink" title="步骤 1.3：匿名认证"></a>步骤 1.3：匿名认证</h4><p>如果允许匿名且请求没有认证信息，则识别为匿名用户 <code>system:anonymous</code>。</p>
+<p><strong>通信方向</strong>：认证模块内部处理</p>
+<h4 id="步骤-1-4：证书认证"><a href="#步骤-1-4：证书认证" class="headerlink" title="步骤 1.4：证书认证"></a>步骤 1.4：证书认证</h4><p>如果配置了 <code>--client-ca-file</code>，kubelet 会验证客户端证书，提取 Common Name (CN) 作为用户名。</p>
+<p><strong>通信方向</strong>：kubelet → 证书验证</p>
+<h4 id="步骤-1-5：Webhook-认证"><a href="#步骤-1-5：Webhook-认证" class="headerlink" title="步骤 1.5：Webhook 认证"></a>步骤 1.5：Webhook 认证</h4><p>如果启用 webhook 认证，kubelet 将 Token 发送给 API Server 进行验证。</p>
+<p><strong>通信方向</strong>：kubelet → API Server（POST &#x2F;apis&#x2F;authentication.k8s.io&#x2F;v1&#x2F;tokenreviews）</p>
+<h4 id="步骤-1-6：构建用户信息"><a href="#步骤-1-6：构建用户信息" class="headerlink" title="步骤 1.6：构建用户信息"></a>步骤 1.6：构建用户信息</h4><p>认证成功后，构建用户信息（用户名、组、UID 等）。</p>
+<p><strong>通信方向</strong>：认证模块内部构建</p>
+<hr>
+<h3 id="阶段二：授权-Authorization"><a href="#阶段二：授权-Authorization" class="headerlink" title="阶段二：授权 (Authorization)"></a>阶段二：授权 (Authorization)</h3><p>这个阶段的本质是：<strong>验证用户是否有权限执行请求的操作。</strong></p>
+<h4 id="步骤-2-1：检查授权配置"><a href="#步骤-2-1：检查授权配置" class="headerlink" title="步骤 2.1：检查授权配置"></a>步骤 2.1：检查授权配置</h4><p>kubelet 启动时根据配置初始化授权器：</p>
+<ul>
+<li><code>--authorization-mode=AlwaysAllow/Webhook</code>：授权模式</li>
+</ul>
+<p><strong>通信方向</strong>：kubelet 启动配置</p>
+<h4 id="步骤-2-2：AlwaysAllow-模式"><a href="#步骤-2-2：AlwaysAllow-模式" class="headerlink" title="步骤 2.2：AlwaysAllow 模式"></a>步骤 2.2：AlwaysAllow 模式</h4><p>如果配置为 AlwaysAllow，所有请求都被授权。</p>
+<p><strong>通信方向</strong>：授权模块内部处理</p>
+<h4 id="步骤-2-3：Webhook-授权"><a href="#步骤-2-3：Webhook-授权" class="headerlink" title="步骤 2.3：Webhook 授权"></a>步骤 2.3：Webhook 授权</h4><p>如果配置为 Webhook，kubelet 构建 <code>SubjectAccessReview</code> 对象发送给 API Server。</p>
+<p><strong>通信方向</strong>：kubelet → API Server（POST &#x2F;apis&#x2F;authorization.k8s.io&#x2F;v1&#x2F;subjectaccessreviews）</p>
+<h4 id="步骤-2-4：API-Server-授权检查"><a href="#步骤-2-4：API-Server-授权检查" class="headerlink" title="步骤 2.4：API Server 授权检查"></a>步骤 2.4：API Server 授权检查</h4><p>API Server 检查用户是否有权限执行该操作：</p>
+<ul>
+<li>检查 RBAC 规则</li>
+<li>检查 Node 授权规则（针对 kubelet 节点）</li>
+</ul>
+<p><strong>通信方向</strong>：API Server 内部 RBAC&#x2F;Node 授权器</p>
+<h4 id="步骤-2-5：返回授权结果"><a href="#步骤-2-5：返回授权结果" class="headerlink" title="步骤 2.5：返回授权结果"></a>步骤 2.5：返回授权结果</h4><p>API Server 返回 <code>allowed: true/false</code>。</p>
+<p><strong>通信方向</strong>：API Server → kubelet</p>
+<hr>
+<h3 id="阶段三：请求处理"><a href="#阶段三：请求处理" class="headerlink" title="阶段三：请求处理"></a>阶段三：请求处理</h3><p>这个阶段的本质是：<strong>执行授权通过的请求。</strong></p>
+<h4 id="步骤-3-1：路由请求"><a href="#步骤-3-1：路由请求" class="headerlink" title="步骤 3.1：路由请求"></a>步骤 3.1：路由请求</h4><p>kubelet 根据请求路径路由到对应的处理器。</p>
+<p><strong>通信方向</strong>：HTTP 路由</p>
+<h4 id="步骤-3-2：执行处理逻辑"><a href="#步骤-3-2：执行处理逻辑" class="headerlink" title="步骤 3.2：执行处理逻辑"></a>步骤 3.2：执行处理逻辑</h4><p>处理器执行具体逻辑，如获取 Pod 列表、执行命令等。</p>
+<p><strong>通信方向</strong>：kubelet 内部处理</p>
+<h4 id="步骤-3-3：返回响应"><a href="#步骤-3-3：返回响应" class="headerlink" title="步骤 3.3：返回响应"></a>步骤 3.3：返回响应</h4><p>返回处理结果给客户端。</p>
+<p><strong>通信方向</strong>：kubelet → 客户端</p>
+<hr>
+<h2 id="3-详细流程图"><a href="#3-详细流程图" class="headerlink" title="3. 详细流程图"></a>3. 详细流程图</h2><h3 id="3-1-kubelet-API-端点与权限要求"><a href="#3-1-kubelet-API-端点与权限要求" class="headerlink" title="3.1 kubelet API 端点与权限要求"></a>3.1 kubelet API 端点与权限要求</h3><pre><code class="highlight mermaid">flowchart TB
+    subgraph 只读端点[&quot;只读端点 (无需特殊权限)&quot;]
+        direction LR
+        H1[/healthz]
+        H2[/healthz/syncloop]
+        H3[/healthz/log]
+    end
+
+    subgraph 认证端点[&quot;需要认证&quot;]
+        direction TB
+        P1[/pods - list pods]
+        P2[/spec - node spec]
+        P3[/stats - resource stats]
+        P4[/metrics - prometheus metrics]
+    end
+
+    subgraph 敏感端点[&quot;需要认证+授权&quot;]
+        direction TB
+        S1[/exec - container exec]
+        S2[/portForward - port forward]
+        S3[/attach - container attach]
+        S4[/logs - container logs]
+        S5[/runningpods - running pods]
+        S6[/configz - kubelet config]
+    end
+
+    subgraph 权限要求[&quot;所需 RBAC 权限&quot;]
+        direction TB
+        R1[nodes/proxy]
+        R2[nodes/stats]
+        R3[pods/exec]
+        R4[pods/portForward]
+        R5[pods/log]
+    end
+
+    P1 --&gt; R1
+    P3 --&gt; R2
+    S1 --&gt; R3
+    S2 --&gt; R4
+    S4 --&gt; R5</code></pre>
+
+<h3 id="3-2-kubectl-exec-完整流程图"><a href="#3-2-kubectl-exec-完整流程图" class="headerlink" title="3.2 kubectl exec 完整流程图"></a>3.2 kubectl exec 完整流程图</h3><pre><code class="highlight mermaid">sequenceDiagram
+    autonumber
+    participant K as kubectl
+    participant API as kube-apiserver
+    participant AUTHZ as Authorization
+    participant KL as Kubelet
+    participant CRI as Container Runtime
+
+    K-&gt;&gt;API: POST /api/v1/namespaces/default/pods/pod-1/exec
+    Note over API: API Server 认证+授权
+
+    API-&gt;&gt;AUTHZ: 检查 pods/exec 权限
+    AUTHZ--&gt;&gt;API: allowed
+
+    API-&gt;&gt;KL: POST /exec/&lt;pod-uid&gt;/&lt;container&gt;?command=...
+    Note over KL: Kubelet 认证
+
+    KL-&gt;&gt;KL: 提取 TLS 客户端证书
+    KL-&gt;&gt;KL: 验证证书 (CN=system:node:node-1)
+
+    Note over KL: Kubelet 授权 (Webhook)
+    KL-&gt;&gt;API: POST /apis/authorization.k8s.io/v1/subjectaccessreviews
+    Note over KL,API: SubjectAccessReview&#123;&lt;br/&gt;  user: system:node:node-1,&lt;br/&gt;  verb: create,&lt;br/&gt;  resource: pods/exec&lt;br/&gt;&#125;
+
+    API-&gt;&gt;AUTHZ: Node 授权器检查
+    Note over AUTHZ: 检查节点是否有权限访问该 Pod
+    AUTHZ--&gt;&gt;API: allowed: true
+    API--&gt;&gt;KL: allowed: true
+
+    KL-&gt;&gt;CRI: ExecSync/Exec in container
+    CRI--&gt;&gt;KL: exec stream
+
+    KL--&gt;&gt;API: WebSocket/SPDY stream
+    API--&gt;&gt;K: exec stream
+
+    K-&gt;&gt;K: 显示终端输出</code></pre>
+
+<h3 id="3-3-证书认证流程图"><a href="#3-3-证书认证流程图" class="headerlink" title="3.3 证书认证流程图"></a>3.3 证书认证流程图</h3><pre><code class="highlight mermaid">flowchart TD
+    subgraph 客户端[&quot;客户端&quot;]
+        C1[生成 CSR]
+        C2[获取签名证书]
+        C3[使用证书访问 kubelet]
+    end
+
+    subgraph CA[&quot;证书签发&quot;]
+        CA1[kubelet 启动&lt;br/&gt;生成私钥和 CSR]
+        CA2[发送 CSR 到 API Server]
+        CA3[Controller Manager 签名]
+        CA4[获取签名证书]
+    end
+
+    subgraph 认证[&quot;证书认证&quot;]
+        A1[客户端发送请求&lt;br/&gt;带 TLS 证书]
+        A2[kubelet 验证证书&lt;br/&gt;使用 client-ca-file]
+        A3[提取 CN 作为用户名&lt;br/&gt;system:node:node-1]
+        A4[提取 O 作为组&lt;br/&gt;system:nodes]
+    end
+
+    C1 --&gt; C2 --&gt; C3
+    CA1 --&gt; CA2 --&gt; CA3 --&gt; CA4
+    C3 --&gt; A1 --&gt; A2 --&gt; A3 --&gt; A4</code></pre>
+
+<hr>
+<h2 id="4-关键配置"><a href="#4-关键配置" class="headerlink" title="4. 关键配置"></a>4. 关键配置</h2><h3 id="4-1-kubelet-认证配置"><a href="#4-1-kubelet-认证配置" class="headerlink" title="4.1 kubelet 认证配置"></a>4.1 kubelet 认证配置</h3><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># kubelet 配置</span></span><br><span class="line"><span class="attr">authentication:</span></span><br><span class="line">  <span class="attr">anonymous:</span></span><br><span class="line">    <span class="attr">enabled:</span> <span class="literal">true</span>           <span class="comment"># 允许匿名访问</span></span><br><span class="line">  <span class="attr">webhook:</span></span><br><span class="line">    <span class="attr">enabled:</span> <span class="literal">true</span>           <span class="comment"># 启用 webhook 认证</span></span><br><span class="line">    <span class="attr">cacheTTL:</span> <span class="string">2m</span>            <span class="comment"># 认证结果缓存时间</span></span><br><span class="line">  <span class="attr">x509:</span></span><br><span class="line">    <span class="attr">clientCAFile:</span> <span class="string">/etc/kubernetes/pki/ca.crt</span>  <span class="comment"># 客户端 CA 证书</span></span><br><span class="line"></span><br><span class="line"><span class="attr">authorization:</span></span><br><span class="line">  <span class="attr">mode:</span> <span class="string">Webhook</span>             <span class="comment"># AlwaysAllow / Webhook</span></span><br><span class="line">  <span class="attr">webhook:</span></span><br><span class="line">    <span class="attr">cacheAuthorizedTTL:</span> <span class="string">5m</span>  <span class="comment"># 授权结果缓存时间</span></span><br><span class="line">    <span class="attr">cacheUnauthorizedTTL:</span> <span class="string">30s</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="4-2-RBAC-规则示例"><a href="#4-2-RBAC-规则示例" class="headerlink" title="4.2 RBAC 规则示例"></a>4.2 RBAC 规则示例</h3><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># API Server 访问 kubelet 的权限</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">rbac.authorization.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">ClusterRole</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">system:kubelet-api-admin</span></span><br><span class="line"><span class="attr">rules:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">apiGroups:</span> [<span class="string">&quot;&quot;</span>]</span><br><span class="line">    <span class="attr">resources:</span> [<span class="string">&quot;nodes/proxy&quot;</span>, <span class="string">&quot;nodes/stats&quot;</span>, <span class="string">&quot;nodes/log&quot;</span>, <span class="string">&quot;nodes/spec&quot;</span>, <span class="string">&quot;nodes/metrics&quot;</span>]</span><br><span class="line">    <span class="attr">verbs:</span> [<span class="string">&quot;*&quot;</span>]</span><br><span class="line"></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="comment"># kubelet 节点授权（Node Authorizer 自动处理）</span></span><br><span class="line"><span class="comment"># system:nodes 组的节点可以访问：</span></span><br><span class="line"><span class="comment"># - 读取自己节点上的 Pod</span></span><br><span class="line"><span class="comment"># - 读取自己节点上的 Secret/ConfigMap</span></span><br><span class="line"><span class="comment"># - 创建/更新自己的 Node status</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="4-3-端点权限映射"><a href="#4-3-端点权限映射" class="headerlink" title="4.3 端点权限映射"></a>4.3 端点权限映射</h3><table>
+<thead>
+<tr>
+<th>端点</th>
+<th>所需权限</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>/healthz</code></td>
+<td>无</td>
+<td>健康检查</td>
+</tr>
+<tr>
+<td><code>/pods</code></td>
+<td>nodes&#x2F;proxy</td>
+<td>Pod 列表</td>
+</tr>
+<tr>
+<td><code>/stats</code></td>
+<td>nodes&#x2F;stats</td>
+<td>资源统计</td>
+</tr>
+<tr>
+<td><code>/metrics</code></td>
+<td>nodes&#x2F;metrics</td>
+<td>Prometheus 指标</td>
+</tr>
+<tr>
+<td><code>/exec/*</code></td>
+<td>pods&#x2F;exec</td>
+<td>容器执行</td>
+</tr>
+<tr>
+<td><code>/portForward/*</code></td>
+<td>pods&#x2F;portForward</td>
+<td>端口转发</td>
+</tr>
+<tr>
+<td><code>/attach/*</code></td>
+<td>pods&#x2F;exec</td>
+<td>容器附加</td>
+</tr>
+<tr>
+<td><code>/logs/*</code></td>
+<td>pods&#x2F;log</td>
+<td>容器日志</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="5-详细时序图"><a href="#5-详细时序图" class="headerlink" title="5. 详细时序图"></a>5. 详细时序图</h2><h3 id="5-1-Webhook-认证时序图"><a href="#5-1-Webhook-认证时序图" class="headerlink" title="5.1 Webhook 认证时序图"></a>5.1 Webhook 认证时序图</h3><pre><code class="highlight mermaid">sequenceDiagram
+    autonumber
+    participant CLIENT as 客户端
+    participant KL as Kubelet
+    participant AUTH as Authenticator
+    participant CACHE as 认证缓存
+    participant API as kube-apiserver
+
+    CLIENT-&gt;&gt;KL: GET /pods (Authorization: Bearer &lt;token&gt;)
+    KL-&gt;&gt;AUTH: AuthenticateRequest(req)
+
+    AUTH-&gt;&gt;AUTH: 提取 Bearer Token
+    AUTH-&gt;&gt;CACHE: 检查缓存
+
+    alt 缓存命中
+        CACHE--&gt;&gt;AUTH: 返回缓存的用户信息
+    else 缓存未命中
+        AUTH-&gt;&gt;API: POST /apis/authentication.k8s.io/v1/tokenreviews
+        Note over AUTH,API: TokenReview&#123;&lt;br/&gt;  spec.token: &lt;token&gt;&lt;br/&gt;&#125;
+
+        API-&gt;&gt;API: 验证 Token
+        API--&gt;&gt;AUTH: TokenReview.status&#123;&lt;br/&gt;  authenticated: true,&lt;br/&gt;  user: &#123;username, groups, uid&#125;&lt;br/&gt;&#125;
+
+        AUTH-&gt;&gt;CACHE: 缓存认证结果
+    end
+
+    AUTH--&gt;&gt;KL: user.Info
+    KL-&gt;&gt;KL: 继续授权流程</code></pre>
+
+<h3 id="5-2-Webhook-授权时序图"><a href="#5-2-Webhook-授权时序图" class="headerlink" title="5.2 Webhook 授权时序图"></a>5.2 Webhook 授权时序图</h3><pre><code class="highlight mermaid">sequenceDiagram
+    autonumber
+    participant KL as Kubelet
+    participant AUTHZ as Authorizer
+    participant CACHE as 授权缓存
+    participant API as kube-apiserver
+
+    Note over KL: 认证完成，用户为 system:node:node-1
+
+    KL-&gt;&gt;AUTHZ: AuthorizeRequest(req, user)
+    AUTHZ-&gt;&gt;AUTHZ: 提取请求属性
+    Note over AUTHZ: verb=get, resource=pods, name=pod-1
+
+    AUTHZ-&gt;&gt;CACHE: 检查缓存
+
+    alt 缓存命中
+        CACHE--&gt;&gt;AUTHZ: 返回缓存结果
+    else 缓存未命中
+        AUTHZ-&gt;&gt;API: POST /apis/authorization.k8s.io/v1/subjectaccessreviews
+        Note over AUTHZ,API: SubjectAccessReview&#123;&lt;br/&gt;  spec: &#123;&lt;br/&gt;    user: system:node:node-1,&lt;br/&gt;    groups: [system:nodes, system:authenticated],&lt;br/&gt;    resourceAttributes: &#123;&lt;br/&gt;      verb: get,&lt;br/&gt;      resource: pods,&lt;br/&gt;      name: pod-1,&lt;br/&gt;      namespace: default&lt;br/&gt;    &#125;&lt;br/&gt;  &#125;&lt;br/&gt;&#125;
+
+        API-&gt;&gt;API: Node Authorizer 检查
+        Note over API: 检查 Pod 是否调度到此节点
+
+        API--&gt;&gt;AUTHZ: SubjectAccessReview.status&#123;&lt;br/&gt;  allowed: true&lt;br/&gt;&#125;
+
+        AUTHZ-&gt;&gt;CACHE: 缓存授权结果
+    end
+
+    AUTHZ--&gt;&gt;KL: authorized=true
+    KL-&gt;&gt;KL: 执行请求</code></pre>
+
+<h3 id="5-3-匿名访问时序图"><a href="#5-3-匿名访问时序图" class="headerlink" title="5.3 匿名访问时序图"></a>5.3 匿名访问时序图</h3><pre><code class="highlight mermaid">sequenceDiagram
+    autonumber
+    participant PROBE as 健康检查器
+    participant KL as Kubelet
+    participant AUTH as Authenticator
+    participant AUTHZ as Authorizer
+
+    PROBE-&gt;&gt;KL: GET /healthz (无认证信息)
+
+    KL-&gt;&gt;AUTH: AuthenticateRequest(req)
+    AUTH-&gt;&gt;AUTH: 检查请求头 - 无 Authorization
+
+    alt anonymous.enabled=true
+        AUTH-&gt;&gt;AUTH: 识别为匿名用户
+        Note over AUTH: user=system:anonymous&lt;br/&gt;groups=[system:unauthenticated]
+        AUTH--&gt;&gt;KL: user.Info&#123;system:anonymous&#125;
+    else anonymous.enabled=false
+        AUTH--&gt;&gt;KL: 认证失败
+        KL--&gt;&gt;PROBE: 401 Unauthorized
+    end
+
+    KL-&gt;&gt;AUTHZ: AuthorizeRequest(req, anonymous)
+
+    alt authorization.mode=AlwaysAllow
+        AUTHZ--&gt;&gt;KL: allowed
+    else authorization.mode=Webhook
+        Note over AUTHZ: 检查匿名用户权限
+        alt /healthz 端点
+            AUTHZ--&gt;&gt;KL: allowed (默认允许)
+        else 其他端点
+            AUTHZ--&gt;&gt;KL: denied
+            KL--&gt;&gt;PROBE: 403 Forbidden
+        end
+    end
+
+    KL-&gt;&gt;KL: 执行健康检查
+    KL--&gt;&gt;PROBE: 200 OK</code></pre>
+
+<hr>
+<h2 id="6-故障排查指南"><a href="#6-故障排查指南" class="headerlink" title="6. 故障排查指南"></a>6. 故障排查指南</h2><h3 id="6-1-常见问题与诊断方法"><a href="#6-1-常见问题与诊断方法" class="headerlink" title="6.1 常见问题与诊断方法"></a>6.1 常见问题与诊断方法</h3><h4 id="问题-1：kubectl-exec-失败-403-Forbidden"><a href="#问题-1：kubectl-exec-失败-403-Forbidden" class="headerlink" title="问题 1：kubectl exec 失败 (403 Forbidden)"></a>问题 1：kubectl exec 失败 (403 Forbidden)</h4><p><strong>症状</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Error from server: error dialing backend: x509: certificate signed by unknown authority</span><br></pre></td></tr></table></figure>
+<p>或</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">error: unable to upgrade connection: Unauthorized</span><br></pre></td></tr></table></figure>
+
+<p><strong>排查流程图</strong>：</p>
+<pre><code class="highlight mermaid">flowchart TD
+    A[kubectl exec 失败] --&gt; B&#123;检查错误类型&#125;
+
+    B --&gt;|401 Unauthorized| C[认证问题]
+    C --&gt; C1[检查 API Server token]
+    C --&gt; C2[检查 kubelet client-ca-file]
+
+    B --&gt;|403 Forbidden| D[授权问题]
+    D --&gt; D1[检查 RBAC 规则]
+    D1 --&gt; D2[检查 nodes/proxy 权限]
+    D1 --&gt; D3[检查 pods/exec 权限]
+
+    B --&gt;|x509 错误| E[证书问题]
+    E --&gt; E1[检查 CA 证书配置]
+    E --&gt; E2[检查证书有效期]
+    E --&gt; E3[检查证书链]
+
+    A --&gt; F&#123;检查 kubelet 配置&#125;
+    F --&gt; F1[authentication.anonymous.enabled]
+    F --&gt; F2[authorization.mode]
+    F --&gt; F3[client-ca-file 路径]</code></pre>
+
+<p><strong>诊断命令</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 检查 RBAC 权限</span></span><br><span class="line">kubectl auth can-i create pods/exec --as=system:node:node-1</span><br><span class="line">kubectl auth can-i get nodes/proxy --as=system:anonymous</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 kubelet 配置</span></span><br><span class="line">ps aux | grep kubelet | grep -E <span class="string">&quot;anonymous|authorization&quot;</span></span><br><span class="line"><span class="built_in">cat</span> /var/lib/kubelet/config.yaml | grep -A 10 <span class="string">&quot;authentication\|authorization&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查证书</span></span><br><span class="line">openssl x509 -<span class="keyword">in</span> /etc/kubernetes/pki/ca.crt -text -noout</span><br><span class="line">openssl verify -CAfile /etc/kubernetes/pki/ca.crt &lt;client-cert&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 kubelet 日志</span></span><br><span class="line">journalctl -u kubelet | grep -iE <span class="string">&quot;auth|forbidden|unauthorized&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="问题-2：metrics-端点无法访问"><a href="#问题-2：metrics-端点无法访问" class="headerlink" title="问题 2：metrics 端点无法访问"></a>问题 2：metrics 端点无法访问</h4><p><strong>症状</strong>：Prometheus 无法抓取 kubelet metrics</p>
+<p><strong>排查流程图</strong>：</p>
+<pre><code class="highlight mermaid">flowchart TD
+    A[metrics 不可访问] --&gt; B&#123;检查匿名访问&#125;
+
+    B --&gt; B1[anonymous.enabled?]
+    B1 --&gt;|false| B2[需要认证]
+    B2 --&gt; B3[配置 ServiceAccount token]
+
+    B1 --&gt;|true| C&#123;检查授权&#125;
+
+    C --&gt; C1[authorization.mode]
+    C1 --&gt;|Webhook| C2[需要 nodes/metrics 权限]
+    C1 --&gt;|AlwaysAllow| C3[应该可以访问]
+
+    A --&gt; D&#123;检查网络&#125;
+    D --&gt; D1[防火墙规则]
+    D --&gt; D2[kubelet 端口]
+    D --&gt; D3[HTTPS 配置]
+
+    A --&gt; E&#123;检查证书&#125;
+    E --&gt; E1[client-ca-file]
+    E --&gt; E2[tls-cert-file]
+    E --&gt; E3[tls-private-key-file]</code></pre>
+
+<p><strong>诊断命令</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 测试 metrics 端点</span></span><br><span class="line">curl -k https://&lt;node-ip&gt;:10250/metrics</span><br><span class="line">curl -k --cert &lt;client-cert&gt; --key &lt;client-key&gt; https://&lt;node-ip&gt;:10250/metrics</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 kubelet 端口</span></span><br><span class="line">netstat -tlnp | grep kubelet</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 ServiceAccount</span></span><br><span class="line">kubectl get serviceaccount &lt;sa-name&gt; -n &lt;namespace&gt;</span><br><span class="line">kubectl get secret &lt;sa-token-secret&gt; -n &lt;namespace&gt; -o jsonpath=<span class="string">&#x27;&#123;.data.token&#125;&#x27;</span> | <span class="built_in">base64</span> -d</span><br></pre></td></tr></table></figure>
+
+<h4 id="问题-3：节点状态无法更新"><a href="#问题-3：节点状态无法更新" class="headerlink" title="问题 3：节点状态无法更新"></a>问题 3：节点状态无法更新</h4><p><strong>症状</strong>：kubelet 无法更新 Node status</p>
+<p><strong>排查流程图</strong>：</p>
+<pre><code class="highlight mermaid">flowchart TD
+    A[Node status 更新失败] --&gt; B&#123;检查 kubelet 证书&#125;
+
+    B --&gt; B1[证书是否存在]
+    B1 --&gt;|否| B2[检查 bootstrap 过程]
+    B1 --&gt;|是| B3[检查证书有效期]
+
+    A --&gt; C&#123;检查 RBAC&#125;
+    C --&gt; C1[检查 system:nodes 组]
+    C --&gt; C2[检查 Node 授权器]
+
+    A --&gt; D&#123;检查 API Server 连接&#125;
+    D --&gt; D1[网络连通性]
+    D --&gt; D2[kubeconfig 配置]
+    D --&gt; D3[API Server 可用性]</code></pre>
+
+<p><strong>诊断命令</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 检查 kubelet 证书</span></span><br><span class="line"><span class="built_in">ls</span> -la /var/lib/kubelet/pki/</span><br><span class="line">openssl x509 -<span class="keyword">in</span> /var/lib/kubelet/pki/kubelet-client-current.pem -text -noout</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 Node 授权</span></span><br><span class="line">kubectl get clusterrolebinding system:node -o yaml</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 kubelet 与 API Server 连接</span></span><br><span class="line">curl -k https://&lt;api-server&gt;:6443/healthz --cert /var/lib/kubelet/pki/kubelet-client-current.pem</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 bootstrap 过程</span></span><br><span class="line">journalctl -u kubelet | grep -i bootstrap</span><br><span class="line">kubectl get csr</span><br></pre></td></tr></table></figure>
+
+<h3 id="6-2-关键日志关键词"><a href="#6-2-关键日志关键词" class="headerlink" title="6.2 关键日志关键词"></a>6.2 关键日志关键词</h3><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>日志关键词</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>认证失败</td>
+<td><code>Authentication failed</code></td>
+<td>认证失败</td>
+</tr>
+<tr>
+<td>授权失败</td>
+<td><code>Forbidden</code></td>
+<td>授权拒绝</td>
+</tr>
+<tr>
+<td>证书错误</td>
+<td><code>x509</code></td>
+<td>证书相关错误</td>
+</tr>
+<tr>
+<td>Token 验证</td>
+<td><code>TokenReview</code></td>
+<td>Token 验证请求</td>
+</tr>
+<tr>
+<td>授权检查</td>
+<td><code>SubjectAccessReview</code></td>
+<td>授权检查请求</td>
+</tr>
+<tr>
+<td>匿名访问</td>
+<td><code>system:anonymous</code></td>
+<td>匿名用户访问</td>
+</tr>
+</tbody></table>
+<h3 id="6-3-配置参数参考"><a href="#6-3-配置参数参考" class="headerlink" title="6.3 配置参数参考"></a>6.3 配置参数参考</h3><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>默认值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>--anonymous-auth</code></td>
+<td>true</td>
+<td>允许匿名访问</td>
+</tr>
+<tr>
+<td><code>--client-ca-file</code></td>
+<td>无</td>
+<td>客户端 CA 证书</td>
+</tr>
+<tr>
+<td><code>--authentication-token-webhook</code></td>
+<td>false</td>
+<td>启用 webhook 认证</td>
+</tr>
+<tr>
+<td><code>--authentication-token-webhook-cache-ttl</code></td>
+<td>2m</td>
+<td>认证缓存时间</td>
+</tr>
+<tr>
+<td><code>--authorization-mode</code></td>
+<td>AlwaysAllow</td>
+<td>授权模式</td>
+</tr>
+<tr>
+<td><code>--authorization-webhook-cache-authorized-ttl</code></td>
+<td>5m</td>
+<td>授权缓存时间</td>
+</tr>
+</tbody></table>
+<h3 id="6-4-一键诊断命令"><a href="#6-4-一键诊断命令" class="headerlink" title="6.4 一键诊断命令"></a>6.4 一键诊断命令</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># kubelet 认证授权诊断脚本</span></span><br><span class="line">NODE_NAME=<span class="variable">$&#123;1:-&quot;&lt;node-name&gt;&quot;&#125;</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;=== Kubelet Config ===&quot;</span> &amp;&amp; \</span><br><span class="line">ps aux | grep kubelet | grep -oE <span class="string">&#x27;\-\-[a-z-]+&#x27;</span> | <span class="built_in">head</span> -20 &amp;&amp; \</span><br><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;\n=== Auth Config ===&quot;</span> &amp;&amp; \</span><br><span class="line"><span class="built_in">cat</span> /var/lib/kubelet/config.yaml 2&gt;/dev/null | grep -A 5 -E <span class="string">&quot;authentication|authorization&quot;</span> &amp;&amp; \</span><br><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;\n=== Client Certificates ===&quot;</span> &amp;&amp; \</span><br><span class="line"><span class="built_in">ls</span> -la /var/lib/kubelet/pki/ 2&gt;/dev/null &amp;&amp; \</span><br><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;\n=== CSR Status ===&quot;</span> &amp;&amp; \</span><br><span class="line">kubectl get csr &amp;&amp; \</span><br><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;\n=== Node Permissions ===&quot;</span> &amp;&amp; \</span><br><span class="line">kubectl auth can-i list nodes --as=system:node:<span class="variable">$NODE_NAME</span> &amp;&amp; \</span><br><span class="line">kubectl auth can-i update nodes/status --as=system:node:<span class="variable">$NODE_NAME</span> &amp;&amp; \</span><br><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;\n=== Recent Auth Logs ===&quot;</span> &amp;&amp; \</span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;Run on node: journalctl -u kubelet | grep -iE &#x27;auth|forbidden&#x27; | tail -20&quot;</span></span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="7-安全最佳实践"><a href="#7-安全最佳实践" class="headerlink" title="7. 安全最佳实践"></a>7. 安全最佳实践</h2><h3 id="7-1-生产环境推荐配置"><a href="#7-1-生产环境推荐配置" class="headerlink" title="7.1 生产环境推荐配置"></a>7.1 生产环境推荐配置</h3><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># kubelet 安全配置</span></span><br><span class="line"><span class="attr">authentication:</span></span><br><span class="line">  <span class="attr">anonymous:</span></span><br><span class="line">    <span class="attr">enabled:</span> <span class="literal">false</span>          <span class="comment"># 禁用匿名访问</span></span><br><span class="line">  <span class="attr">webhook:</span></span><br><span class="line">    <span class="attr">enabled:</span> <span class="literal">true</span>           <span class="comment"># 启用 webhook 认证</span></span><br><span class="line">    <span class="attr">cacheTTL:</span> <span class="string">2m</span></span><br><span class="line">  <span class="attr">x509:</span></span><br><span class="line">    <span class="attr">clientCAFile:</span> <span class="string">/etc/kubernetes/pki/ca.crt</span></span><br><span class="line"></span><br><span class="line"><span class="attr">authorization:</span></span><br><span class="line">  <span class="attr">mode:</span> <span class="string">Webhook</span>             <span class="comment"># 使用 Webhook 授权</span></span><br><span class="line">  <span class="attr">webhook:</span></span><br><span class="line">    <span class="attr">cacheAuthorizedTTL:</span> <span class="string">5m</span></span><br><span class="line">    <span class="attr">cacheUnauthorizedTTL:</span> <span class="string">30s</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 禁用只读端口</span></span><br><span class="line"><span class="attr">readOnlyPort:</span> <span class="number">0</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 启用 HTTPS</span></span><br><span class="line"><span class="attr">serverTLSBootstrap:</span> <span class="literal">true</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="7-2-RBAC-最小权限原则"><a href="#7-2-RBAC-最小权限原则" class="headerlink" title="7.2 RBAC 最小权限原则"></a>7.2 RBAC 最小权限原则</h3><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 监控系统需要的最小权限</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">rbac.authorization.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">ClusterRole</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">prometheus-kubelet</span></span><br><span class="line"><span class="attr">rules:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">apiGroups:</span> [<span class="string">&quot;&quot;</span>]</span><br><span class="line">    <span class="attr">resources:</span> [<span class="string">&quot;nodes/metrics&quot;</span>, <span class="string">&quot;nodes/stats&quot;</span>, <span class="string">&quot;nodes/proxy&quot;</span>]</span><br><span class="line">    <span class="attr">verbs:</span> [<span class="string">&quot;get&quot;</span>, <span class="string">&quot;list&quot;</span>]</span><br><span class="line">  <span class="bullet">-</span> <span class="attr">nonResourceURLs:</span> [<span class="string">&quot;/metrics&quot;</span>, <span class="string">&quot;/stats&quot;</span>]</span><br><span class="line">    <span class="attr">verbs:</span> [<span class="string">&quot;get&quot;</span>]</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="8-版本差异说明"><a href="#8-版本差异说明" class="headerlink" title="8. 版本差异说明"></a>8. 版本差异说明</h2><h3 id="1-27-→-1-28-变化"><a href="#1-27-→-1-28-变化" class="headerlink" title="1.27 → 1.28 变化"></a>1.27 → 1.28 变化</h3><table>
+<thead>
+<tr>
+<th>变化点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>TLS Bootstrap 改进</td>
+<td>更安全的证书轮换机制</td>
+</tr>
+<tr>
+<td>认证缓存优化</td>
+<td>更高效的缓存实现</td>
+</tr>
+</tbody></table>
+<h3 id="1-28-→-1-29-变化"><a href="#1-28-→-1-29-变化" class="headerlink" title="1.28 → 1.29 变化"></a>1.28 → 1.29 变化</h3><table>
+<thead>
+<tr>
+<th>变化点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>匿名访问限制</td>
+<td>默认更严格的匿名访问控制</td>
+</tr>
+<tr>
+<td>授权日志增强</td>
+<td>更详细的授权日志</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="9-代码入口（精简版）"><a href="#9-代码入口（精简版）" class="headerlink" title="9. 代码入口（精简版）"></a>9. 代码入口（精简版）</h2><p>如果读者想从流程跳回实现，可从下面几个入口开始：</p>
+<ul>
+<li>认证模块：<a href="../pkg/kubelet/server/auth.go"><code>pkg/kubelet/server/auth.go</code></a></li>
+<li>授权模块：<a href="../pkg/kubelet/server/auth.go"><code>pkg/kubelet/server/auth.go</code></a></li>
+<li>Webhook 认证器：<a href="../staging/src/k8s.io/apiserver/pkg/admission/plugin/webhook/generic/webhook.go"><code>staging/src/k8s.io/apiserver/pkg/admission/plugin/webhook/generic/webhook.go</code></a></li>
+<li>Kubelet Server：<a href="../pkg/kubelet/server/server.go"><code>pkg/kubelet/server/server.go</code></a></li>
+<li>认证接口定义：<a href="../staging/src/k8s.io/apiserver/pkg/authentication/authenticator/interfaces.go"><code>staging/src/k8s.io/apiserver/pkg/authentication/authenticator/interfaces.go</code></a></li>
+<li>授权接口定义：<a href="../staging/src/k8s.io/apiserver/pkg/authorization/authorizer/interfaces.go"><code>staging/src/k8s.io/apiserver/pkg/authorization/authorizer/interfaces.go</code></a></li>
+</ul>
+<hr>
+<h2 id="10-面试题与详细解答"><a href="#10-面试题与详细解答" class="headerlink" title="10. 面试题与详细解答"></a>10. 面试题与详细解答</h2><h3 id="问题-1：kubelet-的认证方式有哪些？生产环境应该如何配置？"><a href="#问题-1：kubelet-的认证方式有哪些？生产环境应该如何配置？" class="headerlink" title="问题 1：kubelet 的认证方式有哪些？生产环境应该如何配置？"></a>问题 1：kubelet 的认证方式有哪些？生产环境应该如何配置？</h3><p><strong>回答要点</strong>：</p>
+<p><strong>kubelet 支持的认证方式</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>认证方式</th>
+<th>配置参数</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>匿名认证</td>
+<td><code>--anonymous-auth=true</code></td>
+<td>健康检查端点</td>
+</tr>
+<tr>
+<td>X509 证书</td>
+<td><code>--client-ca-file</code></td>
+<td>API Server 访问</td>
+</tr>
+<tr>
+<td>Bootstrap Token</td>
+<td><code>--bootstrap-token-auth</code></td>
+<td>节点初始化</td>
+</tr>
+<tr>
+<td>Webhook 认证</td>
+<td><code>--authentication-token-webhook=true</code></td>
+<td>统一身份认证</td>
+</tr>
+</tbody></table>
+<p><strong>认证流程优先级</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">1. 检查是否有 TLS 客户端证书 → X509 认证</span><br><span class="line">2. 检查 Authorization Header → Token 认证</span><br><span class="line">3. 检查匿名认证是否启用 → 匿名用户</span><br><span class="line">4. 认证失败 → 401 Unauthorized</span><br></pre></td></tr></table></figure>
+
+<p><strong>生产环境推荐配置</strong>：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># kubelet 配置</span></span><br><span class="line"><span class="attr">authentication:</span></span><br><span class="line">  <span class="attr">anonymous:</span></span><br><span class="line">    <span class="attr">enabled:</span> <span class="literal">false</span>          <span class="comment"># 禁用匿名访问</span></span><br><span class="line">  <span class="attr">webhook:</span></span><br><span class="line">    <span class="attr">enabled:</span> <span class="literal">true</span>           <span class="comment"># 启用 webhook 认证</span></span><br><span class="line">    <span class="attr">cacheTTL:</span> <span class="string">2m</span>            <span class="comment"># 缓存认证结果</span></span><br><span class="line">  <span class="attr">x509:</span></span><br><span class="line">    <span class="attr">clientCAFile:</span> <span class="string">/etc/kubernetes/pki/ca.crt</span></span><br><span class="line"></span><br><span class="line"><span class="attr">authorization:</span></span><br><span class="line">  <span class="attr">mode:</span> <span class="string">Webhook</span>             <span class="comment"># 使用 webhook 授权</span></span><br><span class="line">  <span class="attr">webhook:</span></span><br><span class="line">    <span class="attr">cacheAuthorizedTTL:</span> <span class="string">5m</span></span><br><span class="line">    <span class="attr">cacheUnauthorizedTTL:</span> <span class="string">30s</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 禁用只读端口</span></span><br><span class="line"><span class="attr">readOnlyPort:</span> <span class="number">0</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 启用 HTTPS</span></span><br><span class="line"><span class="attr">serverTLSBootstrap:</span> <span class="literal">true</span>    <span class="comment"># 自动生成服务端证书</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>安全最佳实践</strong>：</p>
+<ol>
+<li><strong>禁用匿名访问</strong>：<code>anonymous.enabled: false</code></li>
+<li><strong>使用 Webhook 认证</strong>：与 API Server 统一身份管理</li>
+<li><strong>启用证书轮换</strong>：<code>rotateCertificates: true</code></li>
+<li><strong>禁用只读端口</strong>：<code>readOnlyPort: 0</code></li>
+</ol>
+<hr>
+<h3 id="问题-2：kubectl-exec-是如何通过-API-Server-访问-kubelet-的？认证授权流程是什么？"><a href="#问题-2：kubectl-exec-是如何通过-API-Server-访问-kubelet-的？认证授权流程是什么？" class="headerlink" title="问题 2：kubectl exec 是如何通过 API Server 访问 kubelet 的？认证授权流程是什么？"></a>问题 2：kubectl exec 是如何通过 API Server 访问 kubelet 的？认证授权流程是什么？</h3><p><strong>回答要点</strong>：</p>
+<p><strong>完整流程</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl → API Server (认证+授权) → kubelet (认证+授权) → CRI → 容器</span><br></pre></td></tr></table></figure>
+
+<p><strong>详细步骤</strong>：</p>
+<ol>
+<li><p><strong>kubectl 发起请求</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl <span class="built_in">exec</span> -it pod-name -- /bin/sh</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><strong>API Server 认证</strong>：</p>
+<ul>
+<li>验证 kubectl 的 token&#x2F;certificate</li>
+<li>确认用户身份</li>
+</ul>
+</li>
+<li><p><strong>API Server 授权</strong>：</p>
+<ul>
+<li>检查 <code>pods/exec</code> 权限</li>
+<li>RBAC 规则匹配</li>
+</ul>
+</li>
+<li><p><strong>API Server 转发请求</strong>：</p>
+<ul>
+<li>构建 kubelet 请求 URL</li>
+<li>使用 kubelet 客户端证书</li>
+</ul>
+</li>
+<li><p><strong>kubelet 认证</strong>：</p>
+<ul>
+<li>验证 API Server 的客户端证书</li>
+<li>提取用户信息（CN&#x3D;system:node:node-1）</li>
+</ul>
+</li>
+<li><p><strong>kubelet 授权（Webhook）</strong>：</p>
+<ul>
+<li>构建 SubjectAccessReview</li>
+<li>发送到 API Server</li>
+<li>Node Authorizer 检查</li>
+</ul>
+</li>
+<li><p><strong>kubelet 执行命令</strong>：</p>
+<ul>
+<li>调用 CRI Exec</li>
+<li>返回流式输出</li>
+</ul>
+</li>
+</ol>
+<p><strong>认证授权时序图</strong>：</p>
+<pre><code class="highlight mermaid">sequenceDiagram
+    participant K as kubectl
+    participant API as kube-apiserver
+    participant KL as Kubelet
+
+    K-&gt;&gt;API: POST /api/v1/namespaces/default/pods/pod-1/exec
+    Note over API: API Server 认证&lt;br/&gt;验证用户身份
+    Note over API: API Server 授权&lt;br/&gt;检查 pods/exec 权限
+
+    API-&gt;&gt;KL: POST /exec/&lt;pod-uid&gt;/&lt;container&gt;
+    Note over KL: Kubelet 认证&lt;br/&gt;验证 API Server 证书
+
+    KL-&gt;&gt;API: POST /apis/authorization.k8s.io/v1/subjectaccessreviews
+    Note over KL,API: SubjectAccessReview&#123;&lt;br/&gt;  user: system:node:node-1,&lt;br/&gt;  verb: create,&lt;br/&gt;  resource: pods/exec&lt;br/&gt;&#125;
+
+    API--&gt;&gt;KL: allowed: true
+    Note over KL: 授权通过
+
+    KL-&gt;&gt;KL: 调用 CRI Exec
+    KL--&gt;&gt;API: WebSocket/SPDY stream
+    API--&gt;&gt;K: exec stream</code></pre>
+
+<p><strong>Node Authorizer 检查逻辑</strong>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Node Authorizer 只允许节点访问自己节点上的 Pod</span></span><br><span class="line"><span class="comment">// 检查条件：</span></span><br><span class="line"><span class="comment">// 1. 用户在 system:nodes 组</span></span><br><span class="line"><span class="comment">// 2. 用户名为 system:node:&lt;node-name&gt;</span></span><br><span class="line"><span class="comment">// 3. Pod 调度到该节点</span></span><br></pre></td></tr></table></figure>
+
+<hr>
+<h3 id="问题-3：kubelet-的-Node-Authorizer-是如何工作的？为什么需要-Node-Authorizer？"><a href="#问题-3：kubelet-的-Node-Authorizer-是如何工作的？为什么需要-Node-Authorizer？" class="headerlink" title="问题 3：kubelet 的 Node Authorizer 是如何工作的？为什么需要 Node Authorizer？"></a>问题 3：kubelet 的 Node Authorizer 是如何工作的？为什么需要 Node Authorizer？</h3><p><strong>回答要点</strong>：</p>
+<p><strong>Node Authorizer 设计目的</strong>：</p>
+<ol>
+<li><strong>最小权限原则</strong>：节点只能访问自己节点上的资源</li>
+<li><strong>隔离性</strong>：防止一个节点访问另一个节点的数据</li>
+<li><strong>安全性</strong>：即使节点被攻破，影响范围有限</li>
+</ol>
+<p><strong>Node Authorizer 检查规则</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>资源</th>
+<th>允许的操作</th>
+<th>限制条件</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Pod</td>
+<td>读取、状态更新</td>
+<td>只能访问调度到本节点的 Pod</td>
+</tr>
+<tr>
+<td>Secret</td>
+<td>读取</td>
+<td>只能访问本节点 Pod 使用的 Secret</td>
+</tr>
+<tr>
+<td>ConfigMap</td>
+<td>读取</td>
+<td>只能访问本节点 Pod 使用的 ConfigMap</td>
+</tr>
+<tr>
+<td>Node</td>
+<td>状态更新</td>
+<td>只能更新自己的 Node 对象</td>
+</tr>
+<tr>
+<td>PV&#x2F;PVC</td>
+<td>读取</td>
+<td>只能访问本节点 Pod 使用的卷</td>
+</tr>
+</tbody></table>
+<p><strong>授权检查流程</strong>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 1. 检查用户身份</span></span><br><span class="line"><span class="keyword">if</span> !strings.HasPrefix(user.GetName(), <span class="string">&quot;system:node:&quot;</span>) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 2. 检查用户组</span></span><br><span class="line"><span class="keyword">if</span> !contains(user.GetGroups(), <span class="string">&quot;system:nodes&quot;</span>) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 3. 检查资源访问权限</span></span><br><span class="line"><span class="comment">// Node Authorizer 维护 Pod 到 Node 的映射</span></span><br><span class="line"><span class="comment">// 只有 Pod 调度到的节点才能访问相关资源</span></span><br><span class="line">nodeName := strings.TrimPrefix(user.GetName(), <span class="string">&quot;system:node:&quot;</span>)</span><br><span class="line"><span class="keyword">return</span> podIsScheduledToNode(pod, nodeName)</span><br></pre></td></tr></table></figure>
+
+<p><strong>为什么需要 Node Authorizer</strong>：</p>
+<ol>
+<li><p><strong>RBAC 的局限性</strong>：</p>
+<ul>
+<li>RBAC 只能基于角色授权</li>
+<li>无法表达”节点只能访问自己的资源”</li>
+</ul>
+</li>
+<li><p><strong>安全场景</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">假设没有 Node Authorizer：</span><br><span class="line">1. 攻击者攻破 node-1</span><br><span class="line">2. 获取 node-1 的 kubelet 证书</span><br><span class="line">3. 可以访问所有节点的 Secret/Pod 信息</span><br><span class="line">4. 集群完全暴露</span><br><span class="line"></span><br><span class="line">有 Node Authorizer：</span><br><span class="line">1. 攻击者攻破 node-1</span><br><span class="line">2. 只能访问 node-1 上的 Pod 和相关资源</span><br><span class="line">3. 影响范围受限</span><br></pre></td></tr></table></figure></li>
+</ol>
+<p><strong>配置示例</strong>：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># kube-apiserver 配置</span></span><br><span class="line"><span class="string">--authorization-mode=Node,RBAC</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># kubelet RBAC 绑定（自动创建）</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">rbac.authorization.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">ClusterRoleBinding</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">kubeadm:node-proxier</span></span><br><span class="line"><span class="attr">roleRef:</span></span><br><span class="line">  <span class="attr">apiGroup:</span> <span class="string">rbac.authorization.k8s.io</span></span><br><span class="line">  <span class="attr">kind:</span> <span class="string">ClusterRole</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">system:node-proxier</span></span><br><span class="line"><span class="attr">subjects:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">apiGroup:</span> <span class="string">rbac.authorization.k8s.io</span></span><br><span class="line">  <span class="attr">kind:</span> <span class="string">Group</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">system:nodes</span></span><br></pre></td></tr></table></figure>
+
+<hr>
+<h3 id="问题-4：如何为监控系统配置访问-kubelet-metrics-的权限？"><a href="#问题-4：如何为监控系统配置访问-kubelet-metrics-的权限？" class="headerlink" title="问题 4：如何为监控系统配置访问 kubelet metrics 的权限？"></a>问题 4：如何为监控系统配置访问 kubelet metrics 的权限？</h3><p><strong>回答要点</strong>：</p>
+<p><strong>方案一：使用 ServiceAccount + RBAC</strong></p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 1. 创建 ServiceAccount</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">ServiceAccount</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">prometheus</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">monitoring</span></span><br><span class="line"></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="comment"># 2. 创建 ClusterRole</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">rbac.authorization.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">ClusterRole</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">prometheus-kubelet</span></span><br><span class="line"><span class="attr">rules:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">apiGroups:</span> [<span class="string">&quot;&quot;</span>]</span><br><span class="line">  <span class="attr">resources:</span> [<span class="string">&quot;nodes/metrics&quot;</span>, <span class="string">&quot;nodes/stats&quot;</span>, <span class="string">&quot;nodes/proxy&quot;</span>]</span><br><span class="line">  <span class="attr">verbs:</span> [<span class="string">&quot;get&quot;</span>, <span class="string">&quot;list&quot;</span>]</span><br><span class="line"><span class="bullet">-</span> <span class="attr">nonResourceURLs:</span> [<span class="string">&quot;/metrics&quot;</span>, <span class="string">&quot;/stats&quot;</span>, <span class="string">&quot;/metrics/cadvisor&quot;</span>]</span><br><span class="line">  <span class="attr">verbs:</span> [<span class="string">&quot;get&quot;</span>]</span><br><span class="line"></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="comment"># 3. 创建 ClusterRoleBinding</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">rbac.authorization.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">ClusterRoleBinding</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">prometheus-kubelet</span></span><br><span class="line"><span class="attr">roleRef:</span></span><br><span class="line">  <span class="attr">apiGroup:</span> <span class="string">rbac.authorization.k8s.io</span></span><br><span class="line">  <span class="attr">kind:</span> <span class="string">ClusterRole</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">prometheus-kubelet</span></span><br><span class="line"><span class="attr">subjects:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">kind:</span> <span class="string">ServiceAccount</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">prometheus</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">monitoring</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>方案二：配置 kubelet 允许匿名访问 metrics</strong></p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># kubelet 配置（不推荐生产环境）</span></span><br><span class="line"><span class="attr">authentication:</span></span><br><span class="line">  <span class="attr">anonymous:</span></span><br><span class="line">    <span class="attr">enabled:</span> <span class="literal">true</span></span><br><span class="line"><span class="attr">authorization:</span></span><br><span class="line">  <span class="attr">mode:</span> <span class="string">Webhook</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 需要配置 RBAC 允许匿名用户访问</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>Prometheus 抓取配置</strong>：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Prometheus 配置</span></span><br><span class="line"><span class="attr">scrape_configs:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">job_name:</span> <span class="string">&#x27;kubelet&#x27;</span></span><br><span class="line">  <span class="attr">kubernetes_sd_configs:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">role:</span> <span class="string">node</span></span><br><span class="line">  <span class="attr">relabel_configs:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">source_labels:</span> [<span class="string">__address__</span>]</span><br><span class="line">    <span class="attr">regex:</span> <span class="string">(.+):10250</span></span><br><span class="line">    <span class="attr">target_label:</span> <span class="string">__address__</span></span><br><span class="line">    <span class="attr">replacement:</span> <span class="string">$&#123;1&#125;:10250</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">source_labels:</span> [<span class="string">__metrics_path__</span>]</span><br><span class="line">    <span class="attr">regex:</span> <span class="string">/metrics</span></span><br><span class="line">    <span class="attr">target_label:</span> <span class="string">__metrics_path__</span></span><br><span class="line">    <span class="attr">replacement:</span> <span class="string">/metrics</span></span><br><span class="line">  <span class="attr">scheme:</span> <span class="string">https</span></span><br><span class="line">  <span class="attr">tls_config:</span></span><br><span class="line">    <span class="attr">ca_file:</span> <span class="string">/var/run/secrets/kubernetes.io/serviceaccount/ca.crt</span></span><br><span class="line">    <span class="attr">insecure_skip_verify:</span> <span class="literal">true</span></span><br><span class="line">  <span class="attr">bearer_token_file:</span> <span class="string">/var/run/secrets/kubernetes.io/serviceaccount/token</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>访问 kubelet metrics 的方式</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>方式</th>
+<th>URL</th>
+<th>权限要求</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>通过 API Server 代理</td>
+<td><code>/api/v1/nodes/&#123;node&#125;/proxy/metrics</code></td>
+<td>nodes&#x2F;proxy</td>
+</tr>
+<tr>
+<td>直接访问 kubelet</td>
+<td><code>https://&#123;node&#125;:10250/metrics</code></td>
+<td>nodes&#x2F;metrics</td>
+</tr>
+</tbody></table>
+<p><strong>安全建议</strong>：</p>
+<ol>
+<li><strong>使用 ServiceAccount</strong>：避免使用匿名访问</li>
+<li><strong>最小权限</strong>：只授予必要的 metrics 权限</li>
+<li><strong>网络隔离</strong>：限制监控系统的网络访问</li>
+<li><strong>证书管理</strong>：定期轮换 ServiceAccount token</li>
+</ol>
+<hr>
+<h3 id="问题-5：kubelet-的-TLS-Bootstrap-是什么？如何工作？"><a href="#问题-5：kubelet-的-TLS-Bootstrap-是什么？如何工作？" class="headerlink" title="问题 5：kubelet 的 TLS Bootstrap 是什么？如何工作？"></a>问题 5：kubelet 的 TLS Bootstrap 是什么？如何工作？</h3><p><strong>回答要点</strong>：</p>
+<p><strong>TLS Bootstrap 概念</strong>：</p>
+<p>TLS Bootstrap 允许 kubelet 在没有预分配证书的情况下启动，通过向 API Server 发送 CSR（Certificate Signing Request）来获取证书。</p>
+<p><strong>工作流程</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">1. kubelet 启动，使用 bootstrap token 认证</span><br><span class="line">2. 向 API Server 发送 CSR</span><br><span class="line">3. Controller Manager 签署 CSR</span><br><span class="line">4. kubelet 获取签名证书</span><br><span class="line">5. 使用证书进行正常认证</span><br></pre></td></tr></table></figure>
+
+<p><strong>配置步骤</strong>：</p>
+<ol>
+<li><p><strong>创建 Bootstrap Token</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 创建 token secret</span></span><br><span class="line">kubectl create secret generic bootstrap-token-abcdef \</span><br><span class="line">  --namespace kube-system \</span><br><span class="line">  --<span class="built_in">type</span> bootstrap.kubernetes.io/token \</span><br><span class="line">  --from-literal=token-id=abcdef \</span><br><span class="line">  --from-literal=token-secret=0123456789abcdef \</span><br><span class="line">  --from-literal=usage-bootstrap-authentication=<span class="literal">true</span> \</span><br><span class="line">  --from-literal=usage-bootstrap-signing=<span class="literal">true</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p><strong>配置 kubelet</strong>：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># kubelet 配置</span></span><br><span class="line"><span class="attr">bootstrapKubeconfig:</span> <span class="string">/etc/kubernetes/bootstrap-kubelet.conf</span></span><br><span class="line"><span class="attr">certDir:</span> <span class="string">/var/lib/kubelet/pki</span></span><br><span class="line"><span class="attr">rotateCertificates:</span> <span class="literal">true</span>  <span class="comment"># 自动轮换证书</span></span><br><span class="line"><span class="attr">serverTLSBootstrap:</span> <span class="literal">true</span>  <span class="comment"># 启用服务端证书 bootstrap</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p><strong>配置 RBAC</strong>：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 允许 kubelet 创建 CSR</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">rbac.authorization.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">ClusterRoleBinding</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">kubeadm:node-autoapprove-csr</span></span><br><span class="line"><span class="attr">roleRef:</span></span><br><span class="line">  <span class="attr">apiGroup:</span> <span class="string">rbac.authorization.k8s.io</span></span><br><span class="line">  <span class="attr">kind:</span> <span class="string">ClusterRole</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">system:certificates.k8s.io:certificatesigningrequests:nodeclient</span></span><br><span class="line"><span class="attr">subjects:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">apiGroup:</span> <span class="string">rbac.authorization.k8s.io</span></span><br><span class="line">  <span class="attr">kind:</span> <span class="string">Group</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">system:bootstrappers</span></span><br><span class="line"></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="comment"># 允许自动批准 CSR</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">rbac.authorization.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">ClusterRoleBinding</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">kubeadm:node-autoapprove-certificate</span></span><br><span class="line"><span class="attr">roleRef:</span></span><br><span class="line">  <span class="attr">apiGroup:</span> <span class="string">rbac.authorization.k8s.io</span></span><br><span class="line">  <span class="attr">kind:</span> <span class="string">ClusterRole</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">system:certificates.k8s.io:certificatesigningrequests:selfnodeclient</span></span><br><span class="line"><span class="attr">subjects:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">apiGroup:</span> <span class="string">rbac.authorization.k8s.io</span></span><br><span class="line">  <span class="attr">kind:</span> <span class="string">Group</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">system:nodes</span></span><br></pre></td></tr></table></figure></li>
+</ol>
+<p><strong>证书轮换</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">证书有效期：1 年</span><br><span class="line">轮换时机：剩余有效期 &lt; 30%</span><br><span class="line">轮换流程：</span><br><span class="line">1. kubelet 生成新私钥</span><br><span class="line">2. 发送新 CSR</span><br><span class="line">3. Controller Manager 签署</span><br><span class="line">4. kubelet 使用新证书</span><br><span class="line">5. 旧证书失效</span><br></pre></td></tr></table></figure>
+
+<p><strong>安全考虑</strong>：</p>
+<ol>
+<li><p><strong>Bootstrap Token 安全</strong>：</p>
+<ul>
+<li>Token 有时效性</li>
+<li>使用后应销毁</li>
+</ul>
+</li>
+<li><p><strong>CSR 审批</strong>：</p>
+<ul>
+<li>可以配置自动审批</li>
+<li>也可以手动审批（更安全）</li>
+</ul>
+</li>
+<li><p><strong>证书撤销</strong>：</p>
+<ul>
+<li>目前 Kubernetes 不支持证书撤销</li>
+<li>依赖证书短期有效</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h3 id="问题-6：如何排查-kubectl-exec-logs-失败的问题？常见错误有哪些？"><a href="#问题-6：如何排查-kubectl-exec-logs-失败的问题？常见错误有哪些？" class="headerlink" title="问题 6：如何排查 kubectl exec&#x2F;logs 失败的问题？常见错误有哪些？"></a>问题 6：如何排查 kubectl exec&#x2F;logs 失败的问题？常见错误有哪些？</h3><p><strong>回答要点</strong>：</p>
+<p><strong>常见错误及原因</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>错误信息</th>
+<th>原因</th>
+<th>解决方法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>error dialing backend</code></td>
+<td>kubelet 不可达</td>
+<td>检查 kubelet 状态</td>
+</tr>
+<tr>
+<td><code>x509: certificate signed by unknown authority</code></td>
+<td>证书问题</td>
+<td>检查 CA 证书</td>
+</tr>
+<tr>
+<td><code>Unauthorized</code></td>
+<td>认证失败</td>
+<td>检查 token&#x2F;证书</td>
+</tr>
+<tr>
+<td><code>Forbidden</code></td>
+<td>授权失败</td>
+<td>检查 RBAC 规则</td>
+</tr>
+<tr>
+<td><code>connection refused</code></td>
+<td>kubelet 端口未监听</td>
+<td>检查 kubelet 配置</td>
+</tr>
+</tbody></table>
+<p><strong>排查流程</strong>：</p>
+<pre><code class="highlight mermaid">flowchart TD
+    A[kubectl exec 失败] --&gt; B&#123;检查错误类型&#125;
+
+    B --&gt;|401 Unauthorized| C[认证问题]
+    C --&gt; C1[检查 API Server token]
+    C --&gt; C2[检查 kubelet client-ca-file]
+
+    B --&gt;|403 Forbidden| D[授权问题]
+    D --&gt; D1[检查 RBAC 规则]
+    D --&gt; D2[检查 nodes/proxy 权限]
+    D --&gt; D3[检查 pods/exec 权限]
+
+    B --&gt;|x509 错误| E[证书问题]
+    E --&gt; E1[检查 CA 证书配置]
+    E --&gt; E2[检查证书有效期]
+    E --&gt; E3[检查证书链]
+
+    B --&gt;|connection refused| F[连接问题]
+    F --&gt; F1[检查 kubelet 是否运行]
+    F --&gt; F2[检查防火墙规则]
+    F --&gt; F3[检查端口配置]</code></pre>
+
+<p><strong>详细排查步骤</strong>：</p>
+<p><strong>步骤 1：检查 API Server 日志</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看 API Server 日志</span></span><br><span class="line">kubectl logs -n kube-system kube-apiserver-master</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看认证授权日志</span></span><br><span class="line"><span class="comment"># API Server 配置添加</span></span><br><span class="line">--audit-log-path=/var/log/audit.log</span><br><span class="line">--audit-log-maxage=30</span><br></pre></td></tr></table></figure>
+
+<p><strong>步骤 2：检查 kubelet 状态</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 检查 kubelet 服务</span></span><br><span class="line">systemctl status kubelet</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看 kubelet 日志</span></span><br><span class="line">journalctl -u kubelet -f</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 kubelet 端口</span></span><br><span class="line">netstat -tlnp | grep kubelet</span><br></pre></td></tr></table></figure>
+
+<p><strong>步骤 3：检查证书配置</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 检查 kubelet 证书</span></span><br><span class="line"><span class="built_in">ls</span> -la /var/lib/kubelet/pki/</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看证书详情</span></span><br><span class="line">openssl x509 -<span class="keyword">in</span> /var/lib/kubelet/pki/kubelet-client-current.pem -text -noout</span><br><span class="line"></span><br><span class="line"><span class="comment"># 验证证书链</span></span><br><span class="line">openssl verify -CAfile /etc/kubernetes/pki/ca.crt /var/lib/kubelet/pki/kubelet-client-current.pem</span><br></pre></td></tr></table></figure>
+
+<p><strong>步骤 4：检查 RBAC 权限</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 检查用户权限</span></span><br><span class="line">kubectl auth can-i create pods/exec --as=system:node:node-1</span><br><span class="line">kubectl auth can-i get nodes/proxy --as=system:anonymous</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看相关 ClusterRoleBinding</span></span><br><span class="line">kubectl get clusterrolebinding | grep node</span><br><span class="line">kubectl describe clusterrolebinding system:node</span><br></pre></td></tr></table></figure>
+
+<p><strong>步骤 5：网络连通性测试</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 从 API Server 测试 kubelet 连接</span></span><br><span class="line">kubectl get --raw <span class="string">&quot;/api/v1/nodes/node-1/proxy/healthz&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 直接测试 kubelet 端口</span></span><br><span class="line">curl -k https://node-1:10250/healthz</span><br><span class="line"></span><br><span class="line"><span class="comment"># 使用正确的证书测试</span></span><br><span class="line">curl --cert /var/lib/kubelet/pki/kubelet-client-current.pem \</span><br><span class="line">     --key /var/lib/kubelet/pki/kubelet-client-current.pem \</span><br><span class="line">     --cacert /etc/kubernetes/pki/ca.crt \</span><br><span class="line">     https://node-1:10250/pods</span><br></pre></td></tr></table></figure>
+
+<p><strong>一键诊断脚本</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line">NODE=<span class="variable">$&#123;1&#125;</span></span><br><span class="line">POD=<span class="variable">$&#123;2&#125;</span></span><br><span class="line">NAMESPACE=<span class="variable">$&#123;3:-default&#125;</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;=== API Server Health ===&quot;</span> &amp;&amp; \</span><br><span class="line">kubectl get --raw <span class="string">&quot;/healthz&quot;</span> &amp;&amp; \</span><br><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;\n=== Kubelet Health ===&quot;</span> &amp;&amp; \</span><br><span class="line">kubectl get --raw <span class="string">&quot;/api/v1/nodes/<span class="variable">$NODE</span>/proxy/healthz&quot;</span> &amp;&amp; \</span><br><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;\n=== Node RBAC ===&quot;</span> &amp;&amp; \</span><br><span class="line">kubectl auth can-i list nodes --as=system:node:<span class="variable">$NODE</span> &amp;&amp; \</span><br><span class="line">kubectl auth can-i update nodes/status --as=system:node:<span class="variable">$NODE</span> &amp;&amp; \</span><br><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;\n=== Pod Status ===&quot;</span> &amp;&amp; \</span><br><span class="line">kubectl get pod <span class="variable">$POD</span> -n <span class="variable">$NAMESPACE</span> -o wide &amp;&amp; \</span><br><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;\n=== Pod Events ===&quot;</span> &amp;&amp; \</span><br><span class="line">kubectl get events -n <span class="variable">$NAMESPACE</span> --field-selector involvedObject.name=<span class="variable">$POD</span></span><br></pre></td></tr></table></figure>
+
+<hr>
+<h3 id="问题-7：kubelet-的认证缓存机制是如何工作的？如何调优缓存参数？"><a href="#问题-7：kubelet-的认证缓存机制是如何工作的？如何调优缓存参数？" class="headerlink" title="问题 7：kubelet 的认证缓存机制是如何工作的？如何调优缓存参数？"></a>问题 7：kubelet 的认证缓存机制是如何工作的？如何调优缓存参数？</h3><p><strong>回答要点</strong>：</p>
+<p><strong>缓存机制目的</strong>：</p>
+<ol>
+<li><strong>减少 API Server 压力</strong>：避免每次请求都调用 API Server</li>
+<li><strong>降低延迟</strong>：缓存命中时直接返回结果</li>
+<li><strong>提高可用性</strong>：API Server 短暂不可用时仍可工作</li>
+</ol>
+<p><strong>认证缓存</strong>：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">authentication:</span></span><br><span class="line">  <span class="attr">webhook:</span></span><br><span class="line">    <span class="attr">enabled:</span> <span class="literal">true</span></span><br><span class="line">    <span class="attr">cacheTTL:</span> <span class="string">2m</span>  <span class="comment"># 认证结果缓存时间</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>缓存工作原理</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">请求到达 → 检查缓存 → 命中 → 返回缓存结果</span><br><span class="line">              ↓</span><br><span class="line">            未命中 → 调用 API Server → 缓存结果 → 返回</span><br></pre></td></tr></table></figure>
+
+<p><strong>授权缓存</strong>：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">authorization:</span></span><br><span class="line">  <span class="attr">mode:</span> <span class="string">Webhook</span></span><br><span class="line">  <span class="attr">webhook:</span></span><br><span class="line">    <span class="attr">cacheAuthorizedTTL:</span> <span class="string">5m</span>     <span class="comment"># 授权成功缓存时间</span></span><br><span class="line">    <span class="attr">cacheUnauthorizedTTL:</span> <span class="string">30s</span>  <span class="comment"># 授权失败缓存时间</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>为什么授权失败缓存时间短</strong>：</p>
+<ol>
+<li><strong>权限变化</strong>：用户可能刚获得权限</li>
+<li><strong>安全考虑</strong>：减少未授权窗口</li>
+<li><strong>重试需求</strong>：允许快速重试</li>
+</ol>
+<p><strong>缓存 Key 计算</strong>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 认证缓存 Key</span></span><br><span class="line">key := token + username</span><br><span class="line"></span><br><span class="line"><span class="comment">// 授权缓存 Key</span></span><br><span class="line">key := user.Name + strings.Join(user.Groups, <span class="string">&quot;,&quot;</span>) + verb + resource + namespace + name</span><br></pre></td></tr></table></figure>
+
+<p><strong>调优建议</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>认证缓存</th>
+<th>授权成功缓存</th>
+<th>授权失败缓存</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>高安全要求</td>
+<td>30s</td>
+<td>1m</td>
+<td>10s</td>
+</tr>
+<tr>
+<td>正常生产环境</td>
+<td>2m</td>
+<td>5m</td>
+<td>30s</td>
+</tr>
+<tr>
+<td>高性能要求</td>
+<td>5m</td>
+<td>10m</td>
+<td>1m</td>
+</tr>
+</tbody></table>
+<p><strong>监控缓存效率</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看 kubelet 指标</span></span><br><span class="line">curl -s https://localhost:10250/metrics | grep -i cache</span><br><span class="line"></span><br><span class="line"><span class="comment"># 关键指标</span></span><br><span class="line"><span class="comment"># authentication_attempts_total</span></span><br><span class="line"><span class="comment"># authentication_successes_total</span></span><br><span class="line"><span class="comment"># authorization_attempts_total</span></span><br><span class="line"><span class="comment"># authorization_successes_total</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>缓存失效场景</strong>：</p>
+<ol>
+<li><strong>TTL 到期</strong>：自动失效</li>
+<li><strong>kubelet 重启</strong>：缓存清空</li>
+<li><strong>配置变更</strong>：重新加载</li>
+</ol>
+<p><strong>最佳实践</strong>：</p>
+<ol>
+<li><strong>根据安全需求调整 TTL</strong>：高安全环境使用短 TTL</li>
+<li><strong>监控缓存命中率</strong>：评估缓存效果</li>
+<li><strong>平衡性能和安全</strong>：找到合适的平衡点</li>
+</ol>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2026/03/22/cloud/k8s/kubelet/kubelet%E8%AE%A4%E8%AF%81%E6%8E%88%E6%9D%83%E6%B5%81%E7%A8%8B/">https://piwriw.github.io/2026/03/22/cloud/k8s/kubelet/kubelet认证授权流程/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a><a class="post-meta__tags" href="/tags/cloud/">cloud</a><a class="post-meta__tags" href="/tags/K8s%E6%BA%90%E7%A0%81/">K8s源码</a><a class="post-meta__tags" href="/tags/kubelet/">kubelet</a><a class="post-meta__tags" href="/tags/%E8%AE%A4%E8%AF%81/">认证</a><a class="post-meta__tags" href="/tags/%E6%8E%88%E6%9D%83/">授权</a></div><div class="post-share"><div class="social-share" data-image="/img/k8sLogo.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2026/03/22/cloud/k8s/kubelet/kubelet%E9%A9%B1%E9%80%90%E6%B5%81%E7%A8%8B/" title="Kubelet 资源驱逐 (Eviction) 通信流程"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">Kubelet 资源驱逐 (Eviction) 通信流程</div></div><div class="info-2"><div class="info-item-1">Kubelet 资源驱逐 (Eviction) 通信流程目标这篇文档只回答一个核心问题：kubelet 如何在节点资源不足时决定并执行 Pod 驱逐？ 重点放在 EvictionManager 的监控机制、驱逐决策逻辑以及驱逐执行流程。 一句话摘要kubelet 的 EvictionManager 定期监控节点资源使用，当资源超过阈值时，根据 QoS 和优先级选择 Pod 进行驱逐，以保护节点稳定性。  1. 流程总览从通信视角看，这条链路可以拆成 3 个阶段：  资源监控阶段：EvictionManager 定期采集节点资源使用情况。 决策判断阶段：根据阈值和策略决定是否需要驱逐以及驱逐哪些 Pod。 执行驱逐阶段：通过 API Server 删除选中的 Pod。  架构总览图flowchart TB     subgraph 资源采集[&quot;资源采集层&quot;]         direction TB         CAD[cAdvisor&lt;br/&gt;容器资源监控]         SYS[系统信息&lt;br/&gt;节点资源]         SI...</div></div></div></a><a class="pagination-related" href="/2026/03/22/cloud/k8s/kubelet/kubelet%E7%8A%B6%E6%80%81%E4%B8%8E%E4%BA%8B%E4%BB%B6%E5%8F%8D%E9%A6%88%E6%B5%81%E7%A8%8B/" title="K8s-kubelet状态与事件反馈流程"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">K8s-kubelet状态与事件反馈流程</div></div><div class="info-2"><div class="info-item-1">Kubelet 状态与事件回传流程目标这篇文档只回答一个核心问题：kubelet 如何把节点侧观察到的 Pod 运行结果回传给控制面？ 重点放在状态回传与事件上报两条通信链路的区别，以及控制器真正依赖的观察面是什么。 一句话摘要kubelet 通过 statusManager 异步批量把 PodStatus 同步到 API Server，并通过事件记录器上报诊断性 Event；控制器主要观察的是 API Server 中资源对象的状态变化，而不是 kubelet 内部事件流本身。  1. 流程总览从通信视角看，这条链路包含两条并行但职责不同的子链路：  状态回传链路：kubelet 把 Pod 运行状态写回 API Server，成为控制面的共享事实。 事件上报链路：kubelet 把诊断性 Event 写入 API Server，用于排障与审计。  这两条链路共享 API Server 作为存储，但消费方和语义完全不同。 Mermaid：总览图flowchart LR     A[Kubelet subsystems] --&gt; B[statusManager]     A...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2026/03/22/cloud/k8s/kubelet/kubelet%E9%A9%B1%E9%80%90%E6%B5%81%E7%A8%8B/" title="Kubelet 资源驱逐 (Eviction) 通信流程"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-22</div><div class="info-item-2">Kubelet 资源驱逐 (Eviction) 通信流程</div></div><div class="info-2"><div class="info-item-1">Kubelet 资源驱逐 (Eviction) 通信流程目标这篇文档只回答一个核心问题：kubelet 如何在节点资源不足时决定并执行 Pod 驱逐？ 重点放在 EvictionManager 的监控机制、驱逐决策逻辑以及驱逐执行流程。 一句话摘要kubelet 的 EvictionManager 定期监控节点资源使用，当资源超过阈值时，根据 QoS 和优先级选择 Pod 进行驱逐，以保护节点稳定性。  1. 流程总览从通信视角看，这条链路可以拆成 3 个阶段：  资源监控阶段：EvictionManager 定期采集节点资源使用情况。 决策判断阶段：根据阈值和策略决定是否需要驱逐以及驱逐哪些 Pod。 执行驱逐阶段：通过 API Server 删除选中的 Pod。  架构总览图flowchart TB     subgraph 资源采集[&quot;资源采集层&quot;]         direction TB         CAD[cAdvisor&lt;br/&gt;容器资源监控]         SYS[系统信息&lt;br/&gt;节点资源]         SI...</div></div></div></a><a class="pagination-related" href="/2026/03/22/cloud/k8s/Pod%E5%9C%A8%E8%8A%82%E7%82%B9%E4%B8%8A%E5%AE%9E%E7%8E%B0%E6%B5%81%E7%A8%8B/" title="K8s-Pod在节点落地流程"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-22</div><div class="info-item-2">K8s-Pod在节点落地流程</div></div><div class="info-2"><div class="info-item-1">Pod 在节点落地通信流程目标这篇文档只回答一个核心问题：kubelet 如何把“期望运行”的 Pod 变成“真实运行”的容器？ 重点放在 kubelet 内部各组件之间的协作与 CRI 通信边界，而不是每一个 gRPC 字段的含义。 一句话摘要kubelet 收到 Pod 更新后，把期望态交给 podWorkers；podWorkers 驱动单 Pod 生命周期状态机，再由 kubeGenericRuntimeManager 通过 CRI 调用容器运行时完成 sandbox、镜像与容器操作。  1. 流程总览从通信视角看，这条链路可以拆成 3 个阶段：  更新接入阶段：kubelet 从 Pod source 收到属于本节点的 Pod 更新，并交给内部子系统。 状态机驱动阶段：podWorkers 根据当前状态决定执行同步、终止还是清理。 运行时执行阶段：runtime manager 通过 CRI 把操作翻译给容器运行时，完成 sandbox 和容器的创建&#x2F;销毁。  Mermaid：总览图flowchart LR     A[Pod update from sour...</div></div></div></a><a class="pagination-related" href="/2026/03/22/cloud/k8s/%E8%8A%82%E7%82%B9%E5%BF%83%E8%B7%B3%E4%B8%8E%E5%81%A5%E5%BA%B7%E6%B5%81%E7%A8%8B/" title="K8s-节点心跳与健康流程"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-22</div><div class="info-item-2">K8s-节点心跳与健康流程</div></div><div class="info-2"><div class="info-item-1">节点心跳与健康状态通信流程目标这篇文档只回答一个核心问题：kubelet 如何把节点健康信号汇报给控制面，控制面又如何据此做出判断和后续动作？ 重点放在两类心跳信号的协作关系，以及控制面如何综合判断节点健康。 一句话摘要kubelet 周期性更新 NodeStatus 并续约 Lease；node lifecycle controller 通过 informer&#x2F;lister 观察 Node 与 Lease，综合判断节点健康，再触发 taint、Pod not-ready 传播与后续驱逐流程。  1. 流程总览从通信视角看，这条链路包含两类并行的心跳信号：  NodeStatus 心跳：携带节点条件（Ready、MemoryPressure 等）和容量信息。 Lease 心跳：轻量级的存活信号，用于快速检测节点失联。  控制面会综合这两类信号来判断节点健康状态。 Mermaid：总览图flowchart LR     A[Kubelet] --&gt; B[syncNodeStatus]     A --&gt; C[nodeLeaseController]     B...</div></div></div></a><a class="pagination-related" href="/2026/03/22/cloud/k8s/kubelet/kubelet%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="K8s-kubelet深度剖析"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-22</div><div class="info-item-2">K8s-kubelet深度剖析</div></div><div class="info-2"><div class="info-item-1">Kubelet 深度分析本文档深入分析 Kubernetes Kubelet 组件的架构设计、启动流程、核心功能和关键子系统。 目录 架构概览 关键数据结构 启动流程分析 核心功能原理 关键子系统详解 5.1 PodManager 5.2 StatusManager 5.3 ProbeManager 5.4 VolumeManager 5.5 EvictionManager 5.6 PLEG   边界情况与错误处理 性能优化 最佳实践   1. 架构概览1.1 Kubelet 在 Kubernetes 架构中的位置Kubelet 是 Kubernetes 集群中运行在每个节点上的核心代理（Node Agent），是 Kubernetes 控制平面与节点级容器运行时之间的桥梁。它负责维护节点上容器的生命周期，并将节点状态上报给 API Server。 在 Kubernetes 整体架构中，Kubelet 处于如下位置： 12345678910111213141516171819202122+-------------------------+         +----------...</div></div></div></a><a class="pagination-related" href="/2026/03/22/cloud/k8s/kubelet/kubelet%E7%8A%B6%E6%80%81%E4%B8%8E%E4%BA%8B%E4%BB%B6%E5%8F%8D%E9%A6%88%E6%B5%81%E7%A8%8B/" title="K8s-kubelet状态与事件反馈流程"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-22</div><div class="info-item-2">K8s-kubelet状态与事件反馈流程</div></div><div class="info-2"><div class="info-item-1">Kubelet 状态与事件回传流程目标这篇文档只回答一个核心问题：kubelet 如何把节点侧观察到的 Pod 运行结果回传给控制面？ 重点放在状态回传与事件上报两条通信链路的区别，以及控制器真正依赖的观察面是什么。 一句话摘要kubelet 通过 statusManager 异步批量把 PodStatus 同步到 API Server，并通过事件记录器上报诊断性 Event；控制器主要观察的是 API Server 中资源对象的状态变化，而不是 kubelet 内部事件流本身。  1. 流程总览从通信视角看，这条链路包含两条并行但职责不同的子链路：  状态回传链路：kubelet 把 Pod 运行状态写回 API Server，成为控制面的共享事实。 事件上报链路：kubelet 把诊断性 Event 写入 API Server，用于排障与审计。  这两条链路共享 API Server 作为存储，但消费方和语义完全不同。 Mermaid：总览图flowchart LR     A[Kubelet subsystems] --&gt; B[statusManager]     A...</div></div></div></a><a class="pagination-related" href="/2024/12/16/cloud/k8s/kubelet/K8s-kubelet(HTTP%E6%9C%8D%E5%8A%A1%E6%8E%A5%E5%8F%A3)/" title="K8s-kubelet(HTTP服务接口)"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-16</div><div class="info-item-2">K8s-kubelet(HTTP服务接口)</div></div><div class="info-2"><div class="info-item-1">K8s-kubelet(HTTP服务接口) 基于1.25  kubelet通过HTTP Server对外暴露API，为了确保接口安全，kubelet按照安全等级从低到高顺序支持3种HTTP Server，分别是healthz server、readonly server和kubelet core server    一级类目 二级类目 Path路径 描述    Default Handlerers healthz &#x2F;healthz 检查kubelet是否健康，重点检查syncLoop是否持续在规定时间内完成。检查syncLoop四因为其他组件故障会间接导致syncLoop不能执行成功   Default Handlerers pods &#x2F;pods 读取当前节点运行的Pod列表（通过PodManager获取）   Default Handlerers stats &#x2F;stats&#x2F;summary 读取资源使用状态   Default Handlerers metrics &#x2F;metrics 读取kubelet监控指标数据   Defaul...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">303</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">96</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Kubelet-%E8%AE%A4%E8%AF%81%E6%8E%88%E6%9D%83%E9%80%9A%E4%BF%A1%E6%B5%81%E7%A8%8B"><span class="toc-number">1.</span> <span class="toc-text">Kubelet 认证授权通信流程</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%9B%AE%E6%A0%87"><span class="toc-number">1.1.</span> <span class="toc-text">目标</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E5%8F%A5%E8%AF%9D%E6%91%98%E8%A6%81"><span class="toc-number">1.2.</span> <span class="toc-text">一句话摘要</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-%E6%B5%81%E7%A8%8B%E6%80%BB%E8%A7%88"><span class="toc-number">1.3.</span> <span class="toc-text">1. 流程总览</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9E%B6%E6%9E%84%E6%80%BB%E8%A7%88%E5%9B%BE"><span class="toc-number">1.3.1.</span> <span class="toc-text">架构总览图</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%AE%A4%E8%AF%81%E6%8E%88%E6%9D%83%E6%B5%81%E7%A8%8B%E5%9B%BE"><span class="toc-number">1.3.2.</span> <span class="toc-text">认证授权流程图</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%BF%99%E5%BC%A0%E5%9B%BE%E6%83%B3%E8%A1%A8%E8%BE%BE%E4%BB%80%E4%B9%88"><span class="toc-number">1.3.3.</span> <span class="toc-text">这张图想表达什么</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-%E5%88%86%E9%98%B6%E6%AE%B5%E9%80%9A%E4%BF%A1%E6%B5%81%E7%A8%8B"><span class="toc-number">1.4.</span> <span class="toc-text">2. 分阶段通信流程</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%98%B6%E6%AE%B5%E4%B8%80%EF%BC%9A%E8%AE%A4%E8%AF%81-Authentication"><span class="toc-number">1.4.1.</span> <span class="toc-text">阶段一：认证 (Authentication)</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-1-1%EF%BC%9A%E6%A3%80%E6%9F%A5%E8%AE%A4%E8%AF%81%E9%85%8D%E7%BD%AE"><span class="toc-number">1.4.1.1.</span> <span class="toc-text">步骤 1.1：检查认证配置</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-1-2%EF%BC%9A%E6%8F%90%E5%8F%96%E8%AE%A4%E8%AF%81%E4%BF%A1%E6%81%AF"><span class="toc-number">1.4.1.2.</span> <span class="toc-text">步骤 1.2：提取认证信息</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-1-3%EF%BC%9A%E5%8C%BF%E5%90%8D%E8%AE%A4%E8%AF%81"><span class="toc-number">1.4.1.3.</span> <span class="toc-text">步骤 1.3：匿名认证</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-1-4%EF%BC%9A%E8%AF%81%E4%B9%A6%E8%AE%A4%E8%AF%81"><span class="toc-number">1.4.1.4.</span> <span class="toc-text">步骤 1.4：证书认证</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-1-5%EF%BC%9AWebhook-%E8%AE%A4%E8%AF%81"><span class="toc-number">1.4.1.5.</span> <span class="toc-text">步骤 1.5：Webhook 认证</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-1-6%EF%BC%9A%E6%9E%84%E5%BB%BA%E7%94%A8%E6%88%B7%E4%BF%A1%E6%81%AF"><span class="toc-number">1.4.1.6.</span> <span class="toc-text">步骤 1.6：构建用户信息</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%98%B6%E6%AE%B5%E4%BA%8C%EF%BC%9A%E6%8E%88%E6%9D%83-Authorization"><span class="toc-number">1.4.2.</span> <span class="toc-text">阶段二：授权 (Authorization)</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-2-1%EF%BC%9A%E6%A3%80%E6%9F%A5%E6%8E%88%E6%9D%83%E9%85%8D%E7%BD%AE"><span class="toc-number">1.4.2.1.</span> <span class="toc-text">步骤 2.1：检查授权配置</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-2-2%EF%BC%9AAlwaysAllow-%E6%A8%A1%E5%BC%8F"><span class="toc-number">1.4.2.2.</span> <span class="toc-text">步骤 2.2：AlwaysAllow 模式</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-2-3%EF%BC%9AWebhook-%E6%8E%88%E6%9D%83"><span class="toc-number">1.4.2.3.</span> <span class="toc-text">步骤 2.3：Webhook 授权</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-2-4%EF%BC%9AAPI-Server-%E6%8E%88%E6%9D%83%E6%A3%80%E6%9F%A5"><span class="toc-number">1.4.2.4.</span> <span class="toc-text">步骤 2.4：API Server 授权检查</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-2-5%EF%BC%9A%E8%BF%94%E5%9B%9E%E6%8E%88%E6%9D%83%E7%BB%93%E6%9E%9C"><span class="toc-number">1.4.2.5.</span> <span class="toc-text">步骤 2.5：返回授权结果</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%98%B6%E6%AE%B5%E4%B8%89%EF%BC%9A%E8%AF%B7%E6%B1%82%E5%A4%84%E7%90%86"><span class="toc-number">1.4.3.</span> <span class="toc-text">阶段三：请求处理</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-3-1%EF%BC%9A%E8%B7%AF%E7%94%B1%E8%AF%B7%E6%B1%82"><span class="toc-number">1.4.3.1.</span> <span class="toc-text">步骤 3.1：路由请求</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-3-2%EF%BC%9A%E6%89%A7%E8%A1%8C%E5%A4%84%E7%90%86%E9%80%BB%E8%BE%91"><span class="toc-number">1.4.3.2.</span> <span class="toc-text">步骤 3.2：执行处理逻辑</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-3-3%EF%BC%9A%E8%BF%94%E5%9B%9E%E5%93%8D%E5%BA%94"><span class="toc-number">1.4.3.3.</span> <span class="toc-text">步骤 3.3：返回响应</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-%E8%AF%A6%E7%BB%86%E6%B5%81%E7%A8%8B%E5%9B%BE"><span class="toc-number">1.5.</span> <span class="toc-text">3. 详细流程图</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#3-1-kubelet-API-%E7%AB%AF%E7%82%B9%E4%B8%8E%E6%9D%83%E9%99%90%E8%A6%81%E6%B1%82"><span class="toc-number">1.5.1.</span> <span class="toc-text">3.1 kubelet API 端点与权限要求</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-2-kubectl-exec-%E5%AE%8C%E6%95%B4%E6%B5%81%E7%A8%8B%E5%9B%BE"><span class="toc-number">1.5.2.</span> <span class="toc-text">3.2 kubectl exec 完整流程图</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-3-%E8%AF%81%E4%B9%A6%E8%AE%A4%E8%AF%81%E6%B5%81%E7%A8%8B%E5%9B%BE"><span class="toc-number">1.5.3.</span> <span class="toc-text">3.3 证书认证流程图</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-%E5%85%B3%E9%94%AE%E9%85%8D%E7%BD%AE"><span class="toc-number">1.6.</span> <span class="toc-text">4. 关键配置</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#4-1-kubelet-%E8%AE%A4%E8%AF%81%E9%85%8D%E7%BD%AE"><span class="toc-number">1.6.1.</span> <span class="toc-text">4.1 kubelet 认证配置</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-2-RBAC-%E8%A7%84%E5%88%99%E7%A4%BA%E4%BE%8B"><span class="toc-number">1.6.2.</span> <span class="toc-text">4.2 RBAC 规则示例</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-3-%E7%AB%AF%E7%82%B9%E6%9D%83%E9%99%90%E6%98%A0%E5%B0%84"><span class="toc-number">1.6.3.</span> <span class="toc-text">4.3 端点权限映射</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-%E8%AF%A6%E7%BB%86%E6%97%B6%E5%BA%8F%E5%9B%BE"><span class="toc-number">1.7.</span> <span class="toc-text">5. 详细时序图</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-Webhook-%E8%AE%A4%E8%AF%81%E6%97%B6%E5%BA%8F%E5%9B%BE"><span class="toc-number">1.7.1.</span> <span class="toc-text">5.1 Webhook 认证时序图</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-2-Webhook-%E6%8E%88%E6%9D%83%E6%97%B6%E5%BA%8F%E5%9B%BE"><span class="toc-number">1.7.2.</span> <span class="toc-text">5.2 Webhook 授权时序图</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-3-%E5%8C%BF%E5%90%8D%E8%AE%BF%E9%97%AE%E6%97%B6%E5%BA%8F%E5%9B%BE"><span class="toc-number">1.7.3.</span> <span class="toc-text">5.3 匿名访问时序图</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5%E6%8C%87%E5%8D%97"><span class="toc-number">1.8.</span> <span class="toc-text">6. 故障排查指南</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#6-1-%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98%E4%B8%8E%E8%AF%8A%E6%96%AD%E6%96%B9%E6%B3%95"><span class="toc-number">1.8.1.</span> <span class="toc-text">6.1 常见问题与诊断方法</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%97%AE%E9%A2%98-1%EF%BC%9Akubectl-exec-%E5%A4%B1%E8%B4%A5-403-Forbidden"><span class="toc-number">1.8.1.1.</span> <span class="toc-text">问题 1：kubectl exec 失败 (403 Forbidden)</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%97%AE%E9%A2%98-2%EF%BC%9Ametrics-%E7%AB%AF%E7%82%B9%E6%97%A0%E6%B3%95%E8%AE%BF%E9%97%AE"><span class="toc-number">1.8.1.2.</span> <span class="toc-text">问题 2：metrics 端点无法访问</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%97%AE%E9%A2%98-3%EF%BC%9A%E8%8A%82%E7%82%B9%E7%8A%B6%E6%80%81%E6%97%A0%E6%B3%95%E6%9B%B4%E6%96%B0"><span class="toc-number">1.8.1.3.</span> <span class="toc-text">问题 3：节点状态无法更新</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-2-%E5%85%B3%E9%94%AE%E6%97%A5%E5%BF%97%E5%85%B3%E9%94%AE%E8%AF%8D"><span class="toc-number">1.8.2.</span> <span class="toc-text">6.2 关键日志关键词</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-3-%E9%85%8D%E7%BD%AE%E5%8F%82%E6%95%B0%E5%8F%82%E8%80%83"><span class="toc-number">1.8.3.</span> <span class="toc-text">6.3 配置参数参考</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-4-%E4%B8%80%E9%94%AE%E8%AF%8A%E6%96%AD%E5%91%BD%E4%BB%A4"><span class="toc-number">1.8.4.</span> <span class="toc-text">6.4 一键诊断命令</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#7-%E5%AE%89%E5%85%A8%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5"><span class="toc-number">1.9.</span> <span class="toc-text">7. 安全最佳实践</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#7-1-%E7%94%9F%E4%BA%A7%E7%8E%AF%E5%A2%83%E6%8E%A8%E8%8D%90%E9%85%8D%E7%BD%AE"><span class="toc-number">1.9.1.</span> <span class="toc-text">7.1 生产环境推荐配置</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#7-2-RBAC-%E6%9C%80%E5%B0%8F%E6%9D%83%E9%99%90%E5%8E%9F%E5%88%99"><span class="toc-number">1.9.2.</span> <span class="toc-text">7.2 RBAC 最小权限原则</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#8-%E7%89%88%E6%9C%AC%E5%B7%AE%E5%BC%82%E8%AF%B4%E6%98%8E"><span class="toc-number">1.10.</span> <span class="toc-text">8. 版本差异说明</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-27-%E2%86%92-1-28-%E5%8F%98%E5%8C%96"><span class="toc-number">1.10.1.</span> <span class="toc-text">1.27 → 1.28 变化</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-28-%E2%86%92-1-29-%E5%8F%98%E5%8C%96"><span class="toc-number">1.10.2.</span> <span class="toc-text">1.28 → 1.29 变化</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#9-%E4%BB%A3%E7%A0%81%E5%85%A5%E5%8F%A3%EF%BC%88%E7%B2%BE%E7%AE%80%E7%89%88%EF%BC%89"><span class="toc-number">1.11.</span> <span class="toc-text">9. 代码入口（精简版）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#10-%E9%9D%A2%E8%AF%95%E9%A2%98%E4%B8%8E%E8%AF%A6%E7%BB%86%E8%A7%A3%E7%AD%94"><span class="toc-number">1.12.</span> <span class="toc-text">10. 面试题与详细解答</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%97%AE%E9%A2%98-1%EF%BC%9Akubelet-%E7%9A%84%E8%AE%A4%E8%AF%81%E6%96%B9%E5%BC%8F%E6%9C%89%E5%93%AA%E4%BA%9B%EF%BC%9F%E7%94%9F%E4%BA%A7%E7%8E%AF%E5%A2%83%E5%BA%94%E8%AF%A5%E5%A6%82%E4%BD%95%E9%85%8D%E7%BD%AE%EF%BC%9F"><span class="toc-number">1.12.1.</span> <span class="toc-text">问题 1：kubelet 的认证方式有哪些？生产环境应该如何配置？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%97%AE%E9%A2%98-2%EF%BC%9Akubectl-exec-%E6%98%AF%E5%A6%82%E4%BD%95%E9%80%9A%E8%BF%87-API-Server-%E8%AE%BF%E9%97%AE-kubelet-%E7%9A%84%EF%BC%9F%E8%AE%A4%E8%AF%81%E6%8E%88%E6%9D%83%E6%B5%81%E7%A8%8B%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="toc-number">1.12.2.</span> <span class="toc-text">问题 2：kubectl exec 是如何通过 API Server 访问 kubelet 的？认证授权流程是什么？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%97%AE%E9%A2%98-3%EF%BC%9Akubelet-%E7%9A%84-Node-Authorizer-%E6%98%AF%E5%A6%82%E4%BD%95%E5%B7%A5%E4%BD%9C%E7%9A%84%EF%BC%9F%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81-Node-Authorizer%EF%BC%9F"><span class="toc-number">1.12.3.</span> <span class="toc-text">问题 3：kubelet 的 Node Authorizer 是如何工作的？为什么需要 Node Authorizer？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%97%AE%E9%A2%98-4%EF%BC%9A%E5%A6%82%E4%BD%95%E4%B8%BA%E7%9B%91%E6%8E%A7%E7%B3%BB%E7%BB%9F%E9%85%8D%E7%BD%AE%E8%AE%BF%E9%97%AE-kubelet-metrics-%E7%9A%84%E6%9D%83%E9%99%90%EF%BC%9F"><span class="toc-number">1.12.4.</span> <span class="toc-text">问题 4：如何为监控系统配置访问 kubelet metrics 的权限？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%97%AE%E9%A2%98-5%EF%BC%9Akubelet-%E7%9A%84-TLS-Bootstrap-%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F%E5%A6%82%E4%BD%95%E5%B7%A5%E4%BD%9C%EF%BC%9F"><span class="toc-number">1.12.5.</span> <span class="toc-text">问题 5：kubelet 的 TLS Bootstrap 是什么？如何工作？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%97%AE%E9%A2%98-6%EF%BC%9A%E5%A6%82%E4%BD%95%E6%8E%92%E6%9F%A5-kubectl-exec-logs-%E5%A4%B1%E8%B4%A5%E7%9A%84%E9%97%AE%E9%A2%98%EF%BC%9F%E5%B8%B8%E8%A7%81%E9%94%99%E8%AF%AF%E6%9C%89%E5%93%AA%E4%BA%9B%EF%BC%9F"><span class="toc-number">1.12.6.</span> <span class="toc-text">问题 6：如何排查 kubectl exec&#x2F;logs 失败的问题？常见错误有哪些？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%97%AE%E9%A2%98-7%EF%BC%9Akubelet-%E7%9A%84%E8%AE%A4%E8%AF%81%E7%BC%93%E5%AD%98%E6%9C%BA%E5%88%B6%E6%98%AF%E5%A6%82%E4%BD%95%E5%B7%A5%E4%BD%9C%E7%9A%84%EF%BC%9F%E5%A6%82%E4%BD%95%E8%B0%83%E4%BC%98%E7%BC%93%E5%AD%98%E5%8F%82%E6%95%B0%EF%BC%9F"><span class="toc-number">1.12.7.</span> <span class="toc-text">问题 7：kubelet 的认证缓存机制是如何工作的？如何调优缓存参数？</span></a></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/03/26/cloud/arch/Kubernetes%E9%80%9A%E4%BF%A1%E9%93%BE%E8%B7%AF%E8%AF%A6%E7%BB%86%E5%88%86%E6%9E%90/" title="Kubernetes 通信链路详细分析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="Kubernetes 通信链路详细分析"/></a><div class="content"><a class="title" href="/2026/03/26/cloud/arch/Kubernetes%E9%80%9A%E4%BF%A1%E9%93%BE%E8%B7%AF%E8%AF%A6%E7%BB%86%E5%88%86%E6%9E%90/" title="Kubernetes 通信链路详细分析">Kubernetes 通信链路详细分析</a><time datetime="2026-03-26T13:15:00.000Z" title="发表于 2026-03-26 21:15:00">2026-03-26</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-API%20Server%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="kube-apiserver 深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="kube-apiserver 深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-API%20Server%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="kube-apiserver 深度剖析">kube-apiserver 深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-etcd%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="etcd 深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="etcd 深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-etcd%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="etcd 深度剖析">etcd 深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-%E5%AD%98%E5%82%A8%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="存储架构深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="存储架构深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-%E5%AD%98%E5%82%A8%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="存储架构深度剖析">存储架构深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-kubelet%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="Kubelet 深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="Kubelet 深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-kubelet%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="Kubelet 深度剖析">Kubelet 深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script src="/js/reading-progress.js"></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

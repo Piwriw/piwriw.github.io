@@ -1,0 +1,1553 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>K8s-Pod调度与绑定流程 | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="Pod 调度与绑定通信流程目标这篇文档只回答一个核心问题：一个 Pod 是怎么从“等待调度”变成“被某个节点上的 kubelet 感知到”的？ 重点放在组件之间的通信与职责边界，而不是调度器内部打分算法细节。 一句话摘要kube-scheduler 负责为 Pod 选节点，kube-apiserver 负责持久化绑定结果，kubelet 通过监听 API Server 中属于本节点的 Pod 更新">
+<meta property="og:type" content="article">
+<meta property="og:title" content="K8s-Pod调度与绑定流程">
+<meta property="og:url" content="https://piwriw.github.io/2026/03/22/cloud/k8s/Pod%E8%B0%83%E5%BA%A6%E4%B8%8E%E7%BB%91%E5%AE%9A%E6%B5%81%E7%A8%8B/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="Pod 调度与绑定通信流程目标这篇文档只回答一个核心问题：一个 Pod 是怎么从“等待调度”变成“被某个节点上的 kubelet 感知到”的？ 重点放在组件之间的通信与职责边界，而不是调度器内部打分算法细节。 一句话摘要kube-scheduler 负责为 Pod 选节点，kube-apiserver 负责持久化绑定结果，kubelet 通过监听 API Server 中属于本节点的 Pod 更新">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/k8sLogo.png">
+<meta property="article:published_time" content="2026-03-22T13:22:55.000Z">
+<meta property="article:modified_time" content="2026-03-26T15:28:20.113Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="k8s">
+<meta property="article:tag" content="cloud">
+<meta property="article:tag" content="K8s源码">
+<meta property="article:tag" content="Pod">
+<meta property="article:tag" content="scheduler">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/k8sLogo.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "K8s-Pod调度与绑定流程",
+  "url": "https://piwriw.github.io/2026/03/22/cloud/k8s/Pod%E8%B0%83%E5%BA%A6%E4%B8%8E%E7%BB%91%E5%AE%9A%E6%B5%81%E7%A8%8B/",
+  "image": "https://piwriw.github.io/img/k8sLogo.png",
+  "datePublished": "2026-03-22T13:22:55.000Z",
+  "dateModified": "2026-03-26T15:28:20.113Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2026/03/22/cloud/k8s/Pod%E8%B0%83%E5%BA%A6%E4%B8%8E%E7%BB%91%E5%AE%9A%E6%B5%81%E7%A8%8B/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          const hour = new Date().getHours()
+          const isNight = hour <= 6 || hour >= 18
+          if (theme === undefined) isNight ? activateDarkMode() : activateLightMode()
+          else theme === 'light' ? activateLightMode() : activateDarkMode()
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '天',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'K8s-Pod调度与绑定流程',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">303</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">96</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/k8sLogo.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">K8s-Pod调度与绑定流程</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">K8s-Pod调度与绑定流程</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-03-22T13:22:55.000Z" title="发表于 2026-03-22 21:22:55">2026-03-22</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-03-26T15:28:20.113Z" title="更新于 2026-03-26 23:28:20">2026-03-26</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/">cloud</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/cloud/k8s/">k8s</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">8.5k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>35分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-03-26 23:28:20&quot;}" hidden></div><h1 id="Pod-调度与绑定通信流程"><a href="#Pod-调度与绑定通信流程" class="headerlink" title="Pod 调度与绑定通信流程"></a>Pod 调度与绑定通信流程</h1><h2 id="目标"><a href="#目标" class="headerlink" title="目标"></a>目标</h2><p>这篇文档只回答一个核心问题：<strong>一个 Pod 是怎么从“等待调度”变成“被某个节点上的 kubelet 感知到”的？</strong></p>
+<p>重点放在组件之间的通信与职责边界，而不是调度器内部打分算法细节。</p>
+<h2 id="一句话摘要"><a href="#一句话摘要" class="headerlink" title="一句话摘要"></a>一句话摘要</h2><p><code>kube-scheduler</code> 负责为 Pod 选节点，<code>kube-apiserver</code> 负责持久化绑定结果，<code>kubelet</code> 通过监听 API Server 中属于本节点的 Pod 更新来感知这次分配。</p>
+<hr>
+<h2 id="1-流程总览"><a href="#1-流程总览" class="headerlink" title="1. 流程总览"></a>1. 流程总览</h2><p>从通信视角看，这条链路可以拆成 3 个阶段：</p>
+<ol>
+<li><strong>调度决策阶段</strong>：scheduler 为 Pod 选择目标节点。</li>
+<li><strong>绑定落盘阶段</strong>：scheduler 通过 API Server 把绑定结果写回集群状态。</li>
+<li><strong>节点感知阶段</strong>：目标节点上的 kubelet 观察到这个 Pod 已经分配给自己，开始进入节点侧处理。</li>
+</ol>
+<h3 id="Mermaid：总览图"><a href="#Mermaid：总览图" class="headerlink" title="Mermaid：总览图"></a>Mermaid：总览图</h3><pre><code class="highlight mermaid">flowchart LR
+    A[Pending Pod] --&gt; B[kube-scheduler]
+    B --&gt; C[select target node]
+    C --&gt; D[kube-apiserver]
+    D --&gt; E[persist spec.nodeName]
+    E --&gt; F[target node kubelet]
+    F --&gt; G[PodConfig / update channel]
+    G --&gt; H[podManager / podWorkers]</code></pre>
+
+<h3 id="端到端架构全景图"><a href="#端到端架构全景图" class="headerlink" title="端到端架构全景图"></a>端到端架构全景图</h3><pre><code class="highlight mermaid">flowchart TB
+    subgraph 用户侧[“用户侧”]
+        U1[kubectl / API 客户端]
+    end
+
+    subgraph 控制面[“控制面 (Control Plane)”]
+        API[kube-apiserver]
+        ETCD[(etcd)]
+        SCHED[kube-scheduler]
+        CTRL[kube-controller-manager]
+
+        API &lt;--&gt; ETCD
+        SCHED --&gt; API
+        CTRL --&gt; API
+    end
+
+    subgraph 调度器内部[“调度器内部架构”]
+        direction TB
+        SQ[待调度队列&lt;br/&gt;PriorityQueue]
+        SC[schedulingCycle&lt;br/&gt;调度周期]
+        BC[bindingCycle&lt;br/&gt;绑定周期]
+        CACHE[Scheduler Cache&lt;br/&gt;节点信息缓存]
+
+        SC --&gt; BC
+        CACHE --&gt; SC
+    end
+
+    subgraph 节点侧[“节点侧 (Worker Node)”]
+        direction TB
+        KL[kubelet]
+        PC[PodConfig]
+        PM[podManager]
+        PW[podWorkers]
+        RT[容器运行时&lt;br/&gt;CRI]
+
+        KL --&gt; PC
+        PC --&gt; PM
+        PM --&gt; PW
+        PW --&gt; RT
+    end
+
+    U1 --&gt;|创建 Pod| API
+    API --&gt;|watch Pod| SCHED
+    API --&gt;|watch Pod| CTRL
+
+    SCHED --&gt; SQ
+    SQ --&gt; SC
+    BC --&gt;|POST /binding| API
+
+    API --&gt;|watch Node.POD| KL</code></pre>
+
+<h3 id="组件通信协议图"><a href="#组件通信协议图" class="headerlink" title="组件通信协议图"></a>组件通信协议图</h3><pre><code class="highlight mermaid">flowchart LR
+    subgraph 通信协议
+        direction TB
+        P1[“Informer/Watch&lt;br/&gt;(长连接)”]
+        P2[“REST API&lt;br/&gt;(HTTP)”]
+        P3[“gRPC&lt;br/&gt;(CRI)”]
+    end
+
+    subgraph 通信路径
+        API_SCH[“API Server ↔ Scheduler”] --&gt; P1
+        API_KL[“API Server ↔ Kubelet”] --&gt; P1
+        SCH_API[“Scheduler → API Server”] --&gt; P2
+        KL_API[“Kubelet → API Server”] --&gt; P2
+        KL_RT[“Kubelet → Runtime”] --&gt; P3
+    end</code></pre>
+
+<h3 id="这张图想表达什么"><a href="#这张图想表达什么" class="headerlink" title="这张图想表达什么"></a>这张图想表达什么</h3><ul>
+<li>scheduler 只负责”做决定”和”提交绑定”。</li>
+<li>API Server 是控制面共享事实来源。</li>
+<li>kubelet 并不是被 scheduler 直接调用，而是通过 watch 自己感知变化。</li>
+<li>所有组件通过 API Server 间接通信，实现松耦合架构。</li>
+</ul>
+<hr>
+<h2 id="2-分阶段通信流程"><a href="#2-分阶段通信流程" class="headerlink" title="2. 分阶段通信流程"></a>2. 分阶段通信流程</h2><hr>
+<h3 id="阶段一：scheduler-选节点"><a href="#阶段一：scheduler-选节点" class="headerlink" title="阶段一：scheduler 选节点"></a>阶段一：scheduler 选节点</h3><p>这个阶段的本质是：<strong>scheduler 在本地做出一个决策，而不是直接改变集群状态。</strong></p>
+<h4 id="调度框架扩展点流程图"><a href="#调度框架扩展点流程图" class="headerlink" title="调度框架扩展点流程图"></a>调度框架扩展点流程图</h4><pre><code class="highlight mermaid">flowchart TB
+    subgraph 调度周期[&quot;Scheduling Cycle (调度周期)&quot;]
+        direction TB
+        A[Pod 从队列取出] --&gt; B[QueueSort 插件]
+        B --&gt; C[PreFilter 插件]
+        C --&gt; D&#123;Filter 插件&#125;
+        D --&gt;|节点通过| E[PostFilter 插件]
+        D --&gt;|节点不通过| D2[排除节点]
+        E --&gt; F[PreScore 插件]
+        F --&gt; G[Score 插件]
+        G --&gt; H[NormalizeScore 插件]
+        H --&gt; I[选择最优节点]
+        I --&gt; J[Reserve 插件]
+        J --&gt; K[Permit 插件]
+    end
+
+    subgraph 绑定周期[&quot;Binding Cycle (绑定周期)&quot;]
+        direction TB
+        K --&gt; L[PreBind 插件]
+        L --&gt; M[Bind 插件]
+        M --&gt; N[PostBind 插件]
+    end
+
+    subgraph 插件示例[&quot;内置插件示例&quot;]
+        direction LR
+        P1[NodeResourcesFit]
+        P2[NodeName]
+        P3[NodeAffinity]
+        P4[TaintToleration]
+        P5[PodTopologySpread]
+        P6[ImageLocality]
+        P7[DefaultBinder]
+    end
+
+    D -.-&gt; P1
+    D -.-&gt; P2
+    D -.-&gt; P3
+    D -.-&gt; P4
+    G -.-&gt; P5
+    G -.-&gt; P6
+    M -.-&gt; P7</code></pre>
+
+<h4 id="步骤-1-1：Pod-进入待调度队列"><a href="#步骤-1-1：Pod-进入待调度队列" class="headerlink" title="步骤 1.1：Pod 进入待调度队列"></a>步骤 1.1：Pod 进入待调度队列</h4><p>当一个 Pod 被创建但没有指定 <code>spec.nodeName</code> 时，它会被 apiserver 的 informer 推入 scheduler 的待调度队列。此时 Pod 状态是 <code>Pending</code>，条件 <code>PodScheduled</code> 为 <code>False</code>。</p>
+<p><strong>通信方向</strong>：apiserver → scheduler（通过 informer&#x2F;watch）</p>
+<h4 id="步骤-1-2：scheduler-取出-Pod"><a href="#步骤-1-2：scheduler-取出-Pod" class="headerlink" title="步骤 1.2：scheduler 取出 Pod"></a>步骤 1.2：scheduler 取出 Pod</h4><p>scheduler 的主循环从队列中取出一个 Pod，开始一次调度周期（<code>schedulingCycle</code>）。此时 Pod 仍然只是”等待被决定”。</p>
+<p><strong>通信方向</strong>：scheduler 内部队列 → scheduler 主循环</p>
+<h4 id="步骤-1-3：执行预过滤（PreFilter）"><a href="#步骤-1-3：执行预过滤（PreFilter）" class="headerlink" title="步骤 1.3：执行预过滤（PreFilter）"></a>步骤 1.3：执行预过滤（PreFilter）</h4><p>在真正过滤节点之前，调度框架会先执行 PreFilter 插件。这些插件可以做一些前置检查或数据准备，比如检查 Pod 是否符合某些调度约束。</p>
+<p><strong>通信方向</strong>：scheduler 内部插件链</p>
+<h4 id="步骤-1-4：执行过滤（Filter）"><a href="#步骤-1-4：执行过滤（Filter）" class="headerlink" title="步骤 1.4：执行过滤（Filter）"></a>步骤 1.4：执行过滤（Filter）</h4><p>Filter 插件会遍历所有候选节点，逐一检查每个节点是否满足 Pod 的硬性约束（比如资源够不够、nodeSelector 是否匹配、taint 是否容忍等）。不满足的节点会被直接排除。</p>
+<p><strong>通信方向</strong>：scheduler 内部，读取 scheduler cache 中的节点视图</p>
+<h4 id="步骤-1-5：执行打分（Score）"><a href="#步骤-1-5：执行打分（Score）" class="headerlink" title="步骤 1.5：执行打分（Score）"></a>步骤 1.5：执行打分（Score）</h4><p>对过滤后剩下的可行节点，Score 插件会根据策略打分（比如资源利用率、亲和性、反亲和性等）。分数越高，表示这个节点越适合运行这个 Pod。</p>
+<p><strong>通信方向</strong>：scheduler 内部，基于 scheduler cache 中的数据计算</p>
+<h4 id="步骤-1-6：选择最优节点"><a href="#步骤-1-6：选择最优节点" class="headerlink" title="步骤 1.6：选择最优节点"></a>步骤 1.6：选择最优节点</h4><p>scheduler 根据打分结果，选择分数最高的节点作为目标节点（<code>SuggestedHost</code>）。如果有多个节点分数相同，通常会随机选一个。</p>
+<p><strong>通信方向</strong>：scheduler 内部决策</p>
+<h4 id="步骤-1-7：本地-assume（乐观前进）"><a href="#步骤-1-7：本地-assume（乐观前进）" class="headerlink" title="步骤 1.7：本地 assume（乐观前进）"></a>步骤 1.7：本地 assume（乐观前进）</h4><p>选出目标节点后，scheduler 会在自己的 cache 中假设这个 Pod 已经绑定到该节点。这样做是为了提高吞吐量——在真正向 apiserver 提交绑定之前，scheduler 就可以继续调度其他 Pod 了。</p>
+<p><strong>关键理解</strong>：<code>assume</code> 只是 scheduler 本地的乐观假设，<strong>不代表集群状态已经更新</strong>。如果后续绑定失败，scheduler 需要清理这个假设状态。</p>
+<p><strong>通信方向</strong>：scheduler 内部 cache 更新</p>
+<hr>
+<h3 id="阶段二：通过-API-Server-完成绑定"><a href="#阶段二：通过-API-Server-完成绑定" class="headerlink" title="阶段二：通过 API Server 完成绑定"></a>阶段二：通过 API Server 完成绑定</h3><p>这个阶段的本质是：<strong>把 scheduler 的本地决策变成集群中的共享状态。</strong></p>
+<h4 id="步骤-2-1：进入绑定周期（bindingCycle）"><a href="#步骤-2-1：进入绑定周期（bindingCycle）" class="headerlink" title="步骤 2.1：进入绑定周期（bindingCycle）"></a>步骤 2.1：进入绑定周期（bindingCycle）</h4><p>调度周期结束后，scheduler 进入绑定周期。这个周期负责把”选定的节点”真正写回控制面。</p>
+<p><strong>通信方向</strong>：scheduler 内部状态流转</p>
+<h4 id="步骤-2-2：执行-PreBind-插件"><a href="#步骤-2-2：执行-PreBind-插件" class="headerlink" title="步骤 2.2：执行 PreBind 插件"></a>步骤 2.2：执行 PreBind 插件</h4><p>在真正绑定之前，PreBind 插件有机会做一些前置工作，比如准备存储卷（CSI attach）或网络配置。如果 PreBind 失败，整个绑定周期会中止，Pod 可能会被重新调度。</p>
+<p><strong>通信方向</strong>：scheduler → 外部系统（如 CSI driver）或 scheduler 内部</p>
+<h4 id="步骤-2-3：执行-Bind-插件"><a href="#步骤-2-3：执行-Bind-插件" class="headerlink" title="步骤 2.3：执行 Bind 插件"></a>步骤 2.3：执行 Bind 插件</h4><p>默认的 <code>DefaultBinder</code> 会向 API Server 提交一个 <code>v1.Binding</code> 请求，把 <code>Pod -&gt; Node</code> 的关系写进控制面。这个请求不是更新整个 Pod 对象，而是通过 <code>Pod/Binding</code> 子资源完成绑定。</p>
+<p><strong>通信方向</strong>：scheduler → API Server（HTTP POST 到 <code>/api/v1/namespaces/&#123;ns&#125;/pods/&#123;name&#125;/binding</code>）</p>
+<h4 id="步骤-2-4：API-Server-接收并校验请求"><a href="#步骤-2-4：API-Server-接收并校验请求" class="headerlink" title="步骤 2.4：API Server 接收并校验请求"></a>步骤 2.4：API Server 接收并校验请求</h4><p>API Server 收到 Binding 请求后，会校验：</p>
+<ul>
+<li>Pod 是否存在</li>
+<li>Pod 是否已经绑定</li>
+<li>目标 Node 是否存在</li>
+<li>请求者是否有权限执行绑定</li>
+</ul>
+<p><strong>通信方向</strong>：API Server 内部校验</p>
+<h4 id="步骤-2-5：持久化-spec-nodeName"><a href="#步骤-2-5：持久化-spec-nodeName" class="headerlink" title="步骤 2.5：持久化 spec.nodeName"></a>步骤 2.5：持久化 spec.nodeName</h4><p>校验通过后，API Server 更新 Pod 的 <code>spec.nodeName</code> 字段，并写入 etcd。此时 Pod 的节点归属在集群层面正式生效。</p>
+<p><strong>通信方向</strong>：API Server → etcd</p>
+<h4 id="步骤-2-6：返回绑定结果"><a href="#步骤-2-6：返回绑定结果" class="headerlink" title="步骤 2.6：返回绑定结果"></a>步骤 2.6：返回绑定结果</h4><p>API Server 返回成功响应给 scheduler。scheduler 收到成功后，绑定周期结束；如果失败，scheduler 会清理之前 assume 的状态，并可能重新入队。</p>
+<p><strong>通信方向</strong>：API Server → scheduler</p>
+<hr>
+<h3 id="阶段三：目标-kubelet-感知到-Pod"><a href="#阶段三：目标-kubelet-感知到-Pod" class="headerlink" title="阶段三：目标 kubelet 感知到 Pod"></a>阶段三：目标 kubelet 感知到 Pod</h3><p>这个阶段的本质是：<strong>kubelet 通过观察控制面状态，发现有一个 Pod 被分配给了自己。</strong></p>
+<h4 id="Kubelet-内部-Pod-处理流程图"><a href="#Kubelet-内部-Pod-处理流程图" class="headerlink" title="Kubelet 内部 Pod 处理流程图"></a>Kubelet 内部 Pod 处理流程图</h4><pre><code class="highlight mermaid">flowchart TB
+    subgraph API通信[&quot;API Server 通信层&quot;]
+        API[kube-apiserver]
+        WATCH[Watch 连接&lt;br/&gt;过滤 nodeName==本节点]
+    end
+
+    subgraph PodSource[&quot;Pod 来源聚合层&quot;]
+        direction TB
+        AS[apiserver source]
+        FS[file source&lt;br/&gt;静态Pod]
+        HS[http source]
+        PC[PodConfig&lt;br/&gt;聚合器]
+        CH[updates channel]
+    end
+
+    subgraph KubeletCore[&quot;Kubelet 核心处理层&quot;]
+        direction TB
+        KL[Kubelet.SyncLoop]
+        PM[podManager&lt;br/&gt;期望态视图]
+        PW[podWorkers&lt;br/&gt;状态机驱动]
+    end
+
+    subgraph Runtime[&quot;运行时执行层&quot;]
+        direction TB
+        RM[kubeGenericRuntimeManager]
+        CRI[CRI RuntimeService]
+        RT[容器运行时&lt;br/&gt;containerd/cri-o]
+    end
+
+    API --&gt;|watch| WATCH
+    WATCH --&gt; AS
+    FS --&gt; PC
+    HS --&gt; PC
+    AS --&gt; PC
+    PC --&gt;|PodUpdate| CH
+    CH --&gt; KL
+    KL --&gt; PM
+    PM --&gt;|UpdatePod| PW
+    PW --&gt;|SyncPod| RM
+    RM --&gt;|gRPC| CRI
+    CRI --&gt;|gRPC| RT</code></pre>
+
+<h4 id="步骤-3-1：kubelet-启动时注册-apiserver-pod-source"><a href="#步骤-3-1：kubelet-启动时注册-apiserver-pod-source" class="headerlink" title="步骤 3.1：kubelet 启动时注册 apiserver pod source"></a>步骤 3.1：kubelet 启动时注册 apiserver pod source</h4><p>kubelet 在启动时，会通过 <code>makePodSourceConfig</code> 注册多个 Pod 来源，其中最重要的就是 apiserver source。这个 source 会 watch API Server 中属于本节点的 Pod。</p>
+<p><strong>通信方向</strong>：kubelet 启动时初始化，设置 watch 连接</p>
+<h4 id="步骤-3-2：apiserver-pod-source-开始-watch"><a href="#步骤-3-2：apiserver-pod-source-开始-watch" class="headerlink" title="步骤 3.2：apiserver pod source 开始 watch"></a>步骤 3.2：apiserver pod source 开始 watch</h4><p>apiserver pod source 建立一个长连接，持续监听 Pod 的变化事件（ADD&#x2F;UPDATE&#x2F;DELETE）。它会过滤出 <code>spec.nodeName == 本节点名称</code> 的 Pod。</p>
+<p><strong>通信方向</strong>：kubelet → API Server（通过 informer&#x2F;watch）</p>
+<h4 id="步骤-3-3：收到-Pod-更新事件"><a href="#步骤-3-3：收到-Pod-更新事件" class="headerlink" title="步骤 3.3：收到 Pod 更新事件"></a>步骤 3.3：收到 Pod 更新事件</h4><p>当 scheduler 完成绑定后，API Server 会通过 watch 机制推送 Pod 更新事件给所有订阅者。目标节点的 kubelet 收到这个事件。</p>
+<p><strong>通信方向</strong>：API Server → kubelet（通过 watch 推送）</p>
+<h4 id="步骤-3-4：过滤并确认属于本节点"><a href="#步骤-3-4：过滤并确认属于本节点" class="headerlink" title="步骤 3.4：过滤并确认属于本节点"></a>步骤 3.4：过滤并确认属于本节点</h4><p>kubelet 的 apiserver source 会再次检查 Pod 的 <code>spec.nodeName</code>，确保这个 Pod 确实是分配给自己的，而不是其他节点。</p>
+<p><strong>通信方向</strong>：kubelet 内部过滤逻辑</p>
+<h4 id="步骤-3-5：送入-update-channel"><a href="#步骤-3-5：送入-update-channel" class="headerlink" title="步骤 3.5：送入 update channel"></a>步骤 3.5：送入 update channel</h4><p>确认后，Pod 更新会被送入 kubelet 的内部更新通道。这个通道是 PodConfig 聚合多个 source（apiserver、file、HTTP）后对外提供的统一入口。</p>
+<p><strong>通信方向</strong>：kubelet 内部 channel</p>
+<h4 id="步骤-3-6：podManager-更新本地视图"><a href="#步骤-3-6：podManager-更新本地视图" class="headerlink" title="步骤 3.6：podManager 更新本地视图"></a>步骤 3.6：podManager 更新本地视图</h4><p><code>podManager</code> 收到更新后，会维护本地期望态视图，包括 Pod 的元数据索引、mirror pod 映射等。</p>
+<p><strong>通信方向</strong>：kubelet 内部，podManager 接收更新</p>
+<h4 id="步骤-3-7：podWorkers-接收-UpdatePod"><a href="#步骤-3-7：podWorkers-接收-UpdatePod" class="headerlink" title="步骤 3.7：podWorkers 接收 UpdatePod"></a>步骤 3.7：podWorkers 接收 UpdatePod</h4><p>最后，Pod 更新被传递给 <code>podWorkers.UpdatePod(...)</code>，正式进入节点侧生命周期处理。从此开始，这个 Pod 会经过 SyncPod、创建 sandbox、启动容器等步骤。</p>
+<p><strong>通信方向</strong>：kubelet 内部，podWorkers 接管</p>
+<hr>
+<h3 id="小结：这条链路的-3-个关键通信边界"><a href="#小结：这条链路的-3-个关键通信边界" class="headerlink" title="小结：这条链路的 3 个关键通信边界"></a>小结：这条链路的 3 个关键通信边界</h3><table>
+<thead>
+<tr>
+<th>边界</th>
+<th>谁和谁通信</th>
+<th>通过什么方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>scheduler ↔ API Server</td>
+<td>scheduler 提交绑定，API Server 持久化</td>
+<td>HTTP POST <code>/pods/&#123;name&#125;/binding</code></td>
+</tr>
+<tr>
+<td>API Server ↔ kubelet</td>
+<td>kubelet watch Pod 变化</td>
+<td>informer&#x2F;watch 长连接</td>
+</tr>
+<tr>
+<td>scheduler ↔ kubelet</td>
+<td><strong>不直接通信</strong></td>
+<td>通过 API Server 间接</td>
+</tr>
+</tbody></table>
+<p><strong>核心结论</strong>：scheduler 与 kubelet 之间没有点对点通知，而是通过 API Server 进行间接通信。</p>
+<hr>
+<h2 id="2-5-完整流程图"><a href="#2-5-完整流程图" class="headerlink" title="2.5 完整流程图"></a>2.5 完整流程图</h2><p>下面这张图把本文所有步骤串在一起，方便一眼看完整个通信链路：</p>
+<pre><code class="highlight mermaid">flowchart TD
+    subgraph 控制面[&quot;控制面（Control Plane）&quot;]
+        A1[Pod created] --&gt; A2[API Server]
+        A2 --&gt; A3[scheduler informer]
+        A3 --&gt; A4[待调度队列]
+    end
+
+    subgraph 调度器[&quot;调度器（Scheduler）&quot;]
+        A4 --&gt; B1[取出 Pod]
+        B1 --&gt; B2[PreFilter 插件]
+        B2 --&gt; B3[Filter 插件]
+        B3 --&gt; B4[Score 插件]
+        B4 --&gt; B5[选择最优节点]
+        B5 --&gt; B6[assume 到 cache]
+        B6 --&gt; B7[bindingCycle]
+        B7 --&gt; B8[PreBind 插件]
+        B8 --&gt; B9[Bind 插件]
+    end
+
+    subgraph 绑定[&quot;绑定（Binding）&quot;]
+        B9 --&gt; C1[POST /pods/&#123;name&#125;/binding]
+        C1 --&gt; C2[API Server 校验]
+        C2 --&gt; C3[写入 etcd]
+        C3 --&gt; C4[spec.nodeName 生效]
+    end
+
+    subgraph 节点侧[&quot;节点侧（Kubelet）&quot;]
+        C4 --&gt; D1[kubelet watch]
+        D1 --&gt; D2[过滤本节点 Pod]
+        D2 --&gt; D3[PodConfig channel]
+        D3 --&gt; D4[podManager]
+        D4 --&gt; D5[podWorkers.UpdatePod]
+    end</code></pre>
+
+<hr>
+<h2 id="2-6-与其他组件的交互"><a href="#2-6-与其他组件的交互" class="headerlink" title="2.6 与其他组件的交互"></a>2.6 与其他组件的交互</h2><p>这条链路不只是 scheduler 和 kubelet 的事，还涉及多个系统的协作：</p>
+<h3 id="与-Controller-Manager-的交互"><a href="#与-Controller-Manager-的交互" class="headerlink" title="与 Controller Manager 的交互"></a>与 Controller Manager 的交互</h3><p>虽然本文聚焦调度绑定，但 scheduler 的行为会受到多个控制器的影响：</p>
+<table>
+<thead>
+<tr>
+<th>控制器</th>
+<th>如何影响调度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>ReplicaSet Controller</td>
+<td>创建&#x2F;删除 Pod，触发调度</td>
+</tr>
+<tr>
+<td>Node Lifecycle Controller</td>
+<td>更新 Node taint，影响调度过滤</td>
+</tr>
+<tr>
+<td>PV Controller</td>
+<td>绑定 PVC 到 PV，影响带存储的 Pod 调度</td>
+</tr>
+<tr>
+<td>Service Controller</td>
+<td>更新 Endpoint，间接影响亲和性调度</td>
+</tr>
+</tbody></table>
+<p><strong>关键理解</strong>：scheduler 是被动的，它响应的是控制面状态变化。控制器通过创建&#x2F;删除 Pod 或修改 Node 状态来间接影响调度。</p>
+<h3 id="与-CSI（Container-Storage-Interface）的交互"><a href="#与-CSI（Container-Storage-Interface）的交互" class="headerlink" title="与 CSI（Container Storage Interface）的交互"></a>与 CSI（Container Storage Interface）的交互</h3><p>在 PreBind 阶段，scheduler 可能会与 CSI driver 交互：</p>
+<pre><code class="highlight mermaid">flowchart LR
+    A[PreBind 插件] --&gt; B&#123;Pod 有 PVC?&#125;
+    B --&gt;|是| C[检查 PV 已绑定]
+    C --&gt; D&#123;需要等待?&#125;
+    D --&gt;|是| E[阻塞直到就绪]
+    D --&gt;|否| F[继续绑定]
+    B --&gt;|否| F</code></pre>
+
+<p><strong>关键理解</strong>：如果 Pod 声明了 PVC，scheduler 在 PreBind 阶段会等待 PV 绑定完成。这是调度延迟的常见原因之一。</p>
+<h3 id="与-Scheduler-Extender-的交互"><a href="#与-Scheduler-Extender-的交互" class="headerlink" title="与 Scheduler Extender 的交互"></a>与 Scheduler Extender 的交互</h3><p>除了内置插件，scheduler 还支持 extender 机制，允许外部系统参与调度决策：</p>
+<pre><code class="highlight mermaid">flowchart LR
+    A[Filter 阶段] --&gt; B[内置插件]
+    B --&gt; C[Extender HTTP 调用]
+    C --&gt; D[外部过滤服务]
+    D --&gt; E[返回可行节点]</code></pre>
+
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>Extender 可以做什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Filter</td>
+<td>进一步排除节点</td>
+</tr>
+<tr>
+<td>Prioritize</td>
+<td>给节点打分</td>
+</tr>
+<tr>
+<td>Bind</td>
+<td>自定义绑定逻辑</td>
+</tr>
+</tbody></table>
+<p><strong>关键理解</strong>：Extender 通过 HTTP 与 scheduler 通信，会增加调度延迟。</p>
+<h3 id="与-PriorityClass-的交互"><a href="#与-PriorityClass-的交互" class="headerlink" title="与 PriorityClass 的交互"></a>与 PriorityClass 的交互</h3><p>Pod 的 priority 会影响调度顺序和抢占：</p>
+<pre><code class="highlight mermaid">flowchart TD
+    A[高优先级 Pod 等待] --&gt; B&#123;有足够资源?&#125;
+    B --&gt;|否| C&#123;可以抢占?&#125;
+    C --&gt;|是| D[驱逐低优先级 Pod]
+    D --&gt; E[调度高优先级 Pod]
+    C --&gt;|否| F[继续等待]
+    B --&gt;|是| E</code></pre>
+
+<p><strong>关键理解</strong>：PriorityClass 由管理员创建，scheduler 在调度时会考虑优先级。</p>
+<h3 id="与-Descheduler-的交互"><a href="#与-Descheduler-的交互" class="headerlink" title="与 Descheduler 的交互"></a>与 Descheduler 的交互</h3><p>Descheduler 是一个独立组件，它会根据策略驱逐已经运行的 Pod：</p>
+<pre><code class="highlight mermaid">flowchart LR
+    A[Descheduler] --&gt; B[分析集群状态]
+    B --&gt; C&#123;违反策略?&#125;
+    C --&gt;|是| D[驱逐 Pod]
+    D --&gt; E[Pod 重新进入调度队列]
+    E --&gt; F[scheduler 重新调度]</code></pre>
+
+<p><strong>关键理解</strong>：Descheduler 不直接与 scheduler 通信，而是通过驱逐 Pod 来间接触发重新调度。</p>
+<h3 id="交互总结表"><a href="#交互总结表" class="headerlink" title="交互总结表"></a>交互总结表</h3><table>
+<thead>
+<tr>
+<th>外部系统</th>
+<th>交互方式</th>
+<th>影响什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Controller Manager</td>
+<td>创建&#x2F;删除 Pod，修改 Node</td>
+<td>触发调度，影响过滤</td>
+</tr>
+<tr>
+<td>CSI driver</td>
+<td>PreBind 阶段检查</td>
+<td>存储就绪才能绑定</td>
+</tr>
+<tr>
+<td>Scheduler Extender</td>
+<td>HTTP 调用</td>
+<td>参与过滤&#x2F;打分&#x2F;绑定</td>
+</tr>
+<tr>
+<td>PriorityClass</td>
+<td>Pod spec 字段</td>
+<td>调度顺序和抢占</td>
+</tr>
+<tr>
+<td>Descheduler</td>
+<td>驱逐 Pod</td>
+<td>触发重新调度</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="3-关键时序图"><a href="#3-关键时序图" class="headerlink" title="3. 关键时序图"></a>3. 关键时序图</h2><h3 id="Mermaid：主时序图"><a href="#Mermaid：主时序图" class="headerlink" title="Mermaid：主时序图"></a>Mermaid：主时序图</h3><pre><code class="highlight mermaid">sequenceDiagram
+    participant Pod
+    participant Scheduler
+    participant APIServer
+    participant Kubelet
+    participant PodConfig
+    participant PodWorkers
+
+    Pod-&gt;&gt;Scheduler: enter scheduling queue
+    Scheduler-&gt;&gt;Scheduler: schedulingCycle()
+    Scheduler-&gt;&gt;Scheduler: select target node
+    Scheduler-&gt;&gt;Scheduler: assume Pod on node (local cache)
+    Scheduler-&gt;&gt;Scheduler: bindingCycle()
+    Scheduler-&gt;&gt;APIServer: Pods().Bind(v1.Binding)
+    APIServer--&gt;&gt;APIServer: persist spec.nodeName
+    Kubelet-&gt;&gt;APIServer: watch Pods for this node
+    APIServer--&gt;&gt;PodConfig: deliver Pod update
+    PodConfig--&gt;&gt;Kubelet: update channel
+    Kubelet-&gt;&gt;PodWorkers: UpdatePod(...)</code></pre>
+
+<h3 id="时序图里的-3-个关键点"><a href="#时序图里的-3-个关键点" class="headerlink" title="时序图里的 3 个关键点"></a>时序图里的 3 个关键点</h3><ul>
+<li><code>assume</code> 只是 scheduler 的本地乐观前进，不代表集群状态已经更新。</li>
+<li>真正让“Pod 属于某节点”生效的是 API Server 持久化绑定结果。</li>
+<li>kubelet 的动作起点不是 scheduler 的通知，而是“watch 到属于本节点的 Pod 更新”。</li>
+</ul>
+<hr>
+<h2 id="4-异常与分支路径"><a href="#4-异常与分支路径" class="headerlink" title="4. 异常与分支路径"></a>4. 异常与分支路径</h2><p>主链路之外，更值得读者理解的是：这条通信链并不总是一次成功。很多看起来像“调度成功了但节点没反应”的现象，实际上发生在分支路径里。</p>
+<h3 id="Mermaid：异常-分支路径图"><a href="#Mermaid：异常-分支路径图" class="headerlink" title="Mermaid：异常&#x2F;分支路径图"></a>Mermaid：异常&#x2F;分支路径图</h3><pre><code class="highlight mermaid">flowchart TD
+    A[Pod waiting for scheduling] --&gt; B&#123;scheduler finds feasible node?&#125;
+    B --&gt;|No| C[remain Pending / requeue]
+    B --&gt;|Yes| D[assume node in scheduler cache]
+    D --&gt; E&#123;binding succeeds at API Server?&#125;
+    E --&gt;|No| F[forget assumed state / retry scheduling]
+    E --&gt;|Yes| G[spec.nodeName persisted]
+    G --&gt; H&#123;kubelet on target node has observed update?&#125;
+    H --&gt;|No| I[visible in API but not yet processed on node]
+    H --&gt;|Yes| J[enter podWorkers flow]</code></pre>
+
+<h3 id="读这张图时要关注什么"><a href="#读这张图时要关注什么" class="headerlink" title="读这张图时要关注什么"></a>读这张图时要关注什么</h3><ul>
+<li><strong>选点失败</strong>：Pod 会继续处于 Pending，并等待后续调度周期。</li>
+<li><strong>assume 后绑定失败</strong>：scheduler 会清理本地假设状态，再重试或重新入队。</li>
+<li><strong>绑定成功但 kubelet 尚未感知</strong>：这是控制面状态与节点侧处理之间常见的短暂时间差。</li>
+</ul>
+<hr>
+<h2 id="5-这个流程里谁负责什么"><a href="#5-这个流程里谁负责什么" class="headerlink" title="5. 这个流程里谁负责什么"></a>5. 这个流程里谁负责什么</h2><table>
+<thead>
+<tr>
+<th>组件</th>
+<th>主要职责</th>
+<th>不负责什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>kube-scheduler</code></td>
+<td>选节点、发起绑定</td>
+<td>不直接启动容器，不直接通知 kubelet</td>
+</tr>
+<tr>
+<td><code>kube-apiserver</code></td>
+<td>保存 Pod 与 Node 的绑定关系，作为共享状态源</td>
+<td>不执行节点本地生命周期</td>
+</tr>
+<tr>
+<td><code>kubelet</code></td>
+<td>观察属于本节点的 Pod 更新，并开始节点侧处理</td>
+<td>不参与全局调度决策</td>
+</tr>
+<tr>
+<td><code>podWorkers</code></td>
+<td>接管节点侧 Pod 生命周期推进</td>
+<td>不决定 Pod 应该去哪个节点</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="6-常见误解"><a href="#6-常见误解" class="headerlink" title="6. 常见误解"></a>6. 常见误解</h2><h3 id="误解-1：scheduler-会直接把任务发给-kubelet"><a href="#误解-1：scheduler-会直接把任务发给-kubelet" class="headerlink" title="误解 1：scheduler 会直接把任务发给 kubelet"></a>误解 1：scheduler 会直接把任务发给 kubelet</h3><p>不是。两者之间的关键交汇点是 API Server。</p>
+<h3 id="误解-2：Pod-一旦被选中节点，就等于-kubelet-已经开始处理"><a href="#误解-2：Pod-一旦被选中节点，就等于-kubelet-已经开始处理" class="headerlink" title="误解 2：Pod 一旦被选中节点，就等于 kubelet 已经开始处理"></a>误解 2：Pod 一旦被选中节点，就等于 kubelet 已经开始处理</h3><p>不是。中间至少还隔着”绑定成功”和”kubelet watch 到更新”两个步骤。</p>
+<h3 id="误解-3：assume-就是最终结果"><a href="#误解-3：assume-就是最终结果" class="headerlink" title="误解 3：assume 就是最终结果"></a>误解 3：<code>assume</code> 就是最终结果</h3><p>不是。<code>assume</code> 只是 scheduler 为了提高吞吐量做的本地 cache 前移。</p>
+<h3 id="误解-4：这条链路已经包含了容器创建"><a href="#误解-4：这条链路已经包含了容器创建" class="headerlink" title="误解 4：这条链路已经包含了容器创建"></a>误解 4：这条链路已经包含了容器创建</h3><p>没有。本文只覆盖”调度绑定到 kubelet 感知”。容器创建属于下一条链路。</p>
+<hr>
+<h2 id="7-版本差异说明"><a href="#7-版本差异说明" class="headerlink" title="7. 版本差异说明"></a>7. 版本差异说明</h2><p>这条链路在 Kubernetes 1.27&#x2F;1.28&#x2F;1.29 中有一些值得注意的变化：</p>
+<h3 id="1-27-→-1-28-变化"><a href="#1-27-→-1-28-变化" class="headerlink" title="1.27 → 1.28 变化"></a>1.27 → 1.28 变化</h3><table>
+<thead>
+<tr>
+<th>变化点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>DRA PodSchedulingContext → PodScheduling</td>
+<td>动态资源分配（DRA）API 重命名，影响 PreBind 阶段</td>
+</tr>
+<tr>
+<td>SchedulingHint 改进</td>
+<td>scheduler 对 Pod 更新事件的响应更精确，减少不必要的重调度</td>
+</tr>
+</tbody></table>
+<h3 id="1-28-→-1-29-变化"><a href="#1-28-→-1-29-变化" class="headerlink" title="1.28 → 1.29 变化"></a>1.28 → 1.29 变化</h3><table>
+<thead>
+<tr>
+<th>变化点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>抢占逻辑修复</td>
+<td>修复了抢占时 victim pod 因状态 patch 不正确导致删除失败的问题</td>
+</tr>
+<tr>
+<td>Filter 插件优化</td>
+<td>某些 Filter 插件的性能改进，减少调度延迟</td>
+</tr>
+</tbody></table>
+<h3 id="向后兼容性"><a href="#向后兼容性" class="headerlink" title="向后兼容性"></a>向后兼容性</h3><table>
+<thead>
+<tr>
+<th>版本</th>
+<th>兼容性注意</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1.27+</td>
+<td>DRA 需要 1.26+ 的 scheduler 和 kubelet 配合</td>
+</tr>
+<tr>
+<td>1.28+</td>
+<td>如果使用 DRA，需要更新客户端代码适配 PodScheduling API</td>
+</tr>
+<tr>
+<td>1.29+</td>
+<td>抢占修复只影响特定场景（preemptor 和 victim QoS 不同时）</td>
+</tr>
+</tbody></table>
+<h3 id="需要关注的废弃"><a href="#需要关注的废弃" class="headerlink" title="需要关注的废弃"></a>需要关注的废弃</h3><table>
+<thead>
+<tr>
+<th>废弃项</th>
+<th>替代方案</th>
+<th>移除版本</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>scheduler.alpha.kubernetes.io/critical-pod</code> annotation</td>
+<td>使用 PriorityClass</td>
+<td>已在 1.28 移除</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="7-与后续文档的关系"><a href="#7-与后续文档的关系" class="headerlink" title="7. 与后续文档的关系"></a>7. 与后续文档的关系</h2><p>建议按这个顺序阅读：</p>
+<ol>
+<li>本文：理解 control plane 如何把一个 Pod 交给某个节点</li>
+<li><a href="./pod-on-node-realization-flow.md"><code>docs/pod-on-node-realization-flow.md</code></a>：理解 kubelet 如何把期望态变成运行态</li>
+<li><a href="./kubelet-status-and-event-feedback-flow.md"><code>docs/kubelet-status-and-event-feedback-flow.md</code></a>：理解运行结果如何回到控制面</li>
+<li><a href="./node-heartbeat-and-health-flow.md"><code>docs/node-heartbeat-and-health-flow.md</code></a>：理解节点健康信号如何影响控制面判断</li>
+</ol>
+<hr>
+<h2 id="8-代码入口（精简版）"><a href="#8-代码入口（精简版）" class="headerlink" title="8. 代码入口（精简版）"></a>8. 代码入口（精简版）</h2><p>如果读者想从流程跳回实现，可从下面几个入口开始：</p>
+<ul>
+<li>调度周期：<a href="../pkg/scheduler/schedule_one.go"><code>pkg/scheduler/schedule_one.go:140</code></a><ul>
+<li><code>schedulingCycle(...)</code></li>
+</ul>
+</li>
+<li>绑定周期：<a href="../pkg/scheduler/schedule_one.go"><code>pkg/scheduler/schedule_one.go:263</code></a><ul>
+<li><code>bindingCycle(...)</code></li>
+</ul>
+</li>
+<li>默认绑定器：<a href="../pkg/scheduler/framework/plugins/defaultbinder/default_binder.go"><code>pkg/scheduler/framework/plugins/defaultbinder/default_binder.go:51</code></a><ul>
+<li><code>Bind(...)</code></li>
+</ul>
+</li>
+<li>kubelet 注册 apiserver pod source：<a href="../pkg/kubelet/kubelet.go"><code>pkg/kubelet/kubelet.go:283</code></a><ul>
+<li><code>makePodSourceConfig(...)</code></li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="9-详细时序图"><a href="#9-详细时序图" class="headerlink" title="9. 详细时序图"></a>9. 详细时序图</h2><h3 id="9-1-正常调度绑定完整时序图"><a href="#9-1-正常调度绑定完整时序图" class="headerlink" title="9.1 正常调度绑定完整时序图"></a>9.1 正常调度绑定完整时序图</h3><pre><code class="highlight mermaid">sequenceDiagram
+    autonumber
+    participant User as 用户/kubectl
+    participant API as kube-apiserver
+    participant ETCD as etcd
+    participant SCH as kube-scheduler
+    participant CACHE as Scheduler Cache
+    participant KL as Kubelet
+
+    User-&gt;&gt;API: POST /api/v1/namespaces/default/pods
+    API-&gt;&gt;ETCD: 写入 Pod (spec.nodeName=&quot;&quot;)
+    ETCD--&gt;&gt;API: 确认
+    API--&gt;&gt;User: 201 Created
+
+    Note over API,SCH: Informer watch 触发
+
+    API--&gt;&gt;SCH: watch 推送 Pod ADDED 事件
+    SCH-&gt;&gt;SCH: Pod 入队 PriorityQueue
+
+    Note over SCH: 调度周期开始
+
+    SCH-&gt;&gt;SCH: Pop Pod from queue
+    SCH-&gt;&gt;SCH: schedulingCycle()
+
+    Note over SCH,CACHE: PreFilter 阶段
+    SCH-&gt;&gt;CACHE: 读取节点信息
+    CACHE--&gt;&gt;SCH: 返回节点列表
+
+    Note over SCH: Filter 阶段 (遍历所有节点)
+    loop 每个候选节点
+        SCH-&gt;&gt;SCH: 运行 Filter 插件
+        alt 节点通过
+            SCH-&gt;&gt;SCH: 保留节点
+        else 节点不通过
+            SCH-&gt;&gt;SCH: 排除节点
+        end
+    end
+
+    Note over SCH: Score 阶段
+    SCH-&gt;&gt;SCH: 对可行节点打分
+    SCH-&gt;&gt;SCH: 选择最高分节点
+
+    Note over SCH: Assume (乐观缓存)
+    SCH-&gt;&gt;CACHE: 假设 Pod 已绑定到节点
+
+    Note over SCH: 绑定周期开始
+
+    SCH-&gt;&gt;SCH: bindingCycle()
+
+    Note over SCH: PreBind 阶段
+    alt 有 PVC
+        SCH-&gt;&gt;SCH: 等待 PV 绑定
+    end
+
+    Note over SCH: Bind 阶段
+    SCH-&gt;&gt;API: POST /api/v1/namespaces/default/pods/&lt;pod&gt;/binding
+    API-&gt;&gt;ETCD: 更新 Pod.spec.nodeName
+    ETCD--&gt;&gt;API: 确认
+    API--&gt;&gt;SCH: 200 OK
+
+    Note over SCH: PostBind 阶段
+    SCH-&gt;&gt;SCH: 完成绑定周期
+
+    Note over API,KL: Kubelet watch 触发
+
+    API--&gt;&gt;KL: watch 推送 Pod UPDATE 事件
+    KL-&gt;&gt;KL: 过滤 spec.nodeName == 本节点
+    KL-&gt;&gt;KL: PodConfig 聚合
+    KL-&gt;&gt;KL: podManager 更新
+    KL-&gt;&gt;KL: podWorkers.UpdatePod()
+
+    Note over KL: Pod 进入节点侧处理流程</code></pre>
+
+<h3 id="9-2-调度失败重试时序图"><a href="#9-2-调度失败重试时序图" class="headerlink" title="9.2 调度失败重试时序图"></a>9.2 调度失败重试时序图</h3><pre><code class="highlight mermaid">sequenceDiagram
+    autonumber
+    participant API as kube-apiserver
+    participant SCH as kube-scheduler
+    participant CACHE as Scheduler Cache
+    participant EXT as External System
+
+    API--&gt;&gt;SCH: watch 推送 Pod ADDED
+    SCH-&gt;&gt;SCH: schedulingCycle()
+
+    Note over SCH,CACHE: Filter 阶段
+    SCH-&gt;&gt;CACHE: 获取节点列表
+    CACHE--&gt;&gt;SCH: 返回节点
+
+    loop 每个节点
+        SCH-&gt;&gt;SCH: Filter 插件检查
+    end
+
+    alt 无可用节点
+        SCH-&gt;&gt;SCH: 记录 Unschedulable 原因
+        SCH-&gt;&gt;SCH: Pod 进入 unschedulableQ
+
+        Note over SCH: 等待下次调度机会
+
+        SCH-&gt;&gt;SCH: 定期重试或等待事件触发
+    end
+
+    Note over SCH,EXT: 或者 PreBind 失败场景
+
+    SCH-&gt;&gt;SCH: 选定节点成功
+    SCH-&gt;&gt;CACHE: Assume Pod
+
+    Note over SCH: PreBind 阶段
+    SCH-&gt;&gt;EXT: 检查/准备资源
+    EXT--&gt;&gt;SCH: 失败 (如 CSI 超时)
+
+    Note over SCH: 绑定失败处理
+
+    SCH-&gt;&gt;CACHE: Forget (清理 assume 状态)
+    SCH-&gt;&gt;SCH: 记录失败原因
+    SCH-&gt;&gt;SCH: Pod 重新入队
+
+    Note over SCH: 等待重试</code></pre>
+
+<h3 id="9-3-抢占调度时序图"><a href="#9-3-抢占调度时序图" class="headerlink" title="9.3 抢占调度时序图"></a>9.3 抢占调度时序图</h3><pre><code class="highlight mermaid">sequenceDiagram
+    autonumber
+    participant API as kube-apiserver
+    participant SCH as kube-scheduler
+    participant CACHE as Scheduler Cache
+
+    Note over SCH: 高优先级 Pod 等待
+
+    API--&gt;&gt;SCH: watch 推送高优先级 Pod
+    SCH-&gt;&gt;SCH: schedulingCycle()
+
+    Note over SCH: Filter 阶段 - 无可用节点
+    SCH-&gt;&gt;SCH: 所有节点资源不足
+
+    Note over SCH: PostFilter 阶段 - 抢占评估
+    SCH-&gt;&gt;SCH: 计算抢占候选
+    SCH-&gt;&gt;SCH: 选择 victim Pods
+
+    Note over SCH: 抢占执行
+
+    loop 每个 victim Pod
+        SCH-&gt;&gt;API: DELETE /api/v1/namespaces/&lt;ns&gt;/pods/&lt;victim&gt;
+        API--&gt;&gt;SCH: 200 OK
+    end
+
+    Note over SCH: 等待资源释放
+
+    SCH-&gt;&gt;SCH: 抢占者重新入队
+
+    API--&gt;&gt;SCH: watch 推送 victim Pod DELETED
+    SCH-&gt;&gt;CACHE: 更新节点资源视图
+
+    Note over SCH: 重新调度
+
+    SCH-&gt;&gt;SCH: schedulingCycle()
+    SCH-&gt;&gt;SCH: Filter - 节点现在有足够资源
+    SCH-&gt;&gt;SCH: 继续正常绑定流程</code></pre>
+
+<hr>
+<h2 id="10-故障排查指南"><a href="#10-故障排查指南" class="headerlink" title="10. 故障排查指南"></a>10. 故障排查指南</h2><h3 id="10-1-常见问题与诊断方法"><a href="#10-1-常见问题与诊断方法" class="headerlink" title="10.1 常见问题与诊断方法"></a>10.1 常见问题与诊断方法</h3><h4 id="问题-1：Pod-一直处于-Pending-状态"><a href="#问题-1：Pod-一直处于-Pending-状态" class="headerlink" title="问题 1：Pod 一直处于 Pending 状态"></a>问题 1：Pod 一直处于 Pending 状态</h4><p><strong>症状</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">kubectl get pods</span><br><span class="line">NAME    READY   STATUS    RESTARTS   AGE</span><br><span class="line">pod-1   0/1     Pending   0          5m</span><br></pre></td></tr></table></figure>
+
+<p><strong>排查流程图</strong>：</p>
+<pre><code class="highlight mermaid">flowchart TD
+    A[Pod Pending] --&gt; B&#123;检查调度事件&#125;
+    B --&gt; B1[kubectl describe pod]
+
+    B1 --&gt; C&#123;有调度失败事件?&#125;
+
+    C --&gt;|0/1 nodes are available| D[资源不足]
+    D --&gt; D1[增加节点资源]
+    D --&gt; D2[减少 Pod 资源请求]
+    D --&gt; D3[清理未使用的 Pod]
+
+    C --&gt;|node(s) didn&#x27;t match Pod&#x27;s node affinity| E[亲和性不匹配]
+    E --&gt; E1[检查 nodeSelector]
+    E --&gt; E2[检查 nodeAffinity]
+    E --&gt; E3[检查节点 labels]
+
+    C --&gt;|node(s) had taints| F[Taint/Toleration 问题]
+    F --&gt; F1[检查节点 taints]
+    F --&gt; F2[为 Pod 添加 tolerations]
+
+    C --&gt;|pod has unbound immediate PersistentVolumeClaims| G[PVC 未绑定]
+    G --&gt; G1[检查 PV 是否存在]
+    G --&gt; G2[检查 StorageClass]
+    G --&gt; G3[检查 PVC 配置]
+
+    C --&gt;|no volume plugin matched| H[存储插件问题]
+    H --&gt; H1[检查 CSI driver 安装]</code></pre>
+
+<p><strong>诊断命令</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看 Pod 详细事件</span></span><br><span class="line">kubectl describe pod &lt;pod-name&gt; -n &lt;namespace&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看 Pod 调度相关事件</span></span><br><span class="line">kubectl get events --field-selector involvedObject.name=&lt;pod-name&gt; -n &lt;namespace&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看调度器日志</span></span><br><span class="line">kubectl logs -n kube-system &lt;scheduler-pod&gt; | grep &lt;pod-name&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查节点资源</span></span><br><span class="line">kubectl describe nodes | grep -A 5 <span class="string">&quot;Allocated resources&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查节点 taints</span></span><br><span class="line">kubectl get nodes -o custom-columns=NAME:.metadata.name,TAINTS:.spec.taints</span><br></pre></td></tr></table></figure>
+
+<h4 id="问题-2：调度延迟过高"><a href="#问题-2：调度延迟过高" class="headerlink" title="问题 2：调度延迟过高"></a>问题 2：调度延迟过高</h4><p><strong>可能原因</strong>：</p>
+<ol>
+<li>Scheduler 负载过高</li>
+<li>Extender 响应慢</li>
+<li>大量 Filter&#x2F;Score 插件</li>
+<li>API Server 响应慢</li>
+</ol>
+<p><strong>排查步骤</strong>：</p>
+<pre><code class="highlight mermaid">flowchart TD
+    A[调度延迟高] --&gt; B&#123;检查 Scheduler 指标&#125;
+
+    B --&gt; C[查看调度延迟 metrics]
+    C --&gt; C1&#123;延迟在哪里?&#125;
+
+    C1 --&gt;|schedulingCycle| D[Filter/Score 阶段慢]
+    D --&gt; D1[检查自定义插件]
+    D --&gt; D2[检查 Extender 响应]
+
+    C1 --&gt;|bindingCycle| E[绑定阶段慢]
+    E --&gt; E1[检查 PreBind 插件]
+    E --&gt; E2[检查 API Server 响应]
+
+    C1 --&gt;|queue waiting| F[队列等待长]
+    F --&gt; F1[检查调度队列深度]
+    F --&gt; F2[增加 scheduler 并发]</code></pre>
+
+<p><strong>诊断命令</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看调度器 metrics</span></span><br><span class="line">kubectl get --raw /metrics | grep scheduler | grep -E <span class="string">&quot;(queue|binding|scheduling)&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查调度队列深度</span></span><br><span class="line">kubectl get --raw /metrics | grep scheduler_queue_incoming_pods_total</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 API Server 延迟</span></span><br><span class="line">kubectl get --raw /metrics | grep apiserver_request_duration_seconds</span><br></pre></td></tr></table></figure>
+
+<h4 id="问题-3：Pod-绑定成功但-kubelet-未处理"><a href="#问题-3：Pod-绑定成功但-kubelet-未处理" class="headerlink" title="问题 3：Pod 绑定成功但 kubelet 未处理"></a>问题 3：Pod 绑定成功但 kubelet 未处理</h4><p><strong>症状</strong>：Pod 已绑定到节点，但节点上没有容器运行</p>
+<p><strong>排查流程图</strong>：</p>
+<pre><code class="highlight mermaid">flowchart TD
+    A[绑定成功但未运行] --&gt; B&#123;检查 spec.nodeName&#125;
+
+    B --&gt;|已设置| C&#123;检查 kubelet 状态&#125;
+    B --&gt;|未设置| D[绑定过程异常]
+
+    C --&gt;|正常| E&#123;检查 kubelet watch&#125;
+    E --&gt; E1[检查 kubelet 日志]
+    E1 --&gt; E2&#123;有 Pod 更新事件?&#125;
+
+    E2 --&gt;|无| F[watch 连接问题]
+    F --&gt; F1[检查与 API Server 连接]
+    F --&gt; F2[检查 kubelet 权限]
+
+    E2 --&gt;|有| G&#123;检查 podWorkers&#125;
+    G --&gt; G1[检查 SyncPod 错误]
+
+    C --&gt;|异常| H[重启 kubelet]</code></pre>
+
+<p><strong>诊断命令</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 确认 Pod 已绑定</span></span><br><span class="line">kubectl get pod &lt;pod-name&gt; -o jsonpath=<span class="string">&#x27;&#123;.spec.nodeName&#125;&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查目标节点 kubelet 日志</span></span><br><span class="line">journalctl -u kubelet -n 100 | grep &lt;pod-name&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 在节点上检查 Pod 状态</span></span><br><span class="line">crictl pods | grep &lt;pod-name&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查 kubelet 与 API Server 连接</span></span><br><span class="line">curl -k https://&lt;api-server&gt;:6443/api/v1/pods?watch=<span class="literal">true</span>&amp;fieldSelector=spec.nodeName=&lt;node-name&gt;</span><br></pre></td></tr></table></figure>
+
+<h3 id="10-2-关键日志关键词"><a href="#10-2-关键日志关键词" class="headerlink" title="10.2 关键日志关键词"></a>10.2 关键日志关键词</h3><table>
+<thead>
+<tr>
+<th>组件</th>
+<th>日志关键词</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Scheduler</td>
+<td><code>Attempting to bind</code></td>
+<td>开始绑定</td>
+</tr>
+<tr>
+<td>Scheduler</td>
+<td><code>Successfully bound</code></td>
+<td>绑定成功</td>
+</tr>
+<tr>
+<td>Scheduler</td>
+<td><code>Failed to bind</code></td>
+<td>绑定失败</td>
+</tr>
+<tr>
+<td>Scheduler</td>
+<td><code>assume pod</code></td>
+<td>乐观缓存</td>
+</tr>
+<tr>
+<td>Scheduler</td>
+<td><code>no nodes available</code></td>
+<td>无可用节点</td>
+</tr>
+<tr>
+<td>Kubelet</td>
+<td><code>SyncPod</code></td>
+<td>开始同步 Pod</td>
+</tr>
+<tr>
+<td>Kubelet</td>
+<td><code>Pod update received</code></td>
+<td>收到 Pod 更新</td>
+</tr>
+</tbody></table>
+<h3 id="10-3-配置参数参考"><a href="#10-3-配置参数参考" class="headerlink" title="10.3 配置参数参考"></a>10.3 配置参数参考</h3><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>默认值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>--concurrency</code></td>
+<td>1</td>
+<td>调度并发数</td>
+</tr>
+<tr>
+<td><code>--bind-timeout</code></td>
+<td>600s</td>
+<td>绑定超时时间</td>
+</tr>
+<tr>
+<td><code>--profile</code></td>
+<td>true</td>
+<td>启用性能分析</td>
+</tr>
+<tr>
+<td><code>percentageOfNodesToScore</code></td>
+<td>50%</td>
+<td>打分节点百分比</td>
+</tr>
+</tbody></table>
+<h3 id="10-4-一键诊断命令"><a href="#10-4-一键诊断命令" class="headerlink" title="10.4 一键诊断命令"></a>10.4 一键诊断命令</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 调度问题诊断脚本</span></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;=== Pending Pods ===&quot;</span> &amp;&amp; \</span><br><span class="line">kubectl get pods --field-selector=status.phase=Pending -A &amp;&amp; \</span><br><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;\n=== Recent Scheduler Events ===&quot;</span> &amp;&amp; \</span><br><span class="line">kubectl get events -A --field-selector reason=Scheduled --sort-by=<span class="string">&#x27;.lastTimestamp&#x27;</span> | <span class="built_in">tail</span> -20 &amp;&amp; \</span><br><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;\n=== Unschedulable Events ===&quot;</span> &amp;&amp; \</span><br><span class="line">kubectl get events -A --field-selector reason=FailedScheduling --sort-by=<span class="string">&#x27;.lastTimestamp&#x27;</span> | <span class="built_in">tail</span> -20 &amp;&amp; \</span><br><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;\n=== Node Resources ===&quot;</span> &amp;&amp; \</span><br><span class="line">kubectl top nodes &amp;&amp; \</span><br><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;\n=== Node Taints ===&quot;</span> &amp;&amp; \</span><br><span class="line">kubectl get nodes -o custom-columns=NAME:.metadata.name,TAINTS:.spec.taints</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="11-面试题与详细解答"><a href="#11-面试题与详细解答" class="headerlink" title="11. 面试题与详细解答"></a>11. 面试题与详细解答</h2><h3 id="11-1-基础概念题"><a href="#11-1-基础概念题" class="headerlink" title="11.1 基础概念题"></a>11.1 基础概念题</h3><h4 id="Q1-Kubernetes-调度器是如何为-Pod-选择节点的？"><a href="#Q1-Kubernetes-调度器是如何为-Pod-选择节点的？" class="headerlink" title="Q1: Kubernetes 调度器是如何为 Pod 选择节点的？"></a>Q1: Kubernetes 调度器是如何为 Pod 选择节点的？</h4><p><strong>答案</strong>：</p>
+<p>Kubernetes 调度器通过两阶段机制为 Pod 选择节点：</p>
+<p><strong>第一阶段：过滤 (Predicates&#x2F;Filter)</strong></p>
+<ul>
+<li>遍历所有节点，检查硬性约束条件</li>
+<li>常见过滤条件包括：<ul>
+<li><code>PodFitsResources</code>：节点资源是否足够</li>
+<li><code>PodMatchNodeSelector</code>：nodeSelector 是否匹配</li>
+<li><code>PodToleratesNodeTaints</code>：Pod 是否容忍节点 taint</li>
+<li><code>CheckNodeCondition</code>：节点状态是否正常</li>
+</ul>
+</li>
+<li>不满足条件的节点被直接排除</li>
+</ul>
+<p><strong>第二阶段：打分 (Priorities&#x2F;Score)</strong></p>
+<ul>
+<li>对通过过滤的节点进行打分（0-100分）</li>
+<li>常见打分策略：<ul>
+<li><code>LeastRequestedPriority</code>：资源利用率低优先</li>
+<li><code>BalancedResourceAllocation</code>：CPU&#x2F;内存均衡</li>
+<li><code>NodeAffinityPriority</code>：节点亲和性</li>
+<li><code>InterPodAffinityPriority</code>：Pod 间亲和性</li>
+</ul>
+</li>
+<li>选择分数最高的节点</li>
+</ul>
+<p><strong>代码实现</strong>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// pkg/scheduler/schedule_one.go:140</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(sched *Scheduler)</span></span> schedulingCycle(</span><br><span class="line">    ctx context.Context,</span><br><span class="line">    state *framework.CycleState,</span><br><span class="line">    pod *v1.Pod,</span><br><span class="line">    ...</span><br><span class="line">) (result ScheduleResult, err <span class="type">error</span>) &#123;</span><br><span class="line">    <span class="comment">// 1. PreFilter 阶段</span></span><br><span class="line">    <span class="comment">// 2. Filter 阶段 - 过滤节点</span></span><br><span class="line">    <span class="comment">// 3. PostFilter 阶段 - 抢占评估</span></span><br><span class="line">    <span class="comment">// 4. PreScore 阶段</span></span><br><span class="line">    <span class="comment">// 5. Score 阶段 - 打分</span></span><br><span class="line">    <span class="comment">// 6. 选择最高分节点</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h4 id="Q2-scheduler-和-kubelet-之间是如何通信的？"><a href="#Q2-scheduler-和-kubelet-之间是如何通信的？" class="headerlink" title="Q2: scheduler 和 kubelet 之间是如何通信的？"></a>Q2: scheduler 和 kubelet 之间是如何通信的？</h4><p><strong>答案</strong>：</p>
+<p><strong>关键点：scheduler 和 kubelet 不直接通信，而是通过 API Server 间接通信。</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Scheduler → API Server → Kubelet</span><br></pre></td></tr></table></figure>
+
+<p><strong>通信流程</strong>：</p>
+<ol>
+<li><p><strong>Scheduler → API Server</strong>：</p>
+<ul>
+<li>Scheduler watch API Server 中 Pending 状态的 Pod</li>
+<li>选定节点后，向 API Server 发送 Binding 请求</li>
+<li>请求路径：<code>POST /api/v1/namespaces/&#123;ns&#125;/pods/&#123;name&#125;/binding</code></li>
+</ul>
+</li>
+<li><p><strong>API Server 处理</strong>：</p>
+<ul>
+<li>校验 Binding 请求</li>
+<li>更新 Pod 的 <code>spec.nodeName</code> 字段</li>
+<li>写入 etcd 持久化</li>
+</ul>
+</li>
+<li><p><strong>API Server → Kubelet</strong>：</p>
+<ul>
+<li>Kubelet 通过 informer&#x2F;watch 监听 Pod 变化</li>
+<li>过滤 <code>spec.nodeName == 本节点</code> 的 Pod</li>
+<li>触发 podWorkers 处理</li>
+</ul>
+</li>
+</ol>
+<p><strong>为什么这样设计</strong>：</p>
+<ul>
+<li><strong>解耦</strong>：scheduler 和 kubelet 可以独立部署和升级</li>
+<li><strong>一致性</strong>：API Server 是唯一的状态存储</li>
+<li><strong>可靠性</strong>：即使 scheduler 宕机，已调度的 Pod 仍可正常运行</li>
+</ul>
+<hr>
+<h3 id="11-2-进阶原理题"><a href="#11-2-进阶原理题" class="headerlink" title="11.2 进阶原理题"></a>11.2 进阶原理题</h3><h4 id="Q3-什么是-scheduler-的-assume-机制？为什么要这样设计？"><a href="#Q3-什么是-scheduler-的-assume-机制？为什么要这样设计？" class="headerlink" title="Q3: 什么是 scheduler 的 assume 机制？为什么要这样设计？"></a>Q3: 什么是 scheduler 的 assume 机制？为什么要这样设计？</h4><p><strong>答案</strong>：</p>
+<p><strong>assume 机制</strong>是 scheduler 在提交绑定到 API Server 之前，先在本地缓存中”假设”Pod 已经绑定到选定节点。</p>
+<p><strong>设计目的</strong>：提高调度吞吐量</p>
+<p><strong>工作流程</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">1. Scheduler 选定节点 node-1</span><br><span class="line">2. assume: 更新 scheduler cache，标记 Pod 绑定到 node-1</span><br><span class="line">3. 继续调度下一个 Pod（此时 scheduler cache 已反映新的资源使用）</span><br><span class="line">4. 异步提交 binding 到 API Server</span><br><span class="line">5. 如果 binding 成功 → assume 变成事实</span><br><span class="line">6. 如果 binding 失败 → forget 清理 assume 状态，重新调度</span><br></pre></td></tr></table></figure>
+
+<p><strong>代码实现</strong>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// pkg/scheduler/schedule_one.go</span></span><br><span class="line"><span class="comment">// 1. assume 到 cache</span></span><br><span class="line"><span class="keyword">if</span> err := sched.assume(assumedPod, host); err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 2. 异步绑定</span></span><br><span class="line"><span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">    err := sched.bind(ctx, assumedPod, host, state, start)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="comment">// 绑定失败，清理 assume 状态</span></span><br><span class="line">        sched.forget(assumedPod)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;()</span><br></pre></td></tr></table></figure>
+
+<p><strong>为什么不直接等待绑定完成</strong>：</p>
+<ul>
+<li>如果每次都等待绑定完成，调度器吞吐量会大幅下降</li>
+<li>assume 让调度器可以在绑定进行时继续调度其他 Pod</li>
+<li>绑定失败的概率很低，assume 策略整体效率更高</li>
+</ul>
+<hr>
+<h4 id="Q4-调度框架-Scheduling-Framework-是什么？如何扩展调度器？"><a href="#Q4-调度框架-Scheduling-Framework-是什么？如何扩展调度器？" class="headerlink" title="Q4: 调度框架 (Scheduling Framework) 是什么？如何扩展调度器？"></a>Q4: 调度框架 (Scheduling Framework) 是什么？如何扩展调度器？</h4><p><strong>答案</strong>：</p>
+<p><strong>Scheduling Framework</strong> 是 Kubernetes 1.19+ 引入的可扩展调度框架，将调度过程拆分为多个扩展点，允许通过插件方式自定义调度逻辑。</p>
+<p><strong>扩展点列表</strong>：</p>
+<pre><code class="highlight mermaid">flowchart LR
+    A[QueueSort] --&gt; B[PreFilter]
+    B --&gt; C[Filter]
+    C --&gt; D[PostFilter]
+    D --&gt; E[PreScore]
+    E --&gt; F[Score]
+    F --&gt; G[NormalizeScore]
+    G --&gt; H[Reserve]
+    H --&gt; I[Permit]
+    I --&gt; J[PreBind]
+    J --&gt; K[Bind]
+    K --&gt; L[PostBind]</code></pre>
+
+<table>
+<thead>
+<tr>
+<th>扩展点</th>
+<th>用途</th>
+<th>示例场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>QueueSort</code></td>
+<td>Pod 排序</td>
+<td>PriorityClass 排序</td>
+</tr>
+<tr>
+<td><code>PreFilter</code></td>
+<td>预处理</td>
+<td>检查 Pod 依赖</td>
+</tr>
+<tr>
+<td><code>Filter</code></td>
+<td>过滤节点</td>
+<td>资源检查、亲和性</td>
+</tr>
+<tr>
+<td><code>PostFilter</code></td>
+<td>抢占评估</td>
+<td>高优先级抢占</td>
+</tr>
+<tr>
+<td><code>Score</code></td>
+<td>打分</td>
+<td>负载均衡策略</td>
+</tr>
+<tr>
+<td><code>Reserve</code></td>
+<td>预留资源</td>
+<td>assume 阶段</td>
+</tr>
+<tr>
+<td><code>Permit</code></td>
+<td>批准&#x2F;拒绝</td>
+<td>等待依赖 Pod</td>
+</tr>
+<tr>
+<td><code>PreBind</code></td>
+<td>绑定前准备</td>
+<td>卷挂载准备</td>
+</tr>
+<tr>
+<td><code>Bind</code></td>
+<td>执行绑定</td>
+<td>自定义绑定逻辑</td>
+</tr>
+<tr>
+<td><code>PostBind</code></td>
+<td>绑定后清理</td>
+<td>清理临时资源</td>
+</tr>
+</tbody></table>
+<p><strong>扩展方式</strong>：</p>
+<ol>
+<li><p><strong>内置插件</strong>：配置启用&#x2F;禁用</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">kubescheduler.config.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">KubeSchedulerConfiguration</span></span><br><span class="line"><span class="attr">profiles:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">schedulerName:</span> <span class="string">default-scheduler</span></span><br><span class="line">    <span class="attr">plugins:</span></span><br><span class="line">      <span class="attr">filter:</span></span><br><span class="line">        <span class="attr">enabled:</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">NodeResourcesFit</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">NodeAffinity</span></span><br><span class="line">        <span class="attr">disabled:</span></span><br><span class="line">          <span class="bullet">-</span> <span class="attr">name:</span> <span class="string">NodeName</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p><strong>自定义插件</strong>：编写 Go 代码实现接口</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> FilterPlugin <span class="keyword">interface</span> &#123;</span><br><span class="line">    Plugin</span><br><span class="line">    Filter(ctx context.Context, state *CycleState, pod *v1.Pod, nodeInfo *NodeInfo) *Status</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><strong>Scheduler Extender</strong>：通过 HTTP 调用外部服务（旧方式）</p>
+</li>
+</ol>
+<hr>
+<h3 id="11-3-故障排查题"><a href="#11-3-故障排查题" class="headerlink" title="11.3 故障排查题"></a>11.3 故障排查题</h3><h4 id="Q5-Pod-一直处于-Pending-状态，如何排查？"><a href="#Q5-Pod-一直处于-Pending-状态，如何排查？" class="headerlink" title="Q5: Pod 一直处于 Pending 状态，如何排查？"></a>Q5: Pod 一直处于 Pending 状态，如何排查？</h4><p><strong>答案</strong>：</p>
+<p><strong>排查步骤</strong>：</p>
+<pre><code class="highlight mermaid">flowchart TD
+    A[Pod Pending] --&gt; B[kubectl describe pod]
+    B --&gt; C&#123;查看 Events&#125;
+
+    C --&gt;|FailedScheduling| D[调度失败]
+    D --&gt; D1&#123;失败原因&#125;
+
+    D1 --&gt;|0/N nodes available| E[资源不足]
+    E --&gt; E1[增加节点/减少请求]
+    E --&gt; E2[检查节点资源]
+
+    D1 --&gt;|node(s) didn&#x27;t match| F[约束不匹配]
+    F --&gt; F1[检查 nodeSelector]
+    F --&gt; F2[检查 nodeAffinity]
+    F --&gt; F3[检查 taint/toleration]
+
+    D1 --&gt;|no volume plugin| G[存储问题]
+    G --&gt; G1[检查 PVC 状态]
+    G --&gt; G2[检查 StorageClass]
+
+    C --&gt;|无 Events| H[scheduler 问题]
+    H --&gt; H1[检查 scheduler Pod 状态]
+    H --&gt; H2[检查 scheduler 日志]</code></pre>
+
+<p><strong>诊断命令</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 1. 查看 Pod 事件</span></span><br><span class="line">kubectl describe pod &lt;pod-name&gt; -n &lt;namespace&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 2. 查看调度失败事件</span></span><br><span class="line">kubectl get events -A --field-selector reason=FailedScheduling</span><br><span class="line"></span><br><span class="line"><span class="comment"># 3. 检查节点资源</span></span><br><span class="line">kubectl describe nodes | grep -A 5 <span class="string">&quot;Allocated resources&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 4. 检查节点 taints</span></span><br><span class="line">kubectl get nodes -o custom-columns=NAME:.metadata.name,TAINTS:.spec.taints</span><br><span class="line"></span><br><span class="line"><span class="comment"># 5. 检查 scheduler 日志</span></span><br><span class="line">kubectl logs -n kube-system &lt;scheduler-pod&gt;</span><br></pre></td></tr></table></figure>
+
+<p><strong>常见原因及解决</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>原因</th>
+<th>症状</th>
+<th>解决方案</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>资源不足</td>
+<td>0&#x2F;N nodes are available</td>
+<td>增加节点&#x2F;减少 requests</td>
+</tr>
+<tr>
+<td>节点 taint</td>
+<td>node(s) had taints</td>
+<td>添加 toleration</td>
+</tr>
+<tr>
+<td>亲和性不匹配</td>
+<td>node(s) didn’t match affinity</td>
+<td>调整 nodeAffinity</td>
+</tr>
+<tr>
+<td>PVC 未绑定</td>
+<td>pod has unbound PVC</td>
+<td>检查 PV&#x2F;StorageClass</td>
+</tr>
+<tr>
+<td>scheduler 故障</td>
+<td>无调度事件</td>
+<td>检查 scheduler Pod</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="11-4-设计思想题"><a href="#11-4-设计思想题" class="headerlink" title="11.4 设计思想题"></a>11.4 设计思想题</h3><h4 id="Q6-为什么-Kubernetes-选择通过-API-Server-间接通信，而不是直接通信？"><a href="#Q6-为什么-Kubernetes-选择通过-API-Server-间接通信，而不是直接通信？" class="headerlink" title="Q6: 为什么 Kubernetes 选择通过 API Server 间接通信，而不是直接通信？"></a>Q6: 为什么 Kubernetes 选择通过 API Server 间接通信，而不是直接通信？</h4><p><strong>答案</strong>：</p>
+<p><strong>架构优势</strong>：</p>
+<ol>
+<li><p><strong>松耦合设计</strong></p>
+<ul>
+<li>scheduler、kubelet、controller-manager 可以独立部署</li>
+<li>组件升级互不影响</li>
+<li>支持多 scheduler 共存</li>
+</ul>
+</li>
+<li><p><strong>状态一致性</strong></p>
+<ul>
+<li>API Server + etcd 是唯一的状态存储</li>
+<li>避免分布式系统中的状态不一致问题</li>
+<li>所有组件通过 watch 获取一致的视图</li>
+</ul>
+</li>
+<li><p><strong>故障隔离</strong></p>
+<ul>
+<li>scheduler 宕机不影响已调度 Pod</li>
+<li>kubelet 宕机不影响调度器工作</li>
+<li>单点故障影响范围小</li>
+</ul>
+</li>
+<li><p><strong>可观测性</strong></p>
+<ul>
+<li>所有状态变化都记录在 API Server</li>
+<li>便于审计和调试</li>
+<li>支持事件回放</li>
+</ul>
+</li>
+</ol>
+<p><strong>权衡考虑</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>方面</th>
+<th>间接通信</th>
+<th>直接通信</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>延迟</td>
+<td>较高（多一跳）</td>
+<td>较低</td>
+</tr>
+<tr>
+<td>可靠性</td>
+<td>高（持久化）</td>
+<td>依赖连接</td>
+</tr>
+<tr>
+<td>扩展性</td>
+<td>好</td>
+<td>差</td>
+</tr>
+<tr>
+<td>复杂度</td>
+<td>中（watch 机制）</td>
+<td>低</td>
+</tr>
+<tr>
+<td>适用场景</td>
+<td>大规模分布式</td>
+<td>小规模集中式</td>
+</tr>
+</tbody></table>
+<p><strong>结论</strong>：对于 Kubernetes 的规模和场景，间接通信的优势远大于其带来的额外延迟。</p>
+<hr>
+<h4 id="Q7-调度器的高可用是如何实现的？"><a href="#Q7-调度器的高可用是如何实现的？" class="headerlink" title="Q7: 调度器的高可用是如何实现的？"></a>Q7: 调度器的高可用是如何实现的？</h4><p><strong>答案</strong>：</p>
+<p><strong>Kubernetes 调度器采用 Leader Election 机制实现高可用</strong>。</p>
+<p><strong>工作原理</strong>：</p>
+<pre><code class="highlight mermaid">sequenceDiagram
+    participant S1 as Scheduler-1
+    participant S2 as Scheduler-2
+    participant API as kube-apiserver
+    participant ETCD as etcd
+
+    Note over S1,S2: 多实例启动，竞争 Leader
+
+    S1-&gt;&gt;API: 尝试创建/更新 Lease
+    S2-&gt;&gt;API: 尝试创建/更新 Lease
+
+    alt S1 获得锁
+        API--&gt;&gt;S1: 成功，成为 Leader
+        API--&gt;&gt;S2: 失败，成为 Follower
+        S1-&gt;&gt;S1: 开始调度工作
+        S2-&gt;&gt;S2: 等待，定期重试
+    else S1 Lease 过期
+        API--&gt;&gt;S1: Lease 过期
+        S2-&gt;&gt;API: 尝试获取 Lease
+        API--&gt;&gt;S2: 成功，成为新 Leader
+    end</code></pre>
+
+<p><strong>配置方式</strong>：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># kube-scheduler 配置</span></span><br><span class="line"><span class="attr">leaderElection:</span></span><br><span class="line">  <span class="attr">leaderElect:</span> <span class="literal">true</span></span><br><span class="line">  <span class="attr">leaseDuration:</span> <span class="string">15s</span>      <span class="comment"># Lease 有效期</span></span><br><span class="line">  <span class="attr">renewDeadline:</span> <span class="string">10s</span>      <span class="comment"># 续约超时</span></span><br><span class="line">  <span class="attr">retryPeriod:</span> <span class="string">2s</span>         <span class="comment"># 重试间隔</span></span><br><span class="line">  <span class="attr">resourceLock:</span> <span class="string">leases</span>    <span class="comment"># 使用 Lease API</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>关键参数</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>默认值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>leaderElect</code></td>
+<td>true</td>
+<td>是否启用选举</td>
+</tr>
+<tr>
+<td><code>leaseDuration</code></td>
+<td>15s</td>
+<td>Leader 身份有效期</td>
+</tr>
+<tr>
+<td><code>renewDeadline</code></td>
+<td>10s</td>
+<td>续约必须在此时限内完成</td>
+</tr>
+<tr>
+<td><code>retryPeriod</code></td>
+<td>2s</td>
+<td>非 Leader 重试间隔</td>
+</tr>
+</tbody></table>
+<p><strong>故障切换时间</strong>：</p>
+<ul>
+<li>理论最长：<code>leaseDuration + retryPeriod</code> ≈ 17s</li>
+<li>实际通常：10-15s</li>
+</ul>
+<p><strong>代码实现</strong>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// staging/src/k8s.io/client-go/tools/leaderelection/leaderelection.go</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(le *LeaderElector)</span></span> Run(ctx context.Context) &#123;</span><br><span class="line">    <span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">        runtime.HandleCrash()</span><br><span class="line">        le.config.Callbacks.OnStoppedLeading(ctx)</span><br><span class="line">    &#125;()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> !le.acquire(ctx) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="comment">// 竞选失败</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    ctx, cancel := context.WithCancel(ctx)</span><br><span class="line">    <span class="keyword">defer</span> cancel()</span><br><span class="line">    <span class="keyword">go</span> le.config.Callbacks.OnStartedLeading(ctx)</span><br><span class="line">    le.renew(ctx) <span class="comment">// 持续续约</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<pre><code>
+</code></pre>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2026/03/22/cloud/k8s/Pod%E8%B0%83%E5%BA%A6%E4%B8%8E%E7%BB%91%E5%AE%9A%E6%B5%81%E7%A8%8B/">https://piwriw.github.io/2026/03/22/cloud/k8s/Pod调度与绑定流程/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/k8s/">k8s</a><a class="post-meta__tags" href="/tags/cloud/">cloud</a><a class="post-meta__tags" href="/tags/K8s%E6%BA%90%E7%A0%81/">K8s源码</a><a class="post-meta__tags" href="/tags/Pod/">Pod</a><a class="post-meta__tags" href="/tags/scheduler/">scheduler</a></div><div class="post-share"><div class="social-share" data-image="/img/k8sLogo.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2026/03/22/cloud/k8s/%E8%8A%82%E7%82%B9%E5%BF%83%E8%B7%B3%E4%B8%8E%E5%81%A5%E5%BA%B7%E6%B5%81%E7%A8%8B/" title="K8s-节点心跳与健康流程"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">K8s-节点心跳与健康流程</div></div><div class="info-2"><div class="info-item-1">节点心跳与健康状态通信流程目标这篇文档只回答一个核心问题：kubelet 如何把节点健康信号汇报给控制面，控制面又如何据此做出判断和后续动作？ 重点放在两类心跳信号的协作关系，以及控制面如何综合判断节点健康。 一句话摘要kubelet 周期性更新 NodeStatus 并续约 Lease；node lifecycle controller 通过 informer&#x2F;lister 观察 Node 与 Lease，综合判断节点健康，再触发 taint、Pod not-ready 传播与后续驱逐流程。  1. 流程总览从通信视角看，这条链路包含两类并行的心跳信号：  NodeStatus 心跳：携带节点条件（Ready、MemoryPressure 等）和容量信息。 Lease 心跳：轻量级的存活信号，用于快速检测节点失联。  控制面会综合这两类信号来判断节点健康状态。 Mermaid：总览图flowchart LR     A[Kubelet] --&gt; B[syncNodeStatus]     A --&gt; C[nodeLeaseController]     B...</div></div></div></a><a class="pagination-related" href="/2026/03/22/cloud/k8s/Pod%E5%9C%A8%E8%8A%82%E7%82%B9%E4%B8%8A%E5%AE%9E%E7%8E%B0%E6%B5%81%E7%A8%8B/" title="K8s-Pod在节点落地流程"><img class="cover" src="/img/k8sLogo.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">K8s-Pod在节点落地流程</div></div><div class="info-2"><div class="info-item-1">Pod 在节点落地通信流程目标这篇文档只回答一个核心问题：kubelet 如何把“期望运行”的 Pod 变成“真实运行”的容器？ 重点放在 kubelet 内部各组件之间的协作与 CRI 通信边界，而不是每一个 gRPC 字段的含义。 一句话摘要kubelet 收到 Pod 更新后，把期望态交给 podWorkers；podWorkers 驱动单 Pod 生命周期状态机，再由 kubeGenericRuntimeManager 通过 CRI 调用容器运行时完成 sandbox、镜像与容器操作。  1. 流程总览从通信视角看，这条链路可以拆成 3 个阶段：  更新接入阶段：kubelet 从 Pod source 收到属于本节点的 Pod 更新，并交给内部子系统。 状态机驱动阶段：podWorkers 根据当前状态决定执行同步、终止还是清理。 运行时执行阶段：runtime manager 通过 CRI 把操作翻译给容器运行时，完成 sandbox 和容器的创建&#x2F;销毁。  Mermaid：总览图flowchart LR     A[Pod update from sour...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2026/03/22/cloud/k8s/Pod%E5%9C%A8%E8%8A%82%E7%82%B9%E4%B8%8A%E5%AE%9E%E7%8E%B0%E6%B5%81%E7%A8%8B/" title="K8s-Pod在节点落地流程"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-22</div><div class="info-item-2">K8s-Pod在节点落地流程</div></div><div class="info-2"><div class="info-item-1">Pod 在节点落地通信流程目标这篇文档只回答一个核心问题：kubelet 如何把“期望运行”的 Pod 变成“真实运行”的容器？ 重点放在 kubelet 内部各组件之间的协作与 CRI 通信边界，而不是每一个 gRPC 字段的含义。 一句话摘要kubelet 收到 Pod 更新后，把期望态交给 podWorkers；podWorkers 驱动单 Pod 生命周期状态机，再由 kubeGenericRuntimeManager 通过 CRI 调用容器运行时完成 sandbox、镜像与容器操作。  1. 流程总览从通信视角看，这条链路可以拆成 3 个阶段：  更新接入阶段：kubelet 从 Pod source 收到属于本节点的 Pod 更新，并交给内部子系统。 状态机驱动阶段：podWorkers 根据当前状态决定执行同步、终止还是清理。 运行时执行阶段：runtime manager 通过 CRI 把操作翻译给容器运行时，完成 sandbox 和容器的创建&#x2F;销毁。  Mermaid：总览图flowchart LR     A[Pod update from sour...</div></div></div></a><a class="pagination-related" href="/2026/03/22/cloud/k8s/CSI%E5%8D%B7%E6%8C%82%E8%BD%BD%E6%B5%81%E7%A8%8B/" title="K8s-CSI卷挂载流程"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-22</div><div class="info-item-2">K8s-CSI卷挂载流程</div></div><div class="info-2"><div class="info-item-1">CSI 存储卷挂载通信流程目标这篇文档只回答一个核心问题：kubelet 如何通过 CSI (Container Storage Interface) 完成 Pod 存储卷的挂载？ 重点放在 VolumeManager 与 CSI driver 的交互，以及 attach&#x2F;mount 的完整流程。 一句话摘要kubelet 的 VolumeManager 通过 CSINode 和 CSIDriver 对象发现 CSI driver，然后通过 gRPC 调用 CSI driver 的 NodeStageVolume&#x2F;NodePublishVolume 完成卷的挂载。  1. 流程总览从通信视角看，这条链路可以拆成 3 个阶段：  卷准备阶段：CSI controller 完成 attach (对于块存储)。 节点挂载阶段：kubelet 通过 CSI driver 完成 stage 和 publish。 容器挂载阶段：kubelet 将卷 bind mount 到容器内。  架构总览图flowchart TB     subgraph 控制面[&quot;控制面...</div></div></div></a><a class="pagination-related" href="/2026/03/22/cloud/k8s/DNS%E8%A7%A3%E6%9E%90%E6%B5%81%E7%A8%8B/" title="K8s-DNS解析流程"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-22</div><div class="info-item-2">K8s-DNS解析流程</div></div><div class="info-2"><div class="info-item-1">DNS 解析流程本文档描述 Kubernetes 集群中 CoreDNS 如何解析 Service 到 Pod IP 的完整流程。 概述Kubernetes DNS 解析涉及以下核心组件：  CoreDNS：集群 DNS 服务器 kube-dns Service：指向 CoreDNS Pod 的 Service EndpointSlice：记录 CoreDNS Pod 的 IP 地址 Pod &#x2F;etc&#x2F;resolv.conf：Pod 内的 DNS 配置  flowchart TD     subgraph Pod[&quot;Pod (应用容器)&quot;]         A[&quot;应用发起 DNS 查询&quot;]         B[&quot;读取 /etc/resolv.conf&quot;]     end      subgraph CoreDNS[&quot;CoreDNS Pod&quot;]         C[&quot;CoreDNS 服务&quot;]         D[&quot;Watch API Server&quo...</div></div></div></a><a class="pagination-related" href="/2026/03/22/cloud/k8s/Deployment%E6%BB%9A%E5%8A%A8%E6%9B%B4%E6%96%B0%E6%B5%81%E7%A8%8B/" title="K8s-Deployment滚动更新流程"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-22</div><div class="info-item-2">K8s-Deployment滚动更新流程</div></div><div class="info-2"><div class="info-item-1">Deployment 滚动更新流程本文档描述 Kubernetes Deployment 如何通过 ReplicaSet Controller 管理滚动更新的完整流程。 概述Deployment 滚动更新涉及以下核心组件：  Deployment Controller：管理 Deployment 生命周期 ReplicaSet Controller：管理 Pod 副本数 API Server：存储和分发资源状态  flowchart TD     subgraph User[&quot;用户操作&quot;]         A[&quot;kubectl apply -f deployment.yaml&quot;]     end      subgraph APIServer[&quot;API Server&quot;]         B[&quot;Deployment 资源&quot;]         C[&quot;ReplicaSet 资源&quot;]         D[&quot;Pod 资源&quot;]     end      subgraph D...</div></div></div></a><a class="pagination-related" href="/2026/03/22/cloud/k8s/EndpointSlice%E6%8E%A7%E5%88%B6%E5%99%A8%E6%B5%81%E7%A8%8B/" title="K8s-EndpointSlice控制器流程"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-22</div><div class="info-item-2">K8s-EndpointSlice控制器流程</div></div><div class="info-2"><div class="info-item-1">EndpointSlice 控制器流程本文档描述 Kubernetes EndpointSlice 控制器如何让 Service 感知后端 Pod 变化的完整流程。 概述EndpointSlice 控制器负责：  监听 Service 和 Pod 变化 生成和管理 EndpointSlice 资源 记录 Service 后端 Pod 的 IP 地址和端口  flowchart TD     subgraph APIServer[&quot;API Server&quot;]         A[&quot;Service 资源&quot;]         B[&quot;Pod 资源&quot;]         C[&quot;EndpointSlice 资源&quot;]         D[&quot;Node 资源&quot;]     end      subgraph EndpointSliceController[&quot;EndpointSlice Controller&quot;]         E[&quot;Watch Service&quot;]  ...</div></div></div></a><a class="pagination-related" href="/2026/03/22/cloud/k8s/PVC%E4%BE%9B%E5%BA%94%E4%B8%8E%E7%BB%91%E5%AE%9A%E6%B5%81%E7%A8%8B/" title="K8s-PVC供应与绑定流程"><img class="cover" src="/img/k8sLogo.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-03-22</div><div class="info-item-2">K8s-PVC供应与绑定流程</div></div><div class="info-2"><div class="info-item-1">PVC 供应与绑定流程本文档描述 Kubernetes 中 PVC（PersistentVolumeClaim）、PV（PersistentVolume）和 StorageClass 的完整交互流程。 概述PVC 供应与绑定涉及以下核心组件：  PV Controller：管理 PV 和 PVC 的绑定 StorageClass：定义动态供应参数 Provisioner：实际创建存储卷（in-tree 或 CSI） Scheduler：处理 WaitForFirstConsumer 模式  flowchart TD     subgraph User[&quot;用户操作&quot;]         A[&quot;创建 PVC&quot;]     end      subgraph APIServer[&quot;API Server&quot;]         B[&quot;PVC 资源&quot;]         C[&quot;PV 资源&quot;]         D[&quot;StorageClass&quot;]     end      subgra...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">303</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">96</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Pod-%E8%B0%83%E5%BA%A6%E4%B8%8E%E7%BB%91%E5%AE%9A%E9%80%9A%E4%BF%A1%E6%B5%81%E7%A8%8B"><span class="toc-number">1.</span> <span class="toc-text">Pod 调度与绑定通信流程</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%9B%AE%E6%A0%87"><span class="toc-number">1.1.</span> <span class="toc-text">目标</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E5%8F%A5%E8%AF%9D%E6%91%98%E8%A6%81"><span class="toc-number">1.2.</span> <span class="toc-text">一句话摘要</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-%E6%B5%81%E7%A8%8B%E6%80%BB%E8%A7%88"><span class="toc-number">1.3.</span> <span class="toc-text">1. 流程总览</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Mermaid%EF%BC%9A%E6%80%BB%E8%A7%88%E5%9B%BE"><span class="toc-number">1.3.1.</span> <span class="toc-text">Mermaid：总览图</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AB%AF%E5%88%B0%E7%AB%AF%E6%9E%B6%E6%9E%84%E5%85%A8%E6%99%AF%E5%9B%BE"><span class="toc-number">1.3.2.</span> <span class="toc-text">端到端架构全景图</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%BB%84%E4%BB%B6%E9%80%9A%E4%BF%A1%E5%8D%8F%E8%AE%AE%E5%9B%BE"><span class="toc-number">1.3.3.</span> <span class="toc-text">组件通信协议图</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%BF%99%E5%BC%A0%E5%9B%BE%E6%83%B3%E8%A1%A8%E8%BE%BE%E4%BB%80%E4%B9%88"><span class="toc-number">1.3.4.</span> <span class="toc-text">这张图想表达什么</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-%E5%88%86%E9%98%B6%E6%AE%B5%E9%80%9A%E4%BF%A1%E6%B5%81%E7%A8%8B"><span class="toc-number">1.4.</span> <span class="toc-text">2. 分阶段通信流程</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%98%B6%E6%AE%B5%E4%B8%80%EF%BC%9Ascheduler-%E9%80%89%E8%8A%82%E7%82%B9"><span class="toc-number">1.4.1.</span> <span class="toc-text">阶段一：scheduler 选节点</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%B0%83%E5%BA%A6%E6%A1%86%E6%9E%B6%E6%89%A9%E5%B1%95%E7%82%B9%E6%B5%81%E7%A8%8B%E5%9B%BE"><span class="toc-number">1.4.1.1.</span> <span class="toc-text">调度框架扩展点流程图</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-1-1%EF%BC%9APod-%E8%BF%9B%E5%85%A5%E5%BE%85%E8%B0%83%E5%BA%A6%E9%98%9F%E5%88%97"><span class="toc-number">1.4.1.2.</span> <span class="toc-text">步骤 1.1：Pod 进入待调度队列</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-1-2%EF%BC%9Ascheduler-%E5%8F%96%E5%87%BA-Pod"><span class="toc-number">1.4.1.3.</span> <span class="toc-text">步骤 1.2：scheduler 取出 Pod</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-1-3%EF%BC%9A%E6%89%A7%E8%A1%8C%E9%A2%84%E8%BF%87%E6%BB%A4%EF%BC%88PreFilter%EF%BC%89"><span class="toc-number">1.4.1.4.</span> <span class="toc-text">步骤 1.3：执行预过滤（PreFilter）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-1-4%EF%BC%9A%E6%89%A7%E8%A1%8C%E8%BF%87%E6%BB%A4%EF%BC%88Filter%EF%BC%89"><span class="toc-number">1.4.1.5.</span> <span class="toc-text">步骤 1.4：执行过滤（Filter）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-1-5%EF%BC%9A%E6%89%A7%E8%A1%8C%E6%89%93%E5%88%86%EF%BC%88Score%EF%BC%89"><span class="toc-number">1.4.1.6.</span> <span class="toc-text">步骤 1.5：执行打分（Score）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-1-6%EF%BC%9A%E9%80%89%E6%8B%A9%E6%9C%80%E4%BC%98%E8%8A%82%E7%82%B9"><span class="toc-number">1.4.1.7.</span> <span class="toc-text">步骤 1.6：选择最优节点</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-1-7%EF%BC%9A%E6%9C%AC%E5%9C%B0-assume%EF%BC%88%E4%B9%90%E8%A7%82%E5%89%8D%E8%BF%9B%EF%BC%89"><span class="toc-number">1.4.1.8.</span> <span class="toc-text">步骤 1.7：本地 assume（乐观前进）</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%98%B6%E6%AE%B5%E4%BA%8C%EF%BC%9A%E9%80%9A%E8%BF%87-API-Server-%E5%AE%8C%E6%88%90%E7%BB%91%E5%AE%9A"><span class="toc-number">1.4.2.</span> <span class="toc-text">阶段二：通过 API Server 完成绑定</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-2-1%EF%BC%9A%E8%BF%9B%E5%85%A5%E7%BB%91%E5%AE%9A%E5%91%A8%E6%9C%9F%EF%BC%88bindingCycle%EF%BC%89"><span class="toc-number">1.4.2.1.</span> <span class="toc-text">步骤 2.1：进入绑定周期（bindingCycle）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-2-2%EF%BC%9A%E6%89%A7%E8%A1%8C-PreBind-%E6%8F%92%E4%BB%B6"><span class="toc-number">1.4.2.2.</span> <span class="toc-text">步骤 2.2：执行 PreBind 插件</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-2-3%EF%BC%9A%E6%89%A7%E8%A1%8C-Bind-%E6%8F%92%E4%BB%B6"><span class="toc-number">1.4.2.3.</span> <span class="toc-text">步骤 2.3：执行 Bind 插件</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-2-4%EF%BC%9AAPI-Server-%E6%8E%A5%E6%94%B6%E5%B9%B6%E6%A0%A1%E9%AA%8C%E8%AF%B7%E6%B1%82"><span class="toc-number">1.4.2.4.</span> <span class="toc-text">步骤 2.4：API Server 接收并校验请求</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-2-5%EF%BC%9A%E6%8C%81%E4%B9%85%E5%8C%96-spec-nodeName"><span class="toc-number">1.4.2.5.</span> <span class="toc-text">步骤 2.5：持久化 spec.nodeName</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-2-6%EF%BC%9A%E8%BF%94%E5%9B%9E%E7%BB%91%E5%AE%9A%E7%BB%93%E6%9E%9C"><span class="toc-number">1.4.2.6.</span> <span class="toc-text">步骤 2.6：返回绑定结果</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%98%B6%E6%AE%B5%E4%B8%89%EF%BC%9A%E7%9B%AE%E6%A0%87-kubelet-%E6%84%9F%E7%9F%A5%E5%88%B0-Pod"><span class="toc-number">1.4.3.</span> <span class="toc-text">阶段三：目标 kubelet 感知到 Pod</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Kubelet-%E5%86%85%E9%83%A8-Pod-%E5%A4%84%E7%90%86%E6%B5%81%E7%A8%8B%E5%9B%BE"><span class="toc-number">1.4.3.1.</span> <span class="toc-text">Kubelet 内部 Pod 处理流程图</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-3-1%EF%BC%9Akubelet-%E5%90%AF%E5%8A%A8%E6%97%B6%E6%B3%A8%E5%86%8C-apiserver-pod-source"><span class="toc-number">1.4.3.2.</span> <span class="toc-text">步骤 3.1：kubelet 启动时注册 apiserver pod source</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-3-2%EF%BC%9Aapiserver-pod-source-%E5%BC%80%E5%A7%8B-watch"><span class="toc-number">1.4.3.3.</span> <span class="toc-text">步骤 3.2：apiserver pod source 开始 watch</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-3-3%EF%BC%9A%E6%94%B6%E5%88%B0-Pod-%E6%9B%B4%E6%96%B0%E4%BA%8B%E4%BB%B6"><span class="toc-number">1.4.3.4.</span> <span class="toc-text">步骤 3.3：收到 Pod 更新事件</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-3-4%EF%BC%9A%E8%BF%87%E6%BB%A4%E5%B9%B6%E7%A1%AE%E8%AE%A4%E5%B1%9E%E4%BA%8E%E6%9C%AC%E8%8A%82%E7%82%B9"><span class="toc-number">1.4.3.5.</span> <span class="toc-text">步骤 3.4：过滤并确认属于本节点</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-3-5%EF%BC%9A%E9%80%81%E5%85%A5-update-channel"><span class="toc-number">1.4.3.6.</span> <span class="toc-text">步骤 3.5：送入 update channel</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-3-6%EF%BC%9ApodManager-%E6%9B%B4%E6%96%B0%E6%9C%AC%E5%9C%B0%E8%A7%86%E5%9B%BE"><span class="toc-number">1.4.3.7.</span> <span class="toc-text">步骤 3.6：podManager 更新本地视图</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-3-7%EF%BC%9ApodWorkers-%E6%8E%A5%E6%94%B6-UpdatePod"><span class="toc-number">1.4.3.8.</span> <span class="toc-text">步骤 3.7：podWorkers 接收 UpdatePod</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%B0%8F%E7%BB%93%EF%BC%9A%E8%BF%99%E6%9D%A1%E9%93%BE%E8%B7%AF%E7%9A%84-3-%E4%B8%AA%E5%85%B3%E9%94%AE%E9%80%9A%E4%BF%A1%E8%BE%B9%E7%95%8C"><span class="toc-number">1.4.4.</span> <span class="toc-text">小结：这条链路的 3 个关键通信边界</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-5-%E5%AE%8C%E6%95%B4%E6%B5%81%E7%A8%8B%E5%9B%BE"><span class="toc-number">1.5.</span> <span class="toc-text">2.5 完整流程图</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-6-%E4%B8%8E%E5%85%B6%E4%BB%96%E7%BB%84%E4%BB%B6%E7%9A%84%E4%BA%A4%E4%BA%92"><span class="toc-number">1.6.</span> <span class="toc-text">2.6 与其他组件的交互</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%8E-Controller-Manager-%E7%9A%84%E4%BA%A4%E4%BA%92"><span class="toc-number">1.6.1.</span> <span class="toc-text">与 Controller Manager 的交互</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%8E-CSI%EF%BC%88Container-Storage-Interface%EF%BC%89%E7%9A%84%E4%BA%A4%E4%BA%92"><span class="toc-number">1.6.2.</span> <span class="toc-text">与 CSI（Container Storage Interface）的交互</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%8E-Scheduler-Extender-%E7%9A%84%E4%BA%A4%E4%BA%92"><span class="toc-number">1.6.3.</span> <span class="toc-text">与 Scheduler Extender 的交互</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%8E-PriorityClass-%E7%9A%84%E4%BA%A4%E4%BA%92"><span class="toc-number">1.6.4.</span> <span class="toc-text">与 PriorityClass 的交互</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%8E-Descheduler-%E7%9A%84%E4%BA%A4%E4%BA%92"><span class="toc-number">1.6.5.</span> <span class="toc-text">与 Descheduler 的交互</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BA%A4%E4%BA%92%E6%80%BB%E7%BB%93%E8%A1%A8"><span class="toc-number">1.6.6.</span> <span class="toc-text">交互总结表</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-%E5%85%B3%E9%94%AE%E6%97%B6%E5%BA%8F%E5%9B%BE"><span class="toc-number">1.7.</span> <span class="toc-text">3. 关键时序图</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Mermaid%EF%BC%9A%E4%B8%BB%E6%97%B6%E5%BA%8F%E5%9B%BE"><span class="toc-number">1.7.1.</span> <span class="toc-text">Mermaid：主时序图</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%97%B6%E5%BA%8F%E5%9B%BE%E9%87%8C%E7%9A%84-3-%E4%B8%AA%E5%85%B3%E9%94%AE%E7%82%B9"><span class="toc-number">1.7.2.</span> <span class="toc-text">时序图里的 3 个关键点</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-%E5%BC%82%E5%B8%B8%E4%B8%8E%E5%88%86%E6%94%AF%E8%B7%AF%E5%BE%84"><span class="toc-number">1.8.</span> <span class="toc-text">4. 异常与分支路径</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Mermaid%EF%BC%9A%E5%BC%82%E5%B8%B8-%E5%88%86%E6%94%AF%E8%B7%AF%E5%BE%84%E5%9B%BE"><span class="toc-number">1.8.1.</span> <span class="toc-text">Mermaid：异常&#x2F;分支路径图</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%AF%BB%E8%BF%99%E5%BC%A0%E5%9B%BE%E6%97%B6%E8%A6%81%E5%85%B3%E6%B3%A8%E4%BB%80%E4%B9%88"><span class="toc-number">1.8.2.</span> <span class="toc-text">读这张图时要关注什么</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-%E8%BF%99%E4%B8%AA%E6%B5%81%E7%A8%8B%E9%87%8C%E8%B0%81%E8%B4%9F%E8%B4%A3%E4%BB%80%E4%B9%88"><span class="toc-number">1.9.</span> <span class="toc-text">5. 这个流程里谁负责什么</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-%E5%B8%B8%E8%A7%81%E8%AF%AF%E8%A7%A3"><span class="toc-number">1.10.</span> <span class="toc-text">6. 常见误解</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%AF%AF%E8%A7%A3-1%EF%BC%9Ascheduler-%E4%BC%9A%E7%9B%B4%E6%8E%A5%E6%8A%8A%E4%BB%BB%E5%8A%A1%E5%8F%91%E7%BB%99-kubelet"><span class="toc-number">1.10.1.</span> <span class="toc-text">误解 1：scheduler 会直接把任务发给 kubelet</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%AF%AF%E8%A7%A3-2%EF%BC%9APod-%E4%B8%80%E6%97%A6%E8%A2%AB%E9%80%89%E4%B8%AD%E8%8A%82%E7%82%B9%EF%BC%8C%E5%B0%B1%E7%AD%89%E4%BA%8E-kubelet-%E5%B7%B2%E7%BB%8F%E5%BC%80%E5%A7%8B%E5%A4%84%E7%90%86"><span class="toc-number">1.10.2.</span> <span class="toc-text">误解 2：Pod 一旦被选中节点，就等于 kubelet 已经开始处理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%AF%AF%E8%A7%A3-3%EF%BC%9Aassume-%E5%B0%B1%E6%98%AF%E6%9C%80%E7%BB%88%E7%BB%93%E6%9E%9C"><span class="toc-number">1.10.3.</span> <span class="toc-text">误解 3：assume 就是最终结果</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%AF%AF%E8%A7%A3-4%EF%BC%9A%E8%BF%99%E6%9D%A1%E9%93%BE%E8%B7%AF%E5%B7%B2%E7%BB%8F%E5%8C%85%E5%90%AB%E4%BA%86%E5%AE%B9%E5%99%A8%E5%88%9B%E5%BB%BA"><span class="toc-number">1.10.4.</span> <span class="toc-text">误解 4：这条链路已经包含了容器创建</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#7-%E7%89%88%E6%9C%AC%E5%B7%AE%E5%BC%82%E8%AF%B4%E6%98%8E"><span class="toc-number">1.11.</span> <span class="toc-text">7. 版本差异说明</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-27-%E2%86%92-1-28-%E5%8F%98%E5%8C%96"><span class="toc-number">1.11.1.</span> <span class="toc-text">1.27 → 1.28 变化</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-28-%E2%86%92-1-29-%E5%8F%98%E5%8C%96"><span class="toc-number">1.11.2.</span> <span class="toc-text">1.28 → 1.29 变化</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%90%91%E5%90%8E%E5%85%BC%E5%AE%B9%E6%80%A7"><span class="toc-number">1.11.3.</span> <span class="toc-text">向后兼容性</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%9C%80%E8%A6%81%E5%85%B3%E6%B3%A8%E7%9A%84%E5%BA%9F%E5%BC%83"><span class="toc-number">1.11.4.</span> <span class="toc-text">需要关注的废弃</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#7-%E4%B8%8E%E5%90%8E%E7%BB%AD%E6%96%87%E6%A1%A3%E7%9A%84%E5%85%B3%E7%B3%BB"><span class="toc-number">1.12.</span> <span class="toc-text">7. 与后续文档的关系</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#8-%E4%BB%A3%E7%A0%81%E5%85%A5%E5%8F%A3%EF%BC%88%E7%B2%BE%E7%AE%80%E7%89%88%EF%BC%89"><span class="toc-number">1.13.</span> <span class="toc-text">8. 代码入口（精简版）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#9-%E8%AF%A6%E7%BB%86%E6%97%B6%E5%BA%8F%E5%9B%BE"><span class="toc-number">1.14.</span> <span class="toc-text">9. 详细时序图</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#9-1-%E6%AD%A3%E5%B8%B8%E8%B0%83%E5%BA%A6%E7%BB%91%E5%AE%9A%E5%AE%8C%E6%95%B4%E6%97%B6%E5%BA%8F%E5%9B%BE"><span class="toc-number">1.14.1.</span> <span class="toc-text">9.1 正常调度绑定完整时序图</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#9-2-%E8%B0%83%E5%BA%A6%E5%A4%B1%E8%B4%A5%E9%87%8D%E8%AF%95%E6%97%B6%E5%BA%8F%E5%9B%BE"><span class="toc-number">1.14.2.</span> <span class="toc-text">9.2 调度失败重试时序图</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#9-3-%E6%8A%A2%E5%8D%A0%E8%B0%83%E5%BA%A6%E6%97%B6%E5%BA%8F%E5%9B%BE"><span class="toc-number">1.14.3.</span> <span class="toc-text">9.3 抢占调度时序图</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#10-%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5%E6%8C%87%E5%8D%97"><span class="toc-number">1.15.</span> <span class="toc-text">10. 故障排查指南</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#10-1-%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98%E4%B8%8E%E8%AF%8A%E6%96%AD%E6%96%B9%E6%B3%95"><span class="toc-number">1.15.1.</span> <span class="toc-text">10.1 常见问题与诊断方法</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%97%AE%E9%A2%98-1%EF%BC%9APod-%E4%B8%80%E7%9B%B4%E5%A4%84%E4%BA%8E-Pending-%E7%8A%B6%E6%80%81"><span class="toc-number">1.15.1.1.</span> <span class="toc-text">问题 1：Pod 一直处于 Pending 状态</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%97%AE%E9%A2%98-2%EF%BC%9A%E8%B0%83%E5%BA%A6%E5%BB%B6%E8%BF%9F%E8%BF%87%E9%AB%98"><span class="toc-number">1.15.1.2.</span> <span class="toc-text">问题 2：调度延迟过高</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%97%AE%E9%A2%98-3%EF%BC%9APod-%E7%BB%91%E5%AE%9A%E6%88%90%E5%8A%9F%E4%BD%86-kubelet-%E6%9C%AA%E5%A4%84%E7%90%86"><span class="toc-number">1.15.1.3.</span> <span class="toc-text">问题 3：Pod 绑定成功但 kubelet 未处理</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#10-2-%E5%85%B3%E9%94%AE%E6%97%A5%E5%BF%97%E5%85%B3%E9%94%AE%E8%AF%8D"><span class="toc-number">1.15.2.</span> <span class="toc-text">10.2 关键日志关键词</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#10-3-%E9%85%8D%E7%BD%AE%E5%8F%82%E6%95%B0%E5%8F%82%E8%80%83"><span class="toc-number">1.15.3.</span> <span class="toc-text">10.3 配置参数参考</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#10-4-%E4%B8%80%E9%94%AE%E8%AF%8A%E6%96%AD%E5%91%BD%E4%BB%A4"><span class="toc-number">1.15.4.</span> <span class="toc-text">10.4 一键诊断命令</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#11-%E9%9D%A2%E8%AF%95%E9%A2%98%E4%B8%8E%E8%AF%A6%E7%BB%86%E8%A7%A3%E7%AD%94"><span class="toc-number">1.16.</span> <span class="toc-text">11. 面试题与详细解答</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#11-1-%E5%9F%BA%E7%A1%80%E6%A6%82%E5%BF%B5%E9%A2%98"><span class="toc-number">1.16.1.</span> <span class="toc-text">11.1 基础概念题</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Q1-Kubernetes-%E8%B0%83%E5%BA%A6%E5%99%A8%E6%98%AF%E5%A6%82%E4%BD%95%E4%B8%BA-Pod-%E9%80%89%E6%8B%A9%E8%8A%82%E7%82%B9%E7%9A%84%EF%BC%9F"><span class="toc-number">1.16.1.1.</span> <span class="toc-text">Q1: Kubernetes 调度器是如何为 Pod 选择节点的？</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Q2-scheduler-%E5%92%8C-kubelet-%E4%B9%8B%E9%97%B4%E6%98%AF%E5%A6%82%E4%BD%95%E9%80%9A%E4%BF%A1%E7%9A%84%EF%BC%9F"><span class="toc-number">1.16.1.2.</span> <span class="toc-text">Q2: scheduler 和 kubelet 之间是如何通信的？</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#11-2-%E8%BF%9B%E9%98%B6%E5%8E%9F%E7%90%86%E9%A2%98"><span class="toc-number">1.16.2.</span> <span class="toc-text">11.2 进阶原理题</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Q3-%E4%BB%80%E4%B9%88%E6%98%AF-scheduler-%E7%9A%84-assume-%E6%9C%BA%E5%88%B6%EF%BC%9F%E4%B8%BA%E4%BB%80%E4%B9%88%E8%A6%81%E8%BF%99%E6%A0%B7%E8%AE%BE%E8%AE%A1%EF%BC%9F"><span class="toc-number">1.16.2.1.</span> <span class="toc-text">Q3: 什么是 scheduler 的 assume 机制？为什么要这样设计？</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Q4-%E8%B0%83%E5%BA%A6%E6%A1%86%E6%9E%B6-Scheduling-Framework-%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F%E5%A6%82%E4%BD%95%E6%89%A9%E5%B1%95%E8%B0%83%E5%BA%A6%E5%99%A8%EF%BC%9F"><span class="toc-number">1.16.2.2.</span> <span class="toc-text">Q4: 调度框架 (Scheduling Framework) 是什么？如何扩展调度器？</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#11-3-%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5%E9%A2%98"><span class="toc-number">1.16.3.</span> <span class="toc-text">11.3 故障排查题</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Q5-Pod-%E4%B8%80%E7%9B%B4%E5%A4%84%E4%BA%8E-Pending-%E7%8A%B6%E6%80%81%EF%BC%8C%E5%A6%82%E4%BD%95%E6%8E%92%E6%9F%A5%EF%BC%9F"><span class="toc-number">1.16.3.1.</span> <span class="toc-text">Q5: Pod 一直处于 Pending 状态，如何排查？</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#11-4-%E8%AE%BE%E8%AE%A1%E6%80%9D%E6%83%B3%E9%A2%98"><span class="toc-number">1.16.4.</span> <span class="toc-text">11.4 设计思想题</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Q6-%E4%B8%BA%E4%BB%80%E4%B9%88-Kubernetes-%E9%80%89%E6%8B%A9%E9%80%9A%E8%BF%87-API-Server-%E9%97%B4%E6%8E%A5%E9%80%9A%E4%BF%A1%EF%BC%8C%E8%80%8C%E4%B8%8D%E6%98%AF%E7%9B%B4%E6%8E%A5%E9%80%9A%E4%BF%A1%EF%BC%9F"><span class="toc-number">1.16.4.1.</span> <span class="toc-text">Q6: 为什么 Kubernetes 选择通过 API Server 间接通信，而不是直接通信？</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Q7-%E8%B0%83%E5%BA%A6%E5%99%A8%E7%9A%84%E9%AB%98%E5%8F%AF%E7%94%A8%E6%98%AF%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E7%9A%84%EF%BC%9F"><span class="toc-number">1.16.4.2.</span> <span class="toc-text">Q7: 调度器的高可用是如何实现的？</span></a></li></ol></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/03/26/cloud/arch/Kubernetes%E9%80%9A%E4%BF%A1%E9%93%BE%E8%B7%AF%E8%AF%A6%E7%BB%86%E5%88%86%E6%9E%90/" title="Kubernetes 通信链路详细分析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="Kubernetes 通信链路详细分析"/></a><div class="content"><a class="title" href="/2026/03/26/cloud/arch/Kubernetes%E9%80%9A%E4%BF%A1%E9%93%BE%E8%B7%AF%E8%AF%A6%E7%BB%86%E5%88%86%E6%9E%90/" title="Kubernetes 通信链路详细分析">Kubernetes 通信链路详细分析</a><time datetime="2026-03-26T13:15:00.000Z" title="发表于 2026-03-26 21:15:00">2026-03-26</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-API%20Server%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="kube-apiserver 深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="kube-apiserver 深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-API%20Server%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="kube-apiserver 深度剖析">kube-apiserver 深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-etcd%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="etcd 深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="etcd 深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-etcd%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="etcd 深度剖析">etcd 深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-%E5%AD%98%E5%82%A8%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="存储架构深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="存储架构深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-%E5%AD%98%E5%82%A8%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="存储架构深度剖析">存储架构深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-kubelet%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="Kubelet 深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="Kubelet 深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-kubelet%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="Kubelet 深度剖析">Kubelet 深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script src="/js/reading-progress.js"></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

@@ -1,0 +1,306 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Go-Options模式 | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="Go-Options模式Options模式Options模式可以让具有多个可选参数的函数或者方法更整洁和好扩展，当一个函数具有五六个甚至十个以上的可选参数时使用这种模式的优势会体现的很明显 问题当我们发送一个Http请求，可能需要携带很多参数。比如： 1func HttpRequest(method string, url string, body []byte, headers map[stri">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go-Options模式">
+<meta property="og:url" content="https://piwriw.github.io/2024/10/11/basic/go/Go-Options%E6%A8%A1%E5%BC%8F/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="Go-Options模式Options模式Options模式可以让具有多个可选参数的函数或者方法更整洁和好扩展，当一个函数具有五六个甚至十个以上的可选参数时使用这种模式的优势会体现的很明显 问题当我们发送一个Http请求，可能需要携带很多参数。比如： 1func HttpRequest(method string, url string, body []byte, headers map[stri">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/go.png">
+<meta property="article:published_time" content="2024-10-11T11:57:51.000Z">
+<meta property="article:modified_time" content="2026-03-26T15:28:20.104Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="go">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/go.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Go-Options模式",
+  "url": "https://piwriw.github.io/2024/10/11/basic/go/Go-Options%E6%A8%A1%E5%BC%8F/",
+  "image": "https://piwriw.github.io/img/go.png",
+  "datePublished": "2024-10-11T11:57:51.000Z",
+  "dateModified": "2026-03-26T15:28:20.104Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Joohwan.",
+      "url": "https://github.com/Piwriw"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/2024/10/11/basic/go/Go-Options%E6%A8%A1%E5%BC%8F/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          const hour = new Date().getHours()
+          const isNight = hour <= 6 || hour >= 18
+          if (theme === undefined) isNight ? activateDarkMode() : activateLightMode()
+          else theme === 'light' ? activateLightMode() : activateDarkMode()
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '天',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Go-Options模式',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">303</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">96</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/go.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a><a class="nav-page-title" href="/"><span class="site-name">Go-Options模式</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">Go-Options模式</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2024-10-11T11:57:51.000Z" title="发表于 2024-10-11 19:57:51">2024-10-11</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-03-26T15:28:20.104Z" title="更新于 2026-03-26 23:28:20">2026-03-26</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/basic/">basic</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/basic/go/">go</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">686</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>2分钟</span></span><span class="post-meta-separator">|</span><span id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="twikoo_visitors"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div id="post-outdate-notice" data="{&quot;limitDay&quot;:365,&quot;messagePrev&quot;:&quot;It has been&quot;,&quot;messageNext&quot;:&quot;days since the last update, the content of the article may be outdated.&quot;,&quot;postUpdate&quot;:&quot;2026-03-26 23:28:20&quot;}" hidden></div><h1 id="Go-Options模式"><a href="#Go-Options模式" class="headerlink" title="Go-Options模式"></a>Go-Options模式</h1><h2 id="Options模式"><a href="#Options模式" class="headerlink" title="Options模式"></a>Options模式</h2><p>Options模式可以让具有多个可选参数的函数或者方法更整洁和好扩展，当一个函数具有五六个甚至十个以上的可选参数时使用这种模式的优势会体现的很明显</p>
+<h2 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h2><p>当我们发送一个Http请求，可能需要携带很多参数。比如：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">HttpRequest</span><span class="params">(method <span class="type">string</span>, url <span class="type">string</span>, body []<span class="type">byte</span>, headers <span class="keyword">map</span>[<span class="type">string</span>]<span class="type">string</span>, timeout time.Duration)</span></span> </span><br></pre></td></tr></table></figure>
+
+<p>有的时候又可能有些参数是不需要的,所以可能变成了：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">HttpRequest(<span class="string">&#x27;GET&#x27;</span>, <span class="string">&#x27;https://www.baidu.com&#x27;</span>, <span class="literal">nil</span>, <span class="literal">nil</span>, <span class="number">2</span> * time.Second)</span><br></pre></td></tr></table></figure>
+
+<h3 id="解决办法一-把配置全转换为结构体对象"><a href="#解决办法一-把配置全转换为结构体对象" class="headerlink" title="解决办法一:把配置全转换为结构体对象"></a>解决办法一:把配置全转换为结构体对象</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> HttpClientConfig <span class="keyword">struct</span> &#123;</span><br><span class="line">  timeout time.Duration</span><br><span class="line">  headers <span class="keyword">map</span>[<span class="type">string</span>]<span class="type">string</span></span><br><span class="line">  body    []<span class="type">byte</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">HttpRequest</span><span class="params">(method <span class="type">string</span>, url <span class="type">string</span>, config *HttpClientConfig)</span></span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>不足</p>
+</blockquote>
+<p>但是对于函数的实现方来说，仍然少不了那些选项参数非零值的判断，而且因为配置对象在函数外部可以改变，这就有一定几率配置对象在函数内部未被使用前被外部程序改变，真正发生了相关的<code>BUG</code>，排查起来会比较头</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">HttpRequest(<span class="string">&#x27;GET&#x27;</span>, <span class="string">&#x27;https://www.baidu.com&#x27;</span>, <span class="literal">nil</span>)</span><br></pre></td></tr></table></figure>
+
+<h3 id="解决办法二-可变参数方案的问题"><a href="#解决办法二-可变参数方案的问题" class="headerlink" title="解决办法二-:可变参数方案的问题"></a>解决办法二-:可变参数方案的问题</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">HttpRequest</span><span class="params">(method <span class="type">string</span>, url <span class="type">string</span>, options ...<span class="keyword">interface</span>&#123;&#125;)</span></span></span><br></pre></td></tr></table></figure>
+
+<p>虽然参数是可变的，但是实现方需要通过遍历设置HTTP客户端的不同选项，这就让可变参数固定了传递顺序，调用方如果想要设置某个可选项还得记住参数顺序，切无法直接通过函数签名就确定参数顺序，貌似还不如咱们最原始的解决方案。</p>
+<h3 id="解决办法三-使用Options模式的方案"><a href="#解决办法三-使用Options模式的方案" class="headerlink" title="解决办法三-使用Options模式的方案"></a>解决办法三-使用Options模式的方案</h3><ol>
+<li>设置原始的参数</li>
+</ol>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 针对可选的HTTP请求配置项，模仿gRPC使用的Options设计模式实现</span></span><br><span class="line"><span class="keyword">type</span> requestOption <span class="keyword">struct</span> &#123;</span><br><span class="line"> timeout time.Duration</span><br><span class="line"> data    <span class="type">string</span></span><br><span class="line"> headers <span class="keyword">map</span>[<span class="type">string</span>]<span class="type">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Option <span class="keyword">struct</span> &#123;</span><br><span class="line"> apply <span class="function"><span class="keyword">func</span><span class="params">(option *requestOption)</span></span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">defaultRequestOptions</span><span class="params">()</span></span> *requestOption &#123;</span><br><span class="line"> <span class="keyword">return</span> &amp;requestOption&#123; <span class="comment">// 默认请求选项</span></span><br><span class="line">  timeout: <span class="number">5</span> * time.Second,</span><br><span class="line">  data:    <span class="string">&quot;&quot;</span>,</span><br><span class="line">  headers: <span class="literal">nil</span>,</span><br><span class="line"> &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol start="2">
+<li><p>接下来我们要定义的<code>配置函数</code>，每个都会设置请求配置对象里的某一个配置</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">WithTimeout</span><span class="params">(timeout time.Duration)</span></span> *Option &#123;</span><br><span class="line"> <span class="keyword">return</span> &amp;Option&#123;</span><br><span class="line">  apply: <span class="function"><span class="keyword">func</span><span class="params">(option *requestOption)</span></span> &#123;</span><br><span class="line">   option.timeout = timeout</span><br><span class="line">  &#125;,</span><br><span class="line"> &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">WithData</span><span class="params">(data <span class="type">string</span>)</span></span> *Option &#123;</span><br><span class="line"> <span class="keyword">return</span> &amp;Option&#123;</span><br><span class="line">  apply: <span class="function"><span class="keyword">func</span><span class="params">(option *requestOption)</span></span> &#123;</span><br><span class="line">   option.data = data</span><br><span class="line">  &#125;,</span><br><span class="line"> &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>定义func</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">HttpRequest</span><span class="params">(method <span class="type">string</span>, url <span class="type">string</span>, options ...*Option)</span></span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>实现func的参数配置</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">httpRequest</span><span class="params">(method <span class="type">string</span>, url <span class="type">string</span>, options ...*Option)</span></span> &#123;</span><br><span class="line"> reqOpts := defaultRequestOptions() <span class="comment">// 默认的请求选项</span></span><br><span class="line">    <span class="comment">// 实现了options的配置</span></span><br><span class="line"> <span class="keyword">for</span> _, opt := <span class="keyword">range</span> options &#123;      <span class="comment">// 在reqOpts上应用通过options设置的选项</span></span><br><span class="line">  opt.apply(reqOpts)</span><br><span class="line"> &#125;</span><br><span class="line"> <span class="comment">// 创建请求对象</span></span><br><span class="line"> req, err := http.NewRequest(method, url, strings.NewReader(reqOpts.data))</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 设置请求头</span></span><br><span class="line"> <span class="keyword">for</span> key, value := <span class="keyword">range</span> reqOpts.headers &#123;</span><br><span class="line">   req.Header.Add(key, value)</span><br><span class="line"> &#125;</span><br><span class="line"> <span class="comment">// 发起请求</span></span><br><span class="line">  ......</span><br><span class="line"></span><br><span class="line"> <span class="keyword">return</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ol>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/Piwriw">Joohwan.</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://piwriw.github.io/2024/10/11/basic/go/Go-Options%E6%A8%A1%E5%BC%8F/">https://piwriw.github.io/2024/10/11/basic/go/Go-Options模式/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://piwriw.github.io" target="_blank">Joohwan</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/go/">go</a></div><div class="post-share"><div class="social-share" data-image="/img/go.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i>赞助</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/img/alipay.jpg" target="_blank"><img class="post-qr-code-img" src="/img/alipay.jpg" alt="alipay"/></a><div class="post-qr-code-desc">alipay</div></li></ul></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2024/10/15/basic/go/%E5%AE%B9%E5%99%A8%E7%8E%AF%E5%A2%83-GOMAXPROCS%E5%8F%82%E6%95%B0%E8%AE%BE%E7%BD%AE/" title="容器环境-GOMAXPROCS参数设置"><img class="cover" src="/img/golang.png" onerror="onerror=null;src='/img/404.png'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">容器环境-GOMAXPROCS参数设置</div></div><div class="info-2"><div class="info-item-1">容器环境-GOMAXPROCS参数设置  GOMAXPROCS通过设定 GOMAXPROCS，用户可以调整调度器中 Processor（简称P）的数量。由于每个系统线程，必须要绑定 P ，P 才能把G交给 M 执行。所以 P 的数量会很大程度上影响 Go Runtime 的并发表现。GOMAXPROCS 在版本 1.5后的默认值是机器的 CPU 核数 （runtime.NumCPU） 设置GOMAXPROCS1234567891011121314package mainimport (    &quot;fmt&quot;    &quot;runtime&quot;)func main() &#123;    n := runtime.NumCPU() // 获取机器的CPU核心数    fmt.Printf(&quot;NumCPU: %d\n&quot;, n)    if n &gt; 0 &#123;       runtime.GOMAXPROCS(n) // 设置GOMAXPROCS为CPU核心数    &#125;&#125;   容器内运行输出的是宿主机的CPU...</div></div></div></a><a class="pagination-related" href="/2024/10/07/cloud/prometheus/Prometheus%E6%BA%90%E7%A0%81%E5%AD%98%E5%82%A8%E6%8C%87%E6%A0%87/" title="Prometheus源码:存储指标"><img class="cover" src="/img/prometheus.png" onerror="onerror=null;src='/img/404.png'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">Prometheus源码:存储指标</div></div><div class="info-2"><div class="info-item-1">Prometheus源码:存储指标 基于release-3.0  存储指标结构1234567891011121314151617181920212223242526272829// File Path: scrape/scrapetype scrapeCache struct &#123;    // 被缓存的批次数	iter uint64 // Current scrape iteration.	    // 上次成功时有多少序列和元数据条目。	// How many series and metadata entries there were at the last success.	successfulCount int	// Parsed string to an entry with information about the actual label set	// and its storage reference.	series map[string]*cacheEntry	// Cache of dropped metric strings and their i...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2025/08/22/basic/go/Gorm-Open(DB%E8%BF%9E%E6%8E%A5%E4%B8%8E%E9%85%8D%E7%BD%AE)/" title="Gorm-Open（DB连接与配置）"><img class="cover" src="/img/go.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-08-22</div><div class="info-item-2">Gorm-Open（DB连接与配置）</div></div><div class="info-2"><div class="info-item-1">Gorm-Open（DB连接与配置） 基于1.31.0  工作原理graph TD     A[Open&lt;br/&gt;打开数据库连接] --&gt; B[Initialize Config&lt;br/&gt;初始化配置]     B --&gt; C[Initialize Dialector&lt;br/&gt;初始化数据库方言]     C --&gt; D[Setup Connection Pool&lt;br/&gt;设置连接池]     D --&gt; E[Setup Callbacks&lt;br/&gt;设置回调]     E --&gt; F[Ping Database&lt;br/&gt;连接数据库测试]     F --&gt; G[DB Instance Ready&lt;br/&gt;数据库实例就绪]          G --&gt; H[Session&lt;br/&gt;创建会话]     H --&gt; I[Create New Session&lt;br/&gt;创建新会话]     I --&gt; J[Apply Session ...</div></div></div></a><a class="pagination-related" href="/2025/08/20/basic/go/Gin-%E9%A1%B9%E7%9B%AE%E5%88%9D%E5%A7%8B%E5%8C%96(New)/" title="Gin-项目初始化（New）"><img class="cover" src="/img/go.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-08-20</div><div class="info-item-2">Gin-项目初始化（New）</div></div><div class="info-2"><div class="info-item-1">Gin-项目初始化（New） 基于1.10.0  工作原理Engine核心结构体graph TD     A[Engine] --&gt; B[RouterGroup]     A --&gt; C[trees: methodTrees]     A --&gt; D[pool: sync.Pool]     A --&gt; E[HTMLRender]     A --&gt; F[配置选项]          F --&gt; F1[RedirectTrailingSlash]     F --&gt; F2[RedirectFixedPath]     F --&gt; F3[HandleMethodNotAllowed]     F --&gt; F4[ForwardedByClientIP]     F --&gt; F5[UseH2C]   路由注册流程graph TD     A[AddRoute] --&gt; B&#123;检查路径和方法&#125;     B --&gt; C[获取对应method的tree]     C --&gt; D[创建新node如果...</div></div></div></a><a class="pagination-related" href="/2025/03/21/basic/go/Go-%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Sort/" title="GO-深入理解Sort"><img class="cover" src="/img/go.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-03-21</div><div class="info-item-2">GO-深入理解Sort</div></div><div class="info-2"><div class="info-item-1">GO-深入理解SortGo 语言的 sort 包提供了对切片和用户自定义集合进行排序的功能。它的设计非常灵活，支持多种数据类型的排序，并且允许用户通过实现接口来自定义排序规则。以下是对 sort 包的深入解析，包括其核心接口、实现原理以及使用方法 核心接口12345678910type Interface interface &#123;    // Len 返回集合中的元素数量    Len() int    // Less 返回索引为 i 的元素是否应该排在索引为 j 的元素之前    Less(i, j int) bool    // Swap 交换索引为 i 和 j 的元素    Swap(i, j int)&#125;  排序函数sort.Sort 对实现了 sort.Interface 接口的类型进行排序  exmaple： 12345678910111213141516171819202122232425262728package mainimport (	&quot;fmt&quot;	&quot;sort&quot;)type Person struct &#1...</div></div></div></a><a class="pagination-related" href="/2024/10/15/basic/go/%E5%AE%B9%E5%99%A8%E7%8E%AF%E5%A2%83-GOMAXPROCS%E5%8F%82%E6%95%B0%E8%AE%BE%E7%BD%AE/" title="容器环境-GOMAXPROCS参数设置"><img class="cover" src="/img/golang.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-10-15</div><div class="info-item-2">容器环境-GOMAXPROCS参数设置</div></div><div class="info-2"><div class="info-item-1">容器环境-GOMAXPROCS参数设置  GOMAXPROCS通过设定 GOMAXPROCS，用户可以调整调度器中 Processor（简称P）的数量。由于每个系统线程，必须要绑定 P ，P 才能把G交给 M 执行。所以 P 的数量会很大程度上影响 Go Runtime 的并发表现。GOMAXPROCS 在版本 1.5后的默认值是机器的 CPU 核数 （runtime.NumCPU） 设置GOMAXPROCS1234567891011121314package mainimport (    &quot;fmt&quot;    &quot;runtime&quot;)func main() &#123;    n := runtime.NumCPU() // 获取机器的CPU核心数    fmt.Printf(&quot;NumCPU: %d\n&quot;, n)    if n &gt; 0 &#123;       runtime.GOMAXPROCS(n) // 设置GOMAXPROCS为CPU核心数    &#125;&#125;   容器内运行输出的是宿主机的CPU...</div></div></div></a><a class="pagination-related" href="/2024/09/15/basic/go/GO-%E6%B7%B1%E6%8B%B7%E8%B4%9D/" title="GO-深拷贝"><img class="cover" src="/img/go.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-09-15</div><div class="info-item-2">GO-深拷贝</div></div><div class="info-2"><div class="info-item-1">GO-深拷贝复习在 Go 语言中，所有的函数参数传递都是值传递（pass by value），当将参数传递给函数时，实际上是将参数的副本传递给函数。 然而，这并不意味着在函数内部对参数的修改都不会影响原始数据。因为在 Go 中，有些数据类型本身就是引用类型，比如切片（slice）、映射（map）、通道（channel）、接口（interface）和指针（pointer）。当这些类型作为参数传递给函数时，虽然传递的是值，但值本身就是一个引用 代码陷阱切片是结构 预期：Before和After是一样的值，因为参数传递都是值传递  123456789101112131415161718192021222324252627282930package mainimport (	&quot;fmt&quot;	&quot;strconv&quot;)type Person struct &#123;	Name    string	Age     int	Address []string&#125;func changepeople(people []Person) &#123;	people...</div></div></div></a><a class="pagination-related" href="/2024/09/01/basic/go/%E7%BB%93%E6%9E%84%E5%9E%8B%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E8%A3%85%E9%A5%B0%E5%99%A8%E6%A8%A1%E5%BC%8F/" title="结构型模式-装饰器模式"><img class="cover" src="/img/design_pattens.png" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-09-01</div><div class="info-item-2">结构型模式-装饰器模式</div></div><div class="info-2"><div class="info-item-1">结构型模式-装饰器模式什么是装饰器模式装饰是一种结构型设计模式， 允许你通过将对象放入包含行为的特殊封装对象中来为原对象绑定新的行为   部件（Component）声明封装器和被封装对象的公用接口 具体部件（Concrete Component）类是被封装对象所属的类。 它定义了基础行为，但装饰类可以改变这些行为 基础装饰（Base Decorator）类拥有一个指向被封装对象的引 用成员变量。该变量的类型应当被声明为通用部件接口，这 样它就可以引用具体的部件和装饰。装饰基类会将所有操作 委派给被封装的对象 具体装饰类（Concrete Decorators）定义了可动态添加到部 件的额外行为。具体装饰类会重写装饰基类的方法，并在调 用父类方法之前或之后进行额外的行为 客户端（Client）可以使用多层装饰来封装部件，只要它能 使用通用接口与所有对象互动即可  Example零件接口12345package maintype IPizza interface &#123;    getPrice() int&#125;  具体零件12345678package maintype ...</div></div></div></a></div></div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">303</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">96</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Go-Options%E6%A8%A1%E5%BC%8F"><span class="toc-number">1.</span> <span class="toc-text">Go-Options模式</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#Options%E6%A8%A1%E5%BC%8F"><span class="toc-number">1.1.</span> <span class="toc-text">Options模式</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%97%AE%E9%A2%98"><span class="toc-number">1.2.</span> <span class="toc-text">问题</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%A7%A3%E5%86%B3%E5%8A%9E%E6%B3%95%E4%B8%80-%E6%8A%8A%E9%85%8D%E7%BD%AE%E5%85%A8%E8%BD%AC%E6%8D%A2%E4%B8%BA%E7%BB%93%E6%9E%84%E4%BD%93%E5%AF%B9%E8%B1%A1"><span class="toc-number">1.2.1.</span> <span class="toc-text">解决办法一:把配置全转换为结构体对象</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%A7%A3%E5%86%B3%E5%8A%9E%E6%B3%95%E4%BA%8C-%E5%8F%AF%E5%8F%98%E5%8F%82%E6%95%B0%E6%96%B9%E6%A1%88%E7%9A%84%E9%97%AE%E9%A2%98"><span class="toc-number">1.2.2.</span> <span class="toc-text">解决办法二-:可变参数方案的问题</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%A7%A3%E5%86%B3%E5%8A%9E%E6%B3%95%E4%B8%89-%E4%BD%BF%E7%94%A8Options%E6%A8%A1%E5%BC%8F%E7%9A%84%E6%96%B9%E6%A1%88"><span class="toc-number">1.2.3.</span> <span class="toc-text">解决办法三-使用Options模式的方案</span></a></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/03/26/cloud/arch/Kubernetes%E9%80%9A%E4%BF%A1%E9%93%BE%E8%B7%AF%E8%AF%A6%E7%BB%86%E5%88%86%E6%9E%90/" title="Kubernetes 通信链路详细分析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="Kubernetes 通信链路详细分析"/></a><div class="content"><a class="title" href="/2026/03/26/cloud/arch/Kubernetes%E9%80%9A%E4%BF%A1%E9%93%BE%E8%B7%AF%E8%AF%A6%E7%BB%86%E5%88%86%E6%9E%90/" title="Kubernetes 通信链路详细分析">Kubernetes 通信链路详细分析</a><time datetime="2026-03-26T13:15:00.000Z" title="发表于 2026-03-26 21:15:00">2026-03-26</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-API%20Server%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="kube-apiserver 深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="kube-apiserver 深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-API%20Server%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="kube-apiserver 深度剖析">kube-apiserver 深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-etcd%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="etcd 深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="etcd 深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-etcd%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="etcd 深度剖析">etcd 深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-%E5%AD%98%E5%82%A8%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="存储架构深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="存储架构深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-%E5%AD%98%E5%82%A8%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="存储架构深度剖析">存储架构深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-kubelet%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="Kubelet 深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="Kubelet 深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-kubelet%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="Kubelet 深度剖析">Kubelet 深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script src="/js/reading-progress.js"></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

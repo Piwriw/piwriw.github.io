@@ -1,0 +1,420 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Joohwan | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="FIELD NOTES &#x2F; 个人档案       一份持续更新的工作手册       我在代码与文字之间工作：用 Go 写服务，用云原生理解系统，也用诗记录那些暂时没有答案的部分。                           访问 GitHub                             写一封邮件">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Joohwan">
+<meta property="og:url" content="https://piwriw.github.io/about/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="FIELD NOTES &#x2F; 个人档案       一份持续更新的工作手册       我在代码与文字之间工作：用 Go 写服务，用云原生理解系统，也用诗记录那些暂时没有答案的部分。                           访问 GitHub                             写一封邮件">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/avatar.jpg">
+<meta property="article:published_time" content="2023-06-26T10:50:47.000Z">
+<meta property="article:modified_time" content="2026-07-21T14:26:53.547Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="Joohwan">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/avatar.jpg"><script type="application/ld+json"></script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/about/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          const hour = new Date().getHours()
+          const isNight = hour <= 6 || hour >= 18
+          if (theme === undefined) isNight ? activateDarkMode() : activateLightMode()
+          else theme === 'light' ? activateLightMode() : activateDarkMode()
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":true},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '天',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Joohwan',
+  isHighlightShrink: false,
+  isToc: false,
+  pageType: 'page'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">303</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">96</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="page type-about" id="body-wrap"><header class="not-home-page" id="page-header"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a></span><div id="menus"><button id="search-button" type="button" aria-label="搜索" aria-haspopup="dialog"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></button><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><button id="toggle-menu" type="button" aria-label="打开导航菜单" aria-controls="sidebar-menus" aria-expanded="false"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></button></div></nav><div id="page-site-info"><h1 id="site-title">Joohwan</h1></div></header><main class="layout hide-aside" id="content-inner"><div id="page"><div class="container" id="article-container"><link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Fira+Sans:wght@400;500;600;700&family=Newsreader:wght@500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/about.css?v=20260719-motion-7">
+
+<main class="about-container" id="about-root">
+  <section class="about-intro about-reveal" id="about-intro" aria-labelledby="about-intro-title">
+    <div class="about-intro-copy">
+      <p class="about-kicker">FIELD NOTES / 个人档案</p>
+      <h2 id="about-intro-title">一份持续更新的<br><em>工作手册</em></h2>
+      <p class="about-lede">我在代码与文字之间工作：用 Go 写服务，用云原生理解系统，也用诗记录那些暂时没有答案的部分。</p>
+      <div class="about-actions">
+        <a class="about-button about-button-primary" href="https://github.com/Piwriw" target="_blank" rel="noopener noreferrer">
+          <i class="fab fa-github" aria-hidden="true"></i><span>访问 GitHub</span>
+        </a>
+        <a class="about-button" href="mailto:piwriw@163.com">
+          <i class="fas fa-envelope" aria-hidden="true"></i><span>写一封邮件</span>
+        </a>
+      </div>
+      <dl class="about-identity" aria-label="个人概览">
+        <div><dt>ROLE</dt><dd>Backend / Go</dd></div>
+        <div><dt>FOCUS</dt><dd>Cloud Native</dd></div>
+        <div><dt>MODE</dt><dd>Build · Write</dd></div>
+      </dl>
+    </div>
+    <figure class="about-portrait">
+      <img src="/img/avatar.jpg" alt="Joohwan 在电脑前工作" width="640" height="640" decoding="async">
+      <figcaption><span>JO · 2026</span><span>杭州 / 中国</span></figcaption>
+    </figure>
+  </section>
+
+  <nav class="about-section-nav" aria-label="关于我章节">
+    <span class="about-section-nav-label"><i aria-hidden="true"></i>INDEX</span>
+    <div class="about-section-nav-links">
+      <a href="#about-manifesto" data-about-section="about-manifesto"><small>01</small><span>宣言</span></a>
+      <a href="#about-path" data-about-section="about-path"><small>02</small><span>方法</span></a>
+      <a href="#about-focus" data-about-section="about-focus"><small>03</small><span>关注</span></a>
+      <a href="#about-stack" data-about-section="about-stack"><small>04</small><span>技术栈</span></a>
+      <a href="#about-library" data-about-section="about-library"><small>05</small><span>档案馆</span></a>
+      <a href="#about-contact" data-about-section="about-contact"><small>06</small><span>联系</span></a>
+    </div>
+  </nav>
+
+  <section class="about-manifesto about-reveal" id="about-manifesto" aria-labelledby="about-manifesto-title">
+    <div class="about-section-label"><span>01</span><span>MANIFESTO</span></div>
+    <div>
+      <h2 id="about-manifesto-title">You Only Live Once.</h2>
+      <p>所以认真写下正在学习的东西，也认真对待每一次重构、每一段关系和每一个还没有被说清楚的念头。</p>
+    </div>
+  </section>
+
+  <section class="about-path about-reveal" id="about-path" aria-labelledby="about-path-title">
+    <div class="about-section-heading">
+      <p class="about-kicker">02 / PRACTICE</p>
+      <h2 id="about-path-title">我如何工作</h2>
+      <p>技术是入口，长期主义是方法。这里记录我反复回到的几条路径。</p>
+    </div>
+    <ol class="about-timeline">
+      <li>
+        <span class="about-timeline-year">01</span>
+        <div><strong>先把问题说清楚</strong><p>从现象、约束和边界开始，避免过早被实现细节带走。</p></div>
+      </li>
+      <li>
+        <span class="about-timeline-year">02</span>
+        <div><strong>再把系统跑起来</strong><p>偏爱可验证的代码、可观测的服务和能在真实环境里工作的方案。</p></div>
+      </li>
+      <li>
+        <span class="about-timeline-year">03</span>
+        <div><strong>最后留下记录</strong><p>把踩过的坑、做过的取舍和仍然开放的问题写成下一次的起点。</p></div>
+      </li>
+    </ol>
+  </section>
+
+  <section class="about-focus about-reveal" id="about-focus" aria-labelledby="about-focus-title">
+    <div class="about-section-heading">
+      <p class="about-kicker">03 / CURRENTLY EXPLORING</p>
+      <h2 id="about-focus-title">当前关注</h2>
+      <p>这些关键词会随着项目和阅读变化，但它们构成了最近一段时间的地图。</p>
+    </div>
+    <div class="about-focus-list">
+      <a class="about-focus-item" href="/categories/web/"><span>01</span><strong>Go & Web 服务</strong><i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+      <a class="about-focus-item" href="/categories/cloud/"><span>02</span><strong>Cloud Native</strong><i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+      <a class="about-focus-item" href="/categories/cloud/k8s/"><span>03</span><strong>Kubernetes & KubeEdge</strong><i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+      <a class="about-focus-item" href="/tags/流程分析/"><span>04</span><strong>源码与流程分析</strong><i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+      <a class="about-focus-item" href="/categories/poem/"><span>05</span><strong>诗与散文</strong><i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+    </div>
+  </section>
+
+  <section class="about-stack about-reveal" id="about-stack" aria-labelledby="about-stack-title">
+    <div class="about-section-heading about-stack-heading">
+      <p class="about-kicker">04 / THE TOOLBOX</p>
+      <h2 id="about-stack-title">我的技术栈</h2>
+      <p>这些 Logo 不是技能清单，而是我在文章、项目和故障现场里反复使用的工具。</p>
+      <p class="about-stack-note"><strong>15</strong><span>tools in rotation</span></p>
+    </div>
+    <div class="about-stack-groups">
+      <section class="about-stack-group" aria-labelledby="about-stack-language">
+        <div class="about-stack-group-heading"><span>01</span><h3 id="about-stack-language">语言与数据</h3></div>
+        <div class="about-stack-grid">
+          <a class="about-stack-item" href="/categories/web/" aria-label="Go，后端服务">
+            <span class="about-stack-logo"><img src="/img/golang.png" alt="Go" width="1920" height="1080" loading="lazy" decoding="async"></span>
+            <span class="about-stack-label"><strong>Go</strong><small>后端服务</small></span>
+            <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i>
+          </a>
+          <a class="about-stack-item" href="/categories/database/mysql/" aria-label="MySQL，数据存储">
+            <span class="about-stack-logo"><img src="/img/mysql.png" alt="MySQL" width="1000" height="270" loading="lazy" decoding="async"></span>
+            <span class="about-stack-label"><strong>MySQL</strong><small>数据存储</small></span>
+            <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i>
+          </a>
+          <a class="about-stack-item" href="/categories/tools/git/" aria-label="Git，版本协作">
+            <span class="about-stack-logo"><img src="/img/git.jpeg" alt="Git" width="270" height="180" loading="lazy" decoding="async"></span>
+            <span class="about-stack-label"><strong>Git</strong><small>版本协作</small></span>
+            <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i>
+          </a>
+        </div>
+      </section>
+      <section class="about-stack-group" aria-labelledby="about-stack-container">
+        <div class="about-stack-group-heading"><span>02</span><h3 id="about-stack-container">容器与边缘</h3></div>
+        <div class="about-stack-grid">
+          <a class="about-stack-item" href="/categories/cloud/k8s/" aria-label="Kubernetes，容器编排">
+            <span class="about-stack-logo"><img src="/img/kubernetes.png" alt="Kubernetes" width="3600" height="3493" loading="lazy" decoding="async"></span>
+            <span class="about-stack-label"><strong>Kubernetes</strong><small>容器编排</small></span>
+            <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i>
+          </a>
+          <a class="about-stack-item" href="/categories/cloud/kubeedge/" aria-label="KubeEdge，边缘计算">
+            <span class="about-stack-logo"><img src="/img/kubeedge.png" alt="KubeEdge" width="1266" height="552" loading="lazy" decoding="async"></span>
+            <span class="about-stack-label"><strong>KubeEdge</strong><small>边缘计算</small></span>
+            <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i>
+          </a>
+          <a class="about-stack-item" href="/categories/cloud/docker/" aria-label="Docker，容器工具">
+            <span class="about-stack-logo"><img src="/img/docker.png" alt="Docker" width="3840" height="2160" loading="lazy" decoding="async"></span>
+            <span class="about-stack-label"><strong>Docker</strong><small>容器工具</small></span>
+            <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i>
+          </a>
+          <a class="about-stack-item" href="/categories/cloud/k8s/containerd/" aria-label="containerd，运行时">
+            <span class="about-stack-logo"><img src="/img/containerd.png" alt="containerd" width="759" height="188" loading="lazy" decoding="async"></span>
+            <span class="about-stack-label"><strong>containerd</strong><small>运行时</small></span>
+            <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i>
+          </a>
+          <a class="about-stack-item" href="/categories/cloud/k8s/" aria-label="CRI-O，容器运行时">
+            <span class="about-stack-logo"><img src="/img/crio.png" alt="CRI-O" width="326" height="120" loading="lazy" decoding="async"></span>
+            <span class="about-stack-label"><strong>CRI-O</strong><small>容器运行时</small></span>
+            <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i>
+          </a>
+        </div>
+      </section>
+      <section class="about-stack-group" aria-labelledby="about-stack-platform">
+        <div class="about-stack-group-heading"><span>03</span><h3 id="about-stack-platform">平台与交付</h3></div>
+        <div class="about-stack-grid">
+          <a class="about-stack-item" href="/categories/cloud/Harbor/" aria-label="Harbor，镜像仓库">
+            <span class="about-stack-logo"><img src="/img/harbor.png" alt="Harbor" width="2655" height="755" loading="lazy" decoding="async"></span>
+            <span class="about-stack-label"><strong>Harbor</strong><small>镜像仓库</small></span>
+            <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i>
+          </a>
+          <a class="about-stack-item" href="/categories/cloud/devops/argo/" aria-label="Argo，持续交付">
+            <span class="about-stack-logo"><img src="/img/argo.png" alt="Argo" width="1500" height="696" loading="lazy" decoding="async"></span>
+            <span class="about-stack-label"><strong>Argo</strong><small>持续交付</small></span>
+            <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i>
+          </a>
+          <a class="about-stack-item" href="/categories/tools/" aria-label="Ubuntu，系统环境">
+            <span class="about-stack-logo"><img src="/img/ubuntu.png" alt="Ubuntu" width="1920" height="1080" loading="lazy" decoding="async"></span>
+            <span class="about-stack-label"><strong>Ubuntu</strong><small>系统环境</small></span>
+            <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i>
+          </a>
+          <a class="about-stack-item" href="/categories/tools/" aria-label="nerdctl，容器客户端">
+            <span class="about-stack-logo"><img src="/img/nerdctl.svg" alt="nerdctl" width="512" height="512" loading="lazy" decoding="async"></span>
+            <span class="about-stack-label"><strong>nerdctl</strong><small>容器客户端</small></span>
+            <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i>
+          </a>
+        </div>
+      </section>
+      <section class="about-stack-group" aria-labelledby="about-stack-observe">
+        <div class="about-stack-group-heading"><span>04</span><h3 id="about-stack-observe">可观测与网格</h3></div>
+        <div class="about-stack-grid">
+          <a class="about-stack-item" href="/categories/cloud/prometheus/" aria-label="Prometheus，指标监控">
+            <span class="about-stack-logo"><img src="/img/prometheus.png" alt="Prometheus" width="1920" height="1080" loading="lazy" decoding="async"></span>
+            <span class="about-stack-label"><strong>Prometheus</strong><small>指标监控</small></span>
+            <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i>
+          </a>
+          <a class="about-stack-item" href="/categories/cloud/grafana/" aria-label="Grafana，数据可视化">
+            <span class="about-stack-logo"><img src="/img/grafana.png" alt="Grafana" width="406" height="319" loading="lazy" decoding="async"></span>
+            <span class="about-stack-label"><strong>Grafana</strong><small>数据可视化</small></span>
+            <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i>
+          </a>
+          <a class="about-stack-item" href="/categories/cloud/Istio/" aria-label="Istio，服务网格">
+            <span class="about-stack-logo"><img src="/img/istio.png" alt="Istio" width="1795" height="1056" loading="lazy" decoding="async"></span>
+            <span class="about-stack-label"><strong>Istio</strong><small>服务网格</small></span>
+            <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i>
+          </a>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <section class="about-library about-reveal" id="about-library" aria-labelledby="about-library-title">
+    <div>
+      <p class="about-kicker">05 / THE LIBRARY</p>
+      <h2 id="about-library-title">这座小型档案馆</h2>
+    </div>
+    <dl class="about-library-facts">
+      <div><dt>文章</dt><dd>303</dd><span>从问题开始</span></div>
+      <div><dt>标签</dt><dd>96</dd><span>主题的交叉点</span></div>
+      <div><dt>分类</dt><dd>60</dd><span>知识的分支</span></div>
+    </dl>
+    <a class="about-library-link" href="/archives/"><span>打开时间轴</span><i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+  </section>
+
+  <section class="about-contact about-reveal" id="about-contact" aria-labelledby="about-contact-title">
+    <div class="about-contact-copy">
+      <p class="about-kicker">06 / OPEN CHANNEL</p>
+      <h2 id="about-contact-title">保持联系</h2>
+      <p>如果你也在做有趣的系统，或者只是想聊聊最近读到的东西，欢迎来信。</p>
+    </div>
+    <nav class="about-contact-links" aria-label="联系 Joohwan">
+      <a href="mailto:piwriw@163.com"><i class="fas fa-envelope" aria-hidden="true"></i><span><small>EMAIL</small>piwriw@163.com</span><i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+      <a href="https://github.com/Piwriw" target="_blank" rel="noopener noreferrer"><i class="fab fa-github" aria-hidden="true"></i><span><small>GITHUB</small>@Piwriw</span><i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+    </nav>
+  </section>
+</main>
+
+<script src="/js/about.js?v=20260719-motion-1" defer></script>
+</div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="darkmode" type="button" title="日间和夜间模式切换" aria-label="日间和夜间模式切换"><i class="fas fa-adjust"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置" aria-label="设置"><i class="fas fa-cog fa-spin"></i></button><button id="go-up" type="button" title="回到顶部" aria-label="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script></div><script src="/js/categories.js" defer></script><script src="/js/reading-progress.js"></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button" type="button" aria-label="关闭搜索" title="关闭搜索"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

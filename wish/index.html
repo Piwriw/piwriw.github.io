@@ -1,0 +1,300 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Keep Doing | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="{&quot;year&quot;:&quot;2024&quot;,&quot;completed&quot;:[{&quot;text&quot;:&quot;个人网站添加更多功能上线&quot;,&quot;date&quot;:&quot;2024.01&quot;}],&quot;pending&quot;:[{&quot;text&quot;:&quot;优秀毕业论文&quot;,&quot;date&quot;:&quot;2024&quot;},{&quot;text&quot;:&quot;毕业旅行&quot;,&quot;date&quot;:&quot;2024&quot;},{&quot;text&quot;:&quot;滑雪&quot;,&quot;date&quot;:&quot;2024&quot;},{&quot;text&quot;:&quot;爬山&quot;,&quot;date&quot;:&quot;">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Keep Doing">
+<meta property="og:url" content="https://piwriw.github.io/wish/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="{&quot;year&quot;:&quot;2024&quot;,&quot;completed&quot;:[{&quot;text&quot;:&quot;个人网站添加更多功能上线&quot;,&quot;date&quot;:&quot;2024.01&quot;}],&quot;pending&quot;:[{&quot;text&quot;:&quot;优秀毕业论文&quot;,&quot;date&quot;:&quot;2024&quot;},{&quot;text&quot;:&quot;毕业旅行&quot;,&quot;date&quot;:&quot;2024&quot;},{&quot;text&quot;:&quot;滑雪&quot;,&quot;date&quot;:&quot;2024&quot;},{&quot;text&quot;:&quot;爬山&quot;,&quot;date&quot;:&quot;">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/avatar.jpg">
+<meta property="article:published_time" content="2024-01-25T10:51:11.000Z">
+<meta property="article:modified_time" content="2026-07-21T14:26:53.620Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="Joohwan">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/avatar.jpg"><script type="application/ld+json"></script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/wish/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          const hour = new Date().getHours()
+          const isNight = hour <= 6 || hour >= 18
+          if (theme === undefined) isNight ? activateDarkMode() : activateLightMode()
+          else theme === 'light' ? activateLightMode() : activateDarkMode()
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":true},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '天',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Keep Doing',
+  isHighlightShrink: false,
+  isToc: false,
+  pageType: 'page'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">303</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">96</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="page type-wish" id="body-wrap"><header class="not-home-page" id="page-header"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a></span><div id="menus"><button id="search-button" type="button" aria-label="搜索" aria-haspopup="dialog"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></button><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><button id="toggle-menu" type="button" aria-label="打开导航菜单" aria-controls="sidebar-menus" aria-expanded="false"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></button></div></nav><div id="page-site-info"><h1 id="site-title">Keep Doing</h1></div></header><main class="layout hide-aside" id="content-inner"><div id="page"><div class="container" id="article-container"><link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Fira+Sans:wght@400;500;600;700&family=Newsreader:wght@500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/wish.css?v=20260719-solid-1">
+
+<main class="wish-container" id="wish-root" aria-labelledby="wish-overview-title">
+  <script type="application/json" id="wish-data">{"year":"2024","completed":[{"text":"个人网站添加更多功能上线","date":"2024.01"}],"pending":[{"text":"优秀毕业论文","date":"2024"},{"text":"毕业旅行","date":"2024"},{"text":"滑雪","date":"2024"},{"text":"爬山","date":"2024"},{"text":"属于自己全新的学习桌","date":"2024"},{"text":"摄影相机","date":"2024"}]}</script>
+
+  <section class="wish-intro wish-reveal" id="wish-overview">
+    <div class="wish-intro-copy">
+      <p class="wish-kicker"><span>01</span><span>ANNUAL INTENTIONS</span></p>
+      <h2 id="wish-overview-title">把想去的地方<br><em>写成下一步。</em></h2>
+      <p class="wish-intro-lede">愿望不是远处的装饰，而是一份可以回看的行动记录。这里保存正在发生的事，也保存还在路上的期待。</p>
+      <p class="wish-intro-note"><i class="fas fa-arrow-trend-up" aria-hidden="true"></i><span>慢一点，但持续向前。</span></p>
+    </div>
+    <div class="wish-year-mark" aria-label="2024 年愿望台账">
+      <span data-year>2024</span>
+      <small>KEEP<br>DOING</small>
+    </div>
+  </section>
+
+  <section class="wish-dashboard wish-reveal" aria-label="愿望完成概览">
+    <div class="wish-stat-grid">
+      <div class="wish-stat">
+        <span class="wish-stat-index">A</span>
+        <strong data-completed-count>--</strong>
+        <span>已完成</span>
+      </div>
+      <div class="wish-stat">
+        <span class="wish-stat-index">B</span>
+        <strong data-pending-count>--</strong>
+        <span>待完成</span>
+      </div>
+      <div class="wish-stat">
+        <span class="wish-stat-index">C</span>
+        <strong data-total-count>--</strong>
+        <span>愿望总数</span>
+      </div>
+    </div>
+    <div class="wish-progress-card">
+      <div class="wish-progress-copy">
+        <p class="wish-kicker">COMPLETION RATE</p>
+        <strong data-progress>--</strong>
+        <span data-progress-copy>正在整理这份清单</span>
+      </div>
+      <div class="wish-progress-visual" aria-hidden="true">
+        <span class="wish-progress-track"><i data-progress-bar></i></span>
+        <span class="wish-progress-mark">0</span>
+        <span class="wish-progress-mark">100</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="wish-list-heading wish-reveal" aria-labelledby="wish-list-title">
+    <div>
+      <p class="wish-kicker">02 / THE LEDGER</p>
+      <h2 id="wish-list-title">愿望清单</h2>
+      <p>用一个小动作，把期待从脑海移到日历里。</p>
+    </div>
+    <div class="wish-list-controls">
+      <div class="wish-filter-bar" role="tablist" aria-label="愿望状态筛选">
+        <button type="button" role="tab" aria-selected="true" data-filter="all"><i class="fas fa-layer-group" aria-hidden="true"></i><span>全部</span></button>
+        <button type="button" role="tab" aria-selected="false" data-filter="pending"><i class="fas fa-arrow-right" aria-hidden="true"></i><span>进行中</span></button>
+        <button type="button" role="tab" aria-selected="false" data-filter="completed"><i class="fas fa-check" aria-hidden="true"></i><span>已完成</span></button>
+      </div>
+      <label class="wish-search">
+        <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+        <span class="screen-reader-text">搜索愿望</span>
+        <input type="search" placeholder="搜索愿望" data-filter-search autocomplete="off">
+      </label>
+    </div>
+    <p class="wish-filter-status" data-filter-status aria-live="polite"></p>
+  </section>
+
+  <div class="wish-lists wish-reveal" data-wish-lists>
+    <section class="wish-list-section wish-list-section-completed" data-list-section="completed" aria-labelledby="wish-completed-title">
+      <header class="wish-section-heading">
+        <div class="wish-section-marker wish-section-marker-completed"><i class="fas fa-check" aria-hidden="true"></i></div>
+        <div><p class="wish-kicker">CLOSED LOOP</p><h3 id="wish-completed-title">已完成</h3></div>
+        <span class="wish-section-count" data-section-count="completed">--</span>
+      </header>
+      <div class="wish-list" data-wish-list="completed"></div>
+    </section>
+    <section class="wish-list-section wish-list-section-pending" data-list-section="pending" aria-labelledby="wish-pending-title">
+      <header class="wish-section-heading">
+        <div class="wish-section-marker wish-section-marker-pending"><i class="fas fa-arrow-right" aria-hidden="true"></i></div>
+        <div><p class="wish-kicker">OPEN THREADS</p><h3 id="wish-pending-title">进行中</h3></div>
+        <span class="wish-section-count" data-section-count="pending">--</span>
+      </header>
+      <div class="wish-list" data-wish-list="pending"></div>
+    </section>
+  </div>
+
+  <footer class="wish-footer wish-reveal">
+    <span class="wish-footer-line" aria-hidden="true"></span>
+    <p>愿每一份期待，都有一个值得抵达的明天。</p>
+    <span class="wish-footer-sub">KEEP SHOWING UP / KEEP DOING</span>
+  </footer>
+</main>
+
+<script src="/js/wish.js?v=20260718-2" defer></script>
+</div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="darkmode" type="button" title="日间和夜间模式切换" aria-label="日间和夜间模式切换"><i class="fas fa-adjust"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置" aria-label="设置"><i class="fas fa-cog fa-spin"></i></button><button id="go-up" type="button" title="回到顶部" aria-label="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script></div><script src="/js/categories.js" defer></script><script src="/js/reading-progress.js"></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button" type="button" aria-label="关闭搜索" title="关闭搜索"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

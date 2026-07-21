@@ -1,0 +1,509 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>文章统计 | Joohwan</title><meta name="author" content="Joohwan."><meta name="copyright" content="Joohwan."><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="EDITORIAL ANALYTICS &#x2F; LIVE       把写作的轨迹，摊开来看       每一篇记录都是一个坐标。这里用时间、主题与字数，重新观察这座持续生长的知识库。                          记录跨度         --                       发布峰值         --">
+<meta property="og:type" content="website">
+<meta property="og:title" content="文章统计">
+<meta property="og:url" content="https://piwriw.github.io/charts/index.html">
+<meta property="og:site_name" content="Joohwan">
+<meta property="og:description" content="EDITORIAL ANALYTICS &#x2F; LIVE       把写作的轨迹，摊开来看       每一篇记录都是一个坐标。这里用时间、主题与字数，重新观察这座持续生长的知识库。                          记录跨度         --                       发布峰值         --">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://piwriw.github.io/img/avatar.jpg">
+<meta property="article:published_time" content="2024-03-05T02:23:02.000Z">
+<meta property="article:modified_time" content="2026-07-21T14:26:53.548Z">
+<meta property="article:author" content="Joohwan.">
+<meta property="article:tag" content="Joohwan">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://piwriw.github.io/img/avatar.jpg"><script type="application/ld+json"></script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="https://piwriw.github.io/charts/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          const hour = new Date().getHours()
+          const isNight = hour <= 6 || hour >= 18
+          if (theme === undefined) isNight ? activateDarkMode() : activateLightMode()
+          else theme === 'light' ? activateLightMode() : activateDarkMode()
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"未找到符合您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":true},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '天',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '文章统计',
+  isHighlightShrink: false,
+  isToc: false,
+  pageType: 'page'
+}</script><script src="/js/welcome.js"></script><script src="https://npm.elemecdn.com/echarts@4.9.0/dist/echarts.min.js"></script><link rel="stylesheet" href="/css/categories.css"><link rel="stylesheet" href="/css/tabs.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">303</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">96</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div></div></div><div class="page type-charts" id="body-wrap"><header class="not-home-page" id="page-header" style="background-image: url(/img/index.png);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Joohwan</span></a></span><div id="menus"><button id="search-button" type="button" aria-label="搜索" aria-haspopup="dialog"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></button><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/charts/"><i class="fa-fw fas fa-folder-open"></i><span> 文章统计</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div><div class="menus_item"><a class="site-page" href="/wish/"><i class="fa-fw fas fa-tags"></i><span> 许愿墙</span></a></div></div><button id="toggle-menu" type="button" aria-label="打开导航菜单" aria-controls="sidebar-menus" aria-expanded="false"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></button></div></nav><div id="page-site-info"><h1 id="site-title">文章统计</h1></div></header><main class="layout" id="content-inner"><div id="page"><div class="container" id="article-container">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Fira+Sans:wght@400;500;600;700&family=Newsreader:wght@500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/charts.css">
+
+<div class="stats-dashboard" data-stats-state="loading">
+  <section class="stats-overview" id="stats-overview" aria-labelledby="stats-overview-title">
+    <div class="stats-overview-copy">
+      <p class="stats-kicker">EDITORIAL ANALYTICS / LIVE</p>
+      <h2 id="stats-overview-title">把写作的轨迹，摊开来看</h2>
+      <p>每一篇记录都是一个坐标。这里用时间、主题与字数，重新观察这座持续生长的知识库。</p>
+    </div>
+    <dl class="stats-brief" aria-label="数据概览">
+      <div>
+        <dt>记录跨度</dt>
+        <dd data-insight="coverage">--</dd>
+      </div>
+      <div>
+        <dt>发布峰值</dt>
+        <dd data-insight="peak-month">--</dd>
+      </div>
+      <div>
+        <dt>最近更新</dt>
+        <dd data-insight="latest-month">--</dd>
+      </div>
+    </dl>
+  </section>
+
+  <section class="stats-summary" aria-label="核心统计">
+    <article class="stats-metric">
+      <span class="stats-metric-index">01</span>
+      <i class="fas fa-file-alt" aria-hidden="true"></i>
+      <strong class="stats-metric-value" data-stat="posts">--</strong>
+      <span class="stats-metric-label">文章总数</span>
+      <small>POSTS PUBLISHED</small>
+    </article>
+    <article class="stats-metric">
+      <span class="stats-metric-index">02</span>
+      <i class="fas fa-tags" aria-hidden="true"></i>
+      <strong class="stats-metric-value" data-stat="tags">--</strong>
+      <span class="stats-metric-label">标签数量</span>
+      <small>TOPIC LABELS</small>
+    </article>
+    <article class="stats-metric">
+      <span class="stats-metric-index">03</span>
+      <i class="fas fa-folder-open" aria-hidden="true"></i>
+      <strong class="stats-metric-value" data-stat="categories">--</strong>
+      <span class="stats-metric-label">分类数量</span>
+      <small>KNOWLEDGE BRANCHES</small>
+    </article>
+    <article class="stats-metric">
+      <span class="stats-metric-index">04</span>
+      <i class="fas fa-align-left" aria-hidden="true"></i>
+      <strong class="stats-metric-value" data-stat="words">--</strong>
+      <span class="stats-metric-label">累计字数</span>
+      <small>WORDS RECORDED</small>
+    </article>
+  </section>
+
+  <section class="stats-panel stats-trend-panel" aria-labelledby="posts-chart-title">
+    <header class="stats-panel-header">
+      <div class="stats-panel-heading">
+        <span class="stats-section-number">01 / TIMELINE</span>
+        <h2 id="posts-chart-title">文章发布趋势</h2>
+        <p>按月观察写作节奏，峰值与沉静都属于长期记录的一部分。</p>
+      </div>
+      <div class="stats-range-control" role="group" aria-label="趋势时间范围">
+        <button type="button" data-range="12" aria-pressed="false">近 12 月</button>
+        <button type="button" data-range="24" aria-pressed="false">近 24 月</button>
+        <button type="button" data-range="all" aria-pressed="true">全部</button>
+      </div>
+    </header>
+    <div class="stats-chart-wrap stats-trend-chart-wrap">
+      <div class="stats-skeleton" aria-live="polite">正在整理时间数据</div>
+      <div id="posts-chart" class="stats-chart" role="img" aria-label="每月文章发布数量折线图"></div>
+    </div>
+    <dl class="stats-panel-insights" aria-label="发布趋势摘要">
+      <div>
+        <dt>活跃月份</dt>
+        <dd data-insight="active-months">--</dd>
+      </div>
+      <div>
+        <dt>单月峰值</dt>
+        <dd data-insight="peak-count">--</dd>
+      </div>
+      <div>
+        <dt>月均发布</dt>
+        <dd data-insight="monthly-average">--</dd>
+      </div>
+    </dl>
+  </section>
+
+  <div class="stats-rankings">
+    <section class="stats-panel stats-ranking-panel" aria-labelledby="tags-chart-title">
+      <header class="stats-panel-header">
+        <div class="stats-panel-heading">
+          <span class="stats-section-number">02 / TOPICS</span>
+          <h2 id="tags-chart-title">热门标签</h2>
+          <p>高频标签呈现内容长期聚焦的技术主题。</p>
+        </div>
+        <a class="stats-panel-link" href="/tags/" aria-label="查看全部标签" title="查看全部标签">
+          <i class="fas fa-arrow-right" aria-hidden="true"></i>
+        </a>
+      </header>
+      <div class="stats-chart-wrap">
+        <div class="stats-skeleton" aria-live="polite">正在整理标签数据</div>
+        <div id="tags-chart" class="stats-chart" role="img" aria-label="热门标签文章数量排行图"></div>
+      </div>
+      <p class="stats-ranking-leader"><span>最高频标签</span><strong data-insight="top-tag">--</strong></p>
+    </section>
+
+    <section class="stats-panel stats-ranking-panel" aria-labelledby="categories-chart-title">
+      <header class="stats-panel-header">
+        <div class="stats-panel-heading">
+          <span class="stats-section-number">03 / BRANCHES</span>
+          <h2 id="categories-chart-title">分类排行</h2>
+          <p>按关联文章数排序；父子分类可能同时关联同一篇文章。</p>
+        </div>
+        <a class="stats-panel-link" href="/categories/" aria-label="查看全部分类" title="查看全部分类">
+          <i class="fas fa-arrow-right" aria-hidden="true"></i>
+        </a>
+      </header>
+      <div class="stats-chart-wrap">
+        <div class="stats-skeleton" aria-live="polite">正在整理分类数据</div>
+        <div id="categories-chart" class="stats-chart" role="img" aria-label="分类关联文章数量排行图"></div>
+      </div>
+      <p class="stats-ranking-leader"><span>最大知识分支</span><strong data-insight="top-category">--</strong></p>
+    </section>
+  </div>
+
+  <section class="stats-data-error" role="alert" hidden>
+    <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
+    <div>
+      <h2>统计数据暂时不可用</h2>
+      <p>页面结构已经就绪，但数据文件未能完成加载。</p>
+    </div>
+    <button type="button" class="stats-retry">
+      <i class="fas fa-redo" aria-hidden="true"></i>
+      <span>重新加载</span>
+    </button>
+  </section>
+
+  <footer class="stats-footer">
+    <div>
+      <p>END OF REPORT</p>
+      <h2>从数据回到每一篇记录</h2>
+      <span>统计只是索引，文章本身才是这段写作路径。</span>
+    </div>
+    <nav aria-label="继续浏览">
+      <a href="/archives/"><i class="fas fa-stream" aria-hidden="true"></i><span>时间轴</span></a>
+      <a href="/categories/"><i class="fas fa-folder-open" aria-hidden="true"></i><span>分类</span></a>
+    </nav>
+  </footer>
+</div>
+
+<noscript>文章统计需要启用 JavaScript 后显示图表。</noscript>
+<script src="/js/charts.js" defer></script>
+</div><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="twikoo-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Joohwan.</div><div class="author-info-description">该知道的都知道，不知道的慢慢了解</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">303</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">96</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">60</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/piwriw"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/piwriw" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:piwriw@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget"><div class="item-headline"><i class="iconfont icat-visitor"></i><span>来访者</span></div><div class="item-content"><div id="welcome-info"></div></div></div><div class="sticky_layout"><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/03/26/cloud/arch/Kubernetes%E9%80%9A%E4%BF%A1%E9%93%BE%E8%B7%AF%E8%AF%A6%E7%BB%86%E5%88%86%E6%9E%90/" title="Kubernetes 通信链路详细分析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="Kubernetes 通信链路详细分析"/></a><div class="content"><a class="title" href="/2026/03/26/cloud/arch/Kubernetes%E9%80%9A%E4%BF%A1%E9%93%BE%E8%B7%AF%E8%AF%A6%E7%BB%86%E5%88%86%E6%9E%90/" title="Kubernetes 通信链路详细分析">Kubernetes 通信链路详细分析</a><time datetime="2026-03-26T13:15:00.000Z" title="发表于 2026-03-26 21:15:00">2026-03-26</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-API%20Server%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="kube-apiserver 深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="kube-apiserver 深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-API%20Server%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="kube-apiserver 深度剖析">kube-apiserver 深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-kubelet%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="Kubelet 深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="Kubelet 深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-kubelet%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="Kubelet 深度剖析">Kubelet 深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-etcd%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="etcd 深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="etcd 深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-etcd%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="etcd 深度剖析">etcd 深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-%E5%AE%89%E5%85%A8%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="安全架构深度剖析"><img src="/img/k8s-go.jpg" onerror="this.onerror=null;this.src='/img/404.png'" alt="安全架构深度剖析"/></a><div class="content"><a class="title" href="/2026/03/25/cloud/arch/%E6%9E%B6%E6%9E%84-%E5%AE%89%E5%85%A8%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90/" title="安全架构深度剖析">安全架构深度剖析</a><time datetime="2026-03-25T13:15:00.000Z" title="发表于 2026-03-25 21:15:00">2026-03-25</time></div></div></div></div><div class="card-widget card-categories"><div class="item-headline">
+            <i class="fas fa-folder-open"></i>
+            <span>分类</span>
+            <a class="card-more-btn" href="/categories/" title="查看更多">
+      <i class="fas fa-angle-right"></i></a>
+          </div>
+          <ul class="card-category-list" id="aside-cat-list">
+            <li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/"><span class="card-category-list-name">basic</span><span class="card-category-list-count">36</span></a><ul class="card-category-list child"><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/go/"><span class="card-category-list-name">go</span><span class="card-category-list-count">14</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/"><span class="card-category-list-name">设计模式</span><span class="card-category-list-count">13</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/basic/%E9%9D%A2%E8%AF%95/"><span class="card-category-list-name">面试</span><span class="card-category-list-count">9</span></a></li></ul></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/braveheart/"><span class="card-category-list-name">braveheart</span><span class="card-category-list-count">1</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/cloud/"><span class="card-category-list-name">cloud</span><span class="card-category-list-count">210</span></a><ul class="card-category-list child"><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/cloud/Harbor/"><span class="card-category-list-name">Harbor</span><span class="card-category-list-count">1</span></a></li><li class="card-category-list-item "><a class="card-category-list-link" href="/categories/cloud/Istio/"><span class="card-category-list-name">Istio</span><span class="card-category-list-count">1</span></a></li></ul></li>
+          </ul></div><div class="card-widget card-tags"><div class="item-headline"><i class="fas fa-tags"></i><span>标签</span></div><div class="card-tag-cloud"><a href="/tags/kubemark/" style="font-size: 1.1em; color: #999">kubemark</a> <a href="/tags/Linux%E9%83%A8%E7%BD%B2Go/" style="font-size: 1.1em; color: #999">Linux部署Go</a> <a href="/tags/%E7%83%AD%E5%8A%A0%E8%BD%BD/" style="font-size: 1.1em; color: #999">热加载</a> <a href="/tags/status/" style="font-size: 1.1em; color: #999">status</a> <a href="/tags/jwt/" style="font-size: 1.1em; color: #999">jwt</a> <a href="/tags/%E8%87%AA%E5%AE%9A%E4%B9%89%E4%B8%9A%E5%8A%A1%E7%8A%B6%E6%80%81%E7%A0%81/" style="font-size: 1.1em; color: #999">自定义业务状态码</a> <a href="/tags/tools/" style="font-size: 1.37em; color: #99a4b2">tools</a> <a href="/tags/CoreDNS/" style="font-size: 1.1em; color: #999">CoreDNS</a> <a href="/tags/Istio/" style="font-size: 1.1em; color: #999">Istio</a> <a href="/tags/StorageClass/" style="font-size: 1.1em; color: #999">StorageClass</a> <a href="/tags/book/" style="font-size: 1.1em; color: #999">book</a> <a href="/tags/kube-proxy/" style="font-size: 1.32em; color: #99a2ae">kube-proxy</a> <a href="/tags/hpa/" style="font-size: 1.1em; color: #999">hpa</a> <a href="/tags/validation/" style="font-size: 1.1em; color: #999">validation</a> <a href="/tags/deployment/" style="font-size: 1.14em; color: #999b9d">deployment</a> <a href="/tags/%E4%B8%AD%E9%97%B4%E4%BB%B6/" style="font-size: 1.1em; color: #999">中间件</a> <a href="/tags/network/" style="font-size: 1.23em; color: #999ea6">network</a> <a href="/tags/docker/" style="font-size: 1.19em; color: #999da1">docker</a> <a href="/tags/argo/" style="font-size: 1.1em; color: #999">argo</a> <a href="/tags/gc/" style="font-size: 1.1em; color: #999">gc</a> <a href="/tags/%E6%8E%88%E6%9D%83/" style="font-size: 1.14em; color: #999b9d">授权</a> <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" style="font-size: 1.46em; color: #99a7bb">分布式</a> <a href="/tags/install/" style="font-size: 1.28em; color: #99a0aa">install</a> <a href="/tags/Gin/" style="font-size: 1.19em; color: #999da1">Gin</a> <a href="/tags/kustomize/" style="font-size: 1.1em; color: #999">kustomize</a> <a href="/tags/PVC/" style="font-size: 1.1em; color: #999">PVC</a> <a href="/tags/dasemonset/" style="font-size: 1.19em; color: #999da1">dasemonset</a> <a href="/tags/Deployment/" style="font-size: 1.1em; color: #999">Deployment</a> <a href="/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/" style="font-size: 1.32em; color: #99a2ae">微服务</a> <a href="/tags/cronjob/" style="font-size: 1.1em; color: #999">cronjob</a> <a href="/tags/mysql/" style="font-size: 1.14em; color: #999b9d">mysql</a> <a href="/tags/alertmanager%E6%BA%90%E7%A0%81/" style="font-size: 1.28em; color: #99a0aa">alertmanager源码</a> <a href="/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" style="font-size: 1.19em; color: #999da1">数据结构</a> <a href="/tags/kube-apiserver/" style="font-size: 1.41em; color: #99a5b7">kube-apiserver</a> <a href="/tags/kubeadm/" style="font-size: 1.19em; color: #999da1">kubeadm</a> <a href="/tags/%E6%BA%90%E7%A0%81/" style="font-size: 1.46em; color: #99a7bb">源码</a> <a href="/tags/crio/" style="font-size: 1.1em; color: #999">crio</a> <a href="/tags/alertmanager/" style="font-size: 1.32em; color: #99a2ae">alertmanager</a> <a href="/tags/%E6%9E%B6%E6%9E%84%E5%88%86%E6%9E%90/" style="font-size: 1.5em; color: #99a9bf">架构分析</a> <a href="/tags/private/" style="font-size: 1.23em; color: #999ea6">private</a></div></div><div class="card-widget card-archives">
+    <div class="item-headline">
+      <i class="fas fa-archive"></i>
+      <span>归档</span>
+      <a class="card-more-btn" href="/archives/"
+            title="查看更多">
+            <i class="fas fa-angle-right"></i>
+          </a>
+    </div>
+  
+    <ul class="card-archive-list">
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2026/03/">
+            <span class="card-archive-list-date">
+              三月 2026
+            </span>
+            <span class="card-archive-list-count">44</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2026/01/">
+            <span class="card-archive-list-date">
+              一月 2026
+            </span>
+            <span class="card-archive-list-count">10</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/09/">
+            <span class="card-archive-list-date">
+              九月 2025
+            </span>
+            <span class="card-archive-list-count">1</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/08/">
+            <span class="card-archive-list-date">
+              八月 2025
+            </span>
+            <span class="card-archive-list-count">6</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/07/">
+            <span class="card-archive-list-date">
+              七月 2025
+            </span>
+            <span class="card-archive-list-count">11</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/06/">
+            <span class="card-archive-list-date">
+              六月 2025
+            </span>
+            <span class="card-archive-list-count">1</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/05/">
+            <span class="card-archive-list-date">
+              五月 2025
+            </span>
+            <span class="card-archive-list-count">1</span>
+          </a>
+        </li>
+      
+        <li class="card-archive-list-item">
+          <a class="card-archive-list-link" href="/archives/2025/03/">
+            <span class="card-archive-list-date">
+              三月 2025
+            </span>
+            <span class="card-archive-list-count">11</span>
+          </a>
+        </li>
+      
+    </ul>
+  </div><div class="card-widget card-webinfo"><div class="item-headline"><i class="fas fa-chart-line"></i><span>网站信息</span></div><div class="webinfo"><div class="webinfo-item"><div class="item-name">文章数目 :</div><div class="item-count">303</div></div><div class="webinfo-item"><div class="item-name">运行时间 :</div><div class="item-count" id="runtimeshow" data-publishDate="2023-07-01T00:00:00.000Z"><i class="fa-solid fa-spinner fa-spin"></i></div></div><div class="webinfo-item"><div class="item-name">本站总字数 :</div><div class="item-count">777.3k</div></div><div class="webinfo-item"><div class="item-name">本站访客数 :</div><div class="item-count" id="busuanzi_value_site_uv"><i class="fa-solid fa-spinner fa-spin"></i></div></div><div class="webinfo-item"><div class="item-name">本站总浏览量 :</div><div class="item-count" id="busuanzi_value_site_pv"><i class="fa-solid fa-spinner fa-spin"></i></div></div><div class="webinfo-item"><div class="item-name">最后更新时间 :</div><div class="item-count" id="last-push-date" data-lastPushDate="2026-07-21T14:27:26.683Z"><i class="fa-solid fa-spinner fa-spin"></i></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2023 - 2026 By Joohwan.</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="darkmode" type="button" title="日间和夜间模式切换" aria-label="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换" aria-label="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置" aria-label="设置"><i class="fas fa-cog fa-spin"></i></button><a id="to_comment" href="#post-comment" title="前往评论" aria-label="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部" aria-label="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const runMermaid = ele => {
+    window.loadMermaid = true
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+
+    ele.forEach((item, index) => {
+      const mermaidSrc = item.firstElementChild
+      const mermaidThemeConfig = `%%{init:{ 'theme':'${theme}'}}%%\n`
+      const mermaidID = `mermaid-${index}`
+      const mermaidDefinition = mermaidThemeConfig + mermaidSrc.textContent
+
+      const renderFn = mermaid.render(mermaidID, mermaidDefinition)
+      const renderMermaid = svg => {
+        mermaidSrc.insertAdjacentHTML('afterend', svg)
+      }
+
+      // mermaid v9 and v10 compatibility
+      typeof renderFn === 'string' ? renderMermaid(renderFn) : renderFn.then(({ svg }) => renderMermaid(svg))
+    })
+  }
+
+  const codeToMermaid = () => {
+    const codeMermaidEle = document.querySelectorAll('pre > code.mermaid')
+    if (codeMermaidEle.length === 0) return
+
+    codeMermaidEle.forEach(ele => {
+      const preEle = document.createElement('pre')
+      preEle.className = 'mermaid-src'
+      preEle.hidden = true
+      preEle.textContent = ele.textContent
+      const newEle = document.createElement('div')
+      newEle.className = 'mermaid-wrap'
+      newEle.appendChild(preEle)
+      ele.parentNode.replaceWith(newEle)
+    })
+  }
+
+  const loadMermaid = () => {
+    if (true) codeToMermaid()
+    const $mermaid = document.querySelectorAll('#article-container .mermaid-wrap')
+    if ($mermaid.length === 0) return
+
+    const runMermaidFn = () => runMermaid($mermaid)
+    btf.addGlobalFn('themeChange', runMermaidFn, 'mermaid')
+    window.loadMermaid ? runMermaidFn() : btf.getScript('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js').then(runMermaidFn)
+  }
+
+  btf.addGlobalFn('encrypt', loadMermaid, 'mermaid')
+  window.pjax ? loadMermaid() : document.addEventListener('DOMContentLoaded', loadMermaid)
+})()</script><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = null
+
+  const getCount = () => {
+    const countELement = document.getElementById('twikoo-count')
+    if(!countELement) return
+    twikoo.getCommentsCount({
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      urls: [window.location.pathname],
+      includeReply: false
+    }).then(res => {
+      countELement.textContent = res[0].count
+    }).catch(err => {
+      console.error(err)
+    })
+  }
+
+  const init = (el = document, path = location.pathname) => {
+    twikoo.init({
+      el: el.querySelector('#twikoo-wrap'),
+      envId: 'https://piwriw-twikoo-git-main-piwriw.vercel.app/',
+      region: 'ap-shanghai',
+      onCommentLoaded: () => {
+        btf.loadLightbox(document.querySelectorAll('#twikoo .tk-content img:not(.tk-owo-emotion)'))
+      },
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    
+
+    isShuoshuo && (window.shuoshuoComment.destroyTwikoo = () => {
+      if (el.children.length) {
+        el.innerHTML = ''
+        el.classList.add('no-comment')
+      }
+    })
+  }
+
+  const loadTwikoo = (el, path) => {
+    if (typeof twikoo === 'object') setTimeout(() => init(el, path), 0)
+    else btf.getScript('https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.all.min.js').then(() => init(el, path))
+  }
+
+  if (isShuoshuo) {
+    'Twikoo' === 'Twikoo'
+      ? window.shuoshuoComment = { loadComment: loadTwikoo }
+      : window.loadOtherComment = loadTwikoo
+    return
+  }
+
+  if ('Twikoo' === 'Twikoo' || !false) {
+    if (false) btf.loadComment(document.getElementById('twikoo-wrap'), loadTwikoo)
+    else loadTwikoo()
+  } else {
+    window.loadOtherComment = loadTwikoo
+  }
+})()</script></div><script src="/js/categories.js" defer></script><script src="/js/reading-progress.js"></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button" type="button" aria-label="关闭搜索" title="关闭搜索"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>
